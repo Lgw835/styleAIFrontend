@@ -1,5 +1,6 @@
 <script setup>
 import { ref } from 'vue';
+import TopNavBar from '@/components/TopNavBar.vue'
 
 // 当前激活的标签
 const activeTab = ref('follow'); // 'follow' 或 'recommend'
@@ -51,85 +52,81 @@ const toggleFollow = (post) => {
 </script>
 
 <template>
-  <div class="plaza-container">
-    <!-- 顶部导航栏 -->
-    <nav class="top-nav">
-      <div class="nav-container">
-        <h1 class="nav-title">广场圈子</h1>
-      </div>
-    </nav>
-
-    <!-- 标签页 -->
-    <div class="tabs">
-      <div class="tabs-container">
-        <div class="tab-buttons">
-          <button 
-            :class="['tab-button', { 'tab-active': activeTab === 'follow' }]" 
-            @click="switchTab('follow')"
-          >
-            关注
-          </button>
-          <button 
-            :class="['tab-button', { 'tab-active': activeTab === 'recommend' }]" 
-            @click="switchTab('recommend')"
-          >
-            推荐
-          </button>
+  <div class="plaza">
+    <TopNavBar title="广场圈子" />
+    <div class="plaza-container">
+      <!-- 标签页 -->
+      <div class="tabs">
+        <div class="tabs-container">
+          <div class="tab-buttons">
+            <button 
+              :class="['tab-button', { 'tab-active': activeTab === 'follow' }]" 
+              @click="switchTab('follow')"
+            >
+              关注
+            </button>
+            <button 
+              :class="['tab-button', { 'tab-active': activeTab === 'recommend' }]" 
+              @click="switchTab('recommend')"
+            >
+              推荐
+            </button>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- 内容区域 -->
-    <div class="content-container">
-      <div class="posts-list">
-        <!-- 帖子卡片 -->
-        <div v-for="post in posts" :key="post.id" class="post-card">
-          <div class="post-header">
-            <div class="user-info">
-              <img :src="post.avatar" class="avatar" :alt="post.author">
-              <div class="user-details">
-                <div class="username">{{ post.author }}</div>
-                <div class="location">IP属地：{{ post.location }}</div>
+      <!-- 内容区域 -->
+      <div class="content-container">
+        <div class="posts-list">
+          <!-- 帖子卡片 -->
+          <div v-for="post in posts" :key="post.id" class="post-card">
+            <div class="post-header">
+              <div class="user-info">
+                <img :src="post.avatar" class="avatar" :alt="post.author">
+                <div class="user-details">
+                  <div class="username">{{ post.author }}</div>
+                  <div class="location">IP属地：{{ post.location }}</div>
+                </div>
+              </div>
+              <button 
+                :class="['follow-button', { 'following': post.isFollowing }]"
+                @click="toggleFollow(post)"
+              >
+                {{ post.isFollowing ? '已关注' : '关注' }}
+              </button>
+            </div>
+            <p class="post-content">{{ post.content }}</p>
+            <div :class="['post-images', post.images.length === 2 ? 'two-images' : '']">
+              <img 
+                v-for="(image, index) in post.images" 
+                :key="index" 
+                :src="image" 
+                class="post-image" 
+                alt="穿搭图片"
+              >
+            </div>
+            <div class="post-actions">
+              <button class="action-button">
+                <i class="far fa-heart"></i>
+                <span>{{ post.likes }}</span>
+              </button>
+              <button class="action-button">
+                <i class="far fa-comment"></i>
+                <span>{{ post.comments }}</span>
+              </button>
+              <div class="action-button">
+                <i class="far fa-eye"></i>
+                <span>{{ post.views }}</span>
               </div>
             </div>
-            <button 
-              :class="['follow-button', { 'following': post.isFollowing }]"
-              @click="toggleFollow(post)"
-            >
-              {{ post.isFollowing ? '已关注' : '关注' }}
-            </button>
-          </div>
-          <p class="post-content">{{ post.content }}</p>
-          <div :class="['post-images', post.images.length === 2 ? 'two-images' : '']">
-            <img 
-              v-for="(image, index) in post.images" 
-              :key="index" 
-              :src="image" 
-              class="post-image" 
-              alt="穿搭图片"
-            >
-          </div>
-          <div class="post-actions">
-            <button class="action-button">
-              <i class="far fa-heart"></i>
-              <span>{{ post.likes }}</span>
-            </button>
-            <button class="action-button">
-              <i class="far fa-comment"></i>
-              <span>{{ post.comments }}</span>
-            </button>
-            <div class="action-button">
-              <i class="far fa-eye"></i>
-              <span>{{ post.views }}</span>
-            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- 发布按钮 -->
-    <div class="publish-button">
-      <i class="fas fa-pen-to-square"></i>
+      <!-- 发布按钮 -->
+      <div class="publish-button">
+        <i class="fas fa-pen-to-square"></i>
+      </div>
     </div>
   </div>
 </template>
@@ -140,33 +137,6 @@ const toggleFollow = (post) => {
   padding-bottom: 60px; /* 为底部导航栏留出空间 */
   background-color: #F5F5F5;
   min-height: 100vh;
-}
-
-/* 顶部导航栏 */
-.top-nav {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  background-color: white;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  z-index: 20;
-}
-
-.nav-container {
-  display: flex;
-  align-items: center;
-  height: 56px;
-  padding: 0 16px;
-  max-width: 640px;
-  margin: 0 auto;
-}
-
-.nav-title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #111827;
-  text-align: left;
 }
 
 /* 标签页 */

@@ -1,84 +1,80 @@
 <template>
-  <div class="profile-container">
-    <!-- 顶部标题栏 -->
-    <nav class="top-nav">
-      <div class="nav-container">
-        <h1 class="nav-title">我的衣柜</h1>
-      </div>
-    </nav>
-
-    <!-- 添加一个内容容器 -->
-    <div class="content-wrapper">
-      <!-- 用户信息卡片 -->
-      <div class="user-card">
-        <div class="user-info">
-          <div class="avatar-container">
-            <div class="avatar">
-              <span>用户头像</span>
-              <button class="camera-btn">
-                <i class="fas fa-camera"></i>
-              </button>
+  <div class="profile">
+    <TopNavBar title="我的衣柜" />
+    <div class="profile-container">
+      <!-- 添加一个内容容器 -->
+      <div class="content-wrapper">
+        <!-- 用户信息卡片 -->
+        <div class="user-card">
+          <div class="user-info">
+            <div class="avatar-container">
+              <div class="avatar">
+                <span>用户头像</span>
+                <button class="camera-btn">
+                  <i class="fas fa-camera"></i>
+                </button>
+              </div>
             </div>
-          </div>
-          <div class="user-stats">
-            <h1 class="username">时尚达人</h1>
-            <div class="stats-grid">
-              <router-link to="/followers" class="stat-item">
-                <p class="stat-value">128</p>
-                <p class="stat-label">关注</p>
-              </router-link>
-              <router-link to="/fans" class="stat-item">
-                <p class="stat-value">256</p>
-                <p class="stat-label">粉丝</p>
-              </router-link>
-              <div class="stat-item">
-                <p class="stat-value">1024</p>
-                <p class="stat-label">获赞</p>
+            <div class="user-stats">
+              <h1 class="username">时尚达人</h1>
+              <div class="stats-grid">
+                <router-link to="/followers" class="stat-item">
+                  <p class="stat-value">128</p>
+                  <p class="stat-label">关注</p>
+                </router-link>
+                <router-link to="/fans" class="stat-item">
+                  <p class="stat-value">256</p>
+                  <p class="stat-label">粉丝</p>
+                </router-link>
+                <div class="stat-item">
+                  <p class="stat-value">1024</p>
+                  <p class="stat-label">获赞</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- 功能区 -->
-      <div class="features-container">
-        <!-- 基本信息设置 -->
-        <div class="card">
-          <h2 class="card-title">基本信息</h2>
-          <ul class="menu-list">
-            <li v-for="(item, index) in basicMenuItems" :key="index">
-              <router-link :to="item.route" class="menu-item">
-                <div class="content">
-                  <i :class="item.icon"></i>
-                  <span class="label">{{ item.label }}</span>
-                  <span class="description">{{ item.description }}</span>
-                </div>
-                <i class="fas fa-chevron-right arrow"></i>
-              </router-link>
-            </li>
-          </ul>
+        <!-- 功能区 -->
+        <div class="features-container">
+          <!-- 基本信息设置 -->
+          <div class="card">
+            <h2 class="card-title">基本信息</h2>
+            <ul class="menu-list">
+              <li v-for="(item, index) in basicMenuItems" :key="index">
+                <router-link :to="item.route" class="menu-item">
+                  <div class="content">
+                    <i :class="item.icon"></i>
+                    <span class="label">{{ item.label }}</span>
+                    <span class="description">{{ item.description }}</span>
+                  </div>
+                  <i class="fas fa-chevron-right arrow"></i>
+                </router-link>
+              </li>
+            </ul>
+          </div>
+
+          <!-- 其他功能 -->
+          <div class="card">
+            <ul class="menu-list">
+              <li v-for="(item, index) in otherMenuItems" :key="index">
+                <router-link :to="item.route" class="menu-item">
+                  <div class="content">
+                    <i :class="item.icon"></i>
+                    <span class="label">{{ item.label }}</span>
+                    <span v-if="item.description" class="description">{{ item.description }}</span>
+                  </div>
+                  <i class="fas fa-chevron-right arrow"></i>
+                </router-link>
+              </li>
+            </ul>
+          </div>
+
+          <!-- 退出登录按钮 -->
+          <button class="logout-btn" @click="handleLogout">
+            退出登录
+          </button>
         </div>
-
-        <!-- 其他功能 -->
-        <div class="card">
-          <ul class="menu-list">
-            <li v-for="(item, index) in otherMenuItems" :key="index">
-              <router-link :to="item.route" class="menu-item">
-                <div class="content">
-                  <i :class="item.icon"></i>
-                  <span class="label">{{ item.label }}</span>
-                  <span v-if="item.description" class="description">{{ item.description }}</span>
-                </div>
-                <i class="fas fa-chevron-right arrow"></i>
-              </router-link>
-            </li>
-          </ul>
-        </div>
-
-        <!-- 退出登录按钮 -->
-        <button class="logout-btn" @click="handleLogout">
-          退出登录
-        </button>
       </div>
     </div>
   </div>
@@ -87,6 +83,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import TopNavBar from '@/components/TopNavBar.vue'
 
 const router = useRouter()
 
@@ -141,33 +138,6 @@ const handleLogout = () => {
   min-height: 100vh;
   background-color: #F7F7F7;
   padding-bottom: 60px;
-}
-
-/* 顶部导航栏 */
-.top-nav {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  background-color: white;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  z-index: 20;
-}
-
-.nav-container {
-  display: flex;
-  align-items: center;
-  height: 56px;
-  padding: 0 16px;
-  max-width: 640px;
-  margin: 0 auto;
-}
-
-.nav-title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #111827;
-  text-align: left;
 }
 
 /* 添加内容容器样式 */

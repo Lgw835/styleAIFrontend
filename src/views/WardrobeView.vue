@@ -1,4 +1,6 @@
 <script setup>
+import TopNavBar from '@/components/TopNavBar.vue'
+
 const categories = [
   { value: '', label: '全部类别' },
   { value: 'tops', label: '上装' },
@@ -68,12 +70,7 @@ const clothes = [
 
 <template>
   <div class="wardrobe">
-    <!-- 顶部导航栏 -->
-    <nav class="top-nav">
-      <div class="nav-container">
-        <h1 class="nav-title">我的衣柜</h1>
-      </div>
-    </nav>
+    <TopNavBar title="我的衣柜" />
 
     <!-- 主要内容区 -->
     <div class="content">
@@ -155,33 +152,6 @@ const clothes = [
   padding-top: 56px;
   min-height: 100vh;
   background-color: #f3f4f6;
-}
-
-/* 顶部导航栏 */
-.top-nav {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  background-color: white;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  z-index: 20;
-}
-
-.nav-container {
-  display: flex;
-  align-items: center;
-  height: 56px;
-  padding: 0 16px;
-  max-width: 640px;
-  margin: 0 auto;
-}
-
-.nav-title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #111827;
-  text-align: left;
 }
 
 .filter-bar {
