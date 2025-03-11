@@ -48,6 +48,11 @@ const router = createRouter({
       path: '/outfit-record',
       name: 'outfit-record',
       component: OutfitRecordView
+    },
+    {
+      path: '/outfit-result',
+      name: 'OutfitResult',
+      component: () => import('@/views/OutfitResultView.vue')
     }
   ]
 })

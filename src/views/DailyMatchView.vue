@@ -58,6 +58,7 @@ export default {
     startMatching() {
       // TODO: 实现匹配逻辑
       console.log('开始匹配');
+      this.$router.push('/outfit-result');
     }
   }
 }
