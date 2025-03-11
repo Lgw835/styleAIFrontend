@@ -21,6 +21,26 @@ const router = createRouter({
       component: () => import('../views/WardrobeView.vue')
     },
     {
+      path: '/wardrobe/:id',
+      name: 'clothing-detail',
+      component: () => import('../views/ClothingDetailView.vue')
+    },
+    {
+      path: '/wardrobe/upload',
+      name: 'wardrobe-upload',
+      component: () => import('../views/WardrobeUploadView.vue')
+    },
+    {
+      path: '/virtual-fitting',
+      name: 'virtual-fitting',
+      component: () => import('../views/VirtualFittingView.vue')
+    },
+    {
+      path: '/fitting-history',
+      name: 'fitting-history',
+      component: () => import('../views/FittingHistoryView.vue')
+    },
+    {
       path: '/plaza',
       name: 'plaza',
       component: PlazaView
