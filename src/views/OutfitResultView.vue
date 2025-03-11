@@ -419,15 +419,16 @@ export default {
     const showHistoryModal = ref(false)
     
     // 版本历史
+    // 版本历史
     const versionHistory = ref([
-      {
+    {
         version: 1,
         timestamp: '2024-03-15 15:10',
         description: '初始方案',
-        outfit: outfitPlan.value,
+        outfit: { ...outfitPlan.value }, // 使用展开运算符创建一个新对象，而不是引用
         prompt: aiPrompt.value
-      }
-    ])
+    }
+    ]);
 
     // 计算属性
     const canSave = computed(() => outfitImage.value !== null)
@@ -505,12 +506,39 @@ export default {
     }
 
     const restoreVersion = (version) => {
-      currentVersion.value = version.version
-      outfitPlan.value = version.outfit
-      aiPrompt.value = version.prompt
-      regenerateImage()
-      showHistoryModal.value = false
+    if (!version) return;
+    
+    currentVersion.value = version.version || 1;
+    
+    // 确保 version.outfit 存在且有正确的结构
+    if (version.outfit && typeof version.outfit === 'object') {
+        outfitPlan.value = {
+        top: version.outfit.top || '',
+        bottom: version.outfit.bottom || '',
+        accessories: version.outfit.accessories || '',
+        keyPoints: Array.isArray(version.outfit.keyPoints) ? [...version.outfit.keyPoints] : []
+        };
+    } else {
+        console.warn('恢复的版本数据结构不完整，使用默认方案');
+        // 使用默认方案
+        outfitPlan.value = {
+        top: '默认上装方案',
+        bottom: '默认下装方案',
+        accessories: '默认配饰方案',
+        keyPoints: ['默认搭配要点']
+        };
     }
+    
+    // 确保 prompt 存在
+    aiPrompt.value = version.prompt || '';
+    
+    // 重新生成图片
+    if (outfitImage.value) {
+        regenerateImage();
+    }
+    
+    showHistoryModal.value = false;
+    };
 
     return {
       currentVersion,
