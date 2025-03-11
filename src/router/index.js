@@ -3,6 +3,8 @@ import HomeView from '../views/HomeView.vue'
 import PlazaView from '../views/PlazaView.vue'
 import DailyMatchView from '../views/DailyMatchView.vue'
 import DressRecommendView from '../views/DressRecommendView.vue'
+import AIReviewView from '../views/AIReviewView.vue'
+import OutfitRecordView from '../views/OutfitRecordView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -36,6 +38,16 @@ const router = createRouter({
       path: '/dress-recommend',
       name: 'dress-recommend',
       component: DressRecommendView
+    },
+    {
+      path: '/ai-review',
+      name: 'ai-review',
+      component: AIReviewView
+    },
+    {
+      path: '/outfit-record',
+      name: 'outfit-record',
+      component: OutfitRecordView
     }
   ]
 })

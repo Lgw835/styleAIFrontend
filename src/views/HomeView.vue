@@ -48,18 +48,22 @@
           <p>个性化搭配建议</p>
         </router-link>
         <div class="feature-item">
-          <div class="icon-wrapper green">
-            <i class="fas fa-star"></i>
-          </div>
-          <h3>AI评价</h3>
-          <p>专业搭配点评</p>
+          <router-link to="/ai-review" class="block">
+            <div class="icon-wrapper green">
+              <i class="fas fa-star"></i>
+            </div>
+            <h3>AI评价</h3>
+            <p>专业搭配点评</p>
+          </router-link>
         </div>
         <div class="feature-item">
-          <div class="icon-wrapper yellow">
-            <i class="fas fa-history"></i>
-          </div>
-          <h3>穿搭记录</h3>
-          <p>查看历史搭配</p>
+          <router-link to="/outfit-record" class="block">
+            <div class="icon-wrapper yellow">
+              <i class="fas fa-history"></i>
+            </div>
+            <h3>穿搭记录</h3>
+            <p>查看历史搭配</p>
+          </router-link>
         </div>
       </div>
     </div>
