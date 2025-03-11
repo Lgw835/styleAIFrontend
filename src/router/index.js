@@ -5,6 +5,7 @@ import DailyMatchView from '../views/DailyMatchView.vue'
 import DressRecommendView from '../views/DressRecommendView.vue'
 import AIReviewView from '../views/AIReviewView.vue'
 import OutfitRecordView from '../views/OutfitRecordView.vue'
+import UploadOutfitView from '../views/UploadOutfitView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -53,6 +54,11 @@ const router = createRouter({
       path: '/outfit-result',
       name: 'OutfitResult',
       component: () => import('@/views/OutfitResultView.vue')
+    },
+    {
+      path: '/upload-outfit',
+      name: 'upload-outfit',
+      component: UploadOutfitView
     }
   ]
 })
