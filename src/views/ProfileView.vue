@@ -1,6 +1,6 @@
 <template>
   <div class="profile">
-    <TopNavBar title="我的衣柜" />
+    <TopNavBar title="我的" />
     <div class="profile-container">
       <!-- 添加一个内容容器 -->
       <div class="content-wrapper">

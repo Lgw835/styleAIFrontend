@@ -33,20 +33,20 @@
 
       <!-- 功能网格 -->
       <div class="feature-grid">
-        <div class="feature-item">
+        <router-link to="/daily-match" class="feature-item">
           <div class="icon-wrapper blue">
             <i class="fas fa-tshirt"></i>
           </div>
           <h3>每日一搭</h3>
           <p>AI为您精选搭配</p>
-        </div>
-        <div class="feature-item">
+        </router-link>
+        <router-link to="/dress-recommend" class="feature-item">
           <div class="icon-wrapper purple">
             <i class="fas fa-magic"></i>
           </div>
           <h3>穿搭推荐</h3>
           <p>个性化搭配建议</p>
-        </div>
+        </router-link>
         <div class="feature-item">
           <div class="icon-wrapper green">
             <i class="fas fa-star"></i>

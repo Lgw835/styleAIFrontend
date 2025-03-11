@@ -1,5 +1,15 @@
 <script setup>
-import { RouterView } from 'vue-router'
+import { RouterView, useRoute } from 'vue-router'
+
+// 获取当前路由
+const route = useRoute()
+
+// 判断是否显示底部导航栏的计算属性
+const showBottomNav = () => {
+  // 只在主页面显示底部导航栏
+  const mainRoutes = ['/', '/wardrobe', '/plaza', '/profile']
+  return mainRoutes.includes(route.path)
+}
 </script>
 
 <template>
@@ -8,7 +18,7 @@ import { RouterView } from 'vue-router'
     <RouterView />
     
     <!-- 底部导航栏 -->
-    <nav class="bottom-nav">
+    <nav v-if="showBottomNav()" class="bottom-nav">
       <RouterLink to="/" class="nav-item" active-class="active">
         <i class="fas fa-tshirt"></i>
         <span>智能穿搭</span>
@@ -33,6 +43,10 @@ import { RouterView } from 'vue-router'
 .app-container {
   min-height: 100vh;
   background-color: #f3f4f6;
+}
+
+/* 只在显示底部导航栏时添加底部padding */
+.app-container:has(.bottom-nav) {
   padding-bottom: 60px;
 }
 

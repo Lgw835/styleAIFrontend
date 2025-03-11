@@ -1,6 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import PlazaView from '../views/PlazaView.vue'
+import DailyMatchView from '../views/DailyMatchView.vue'
+import DressRecommendView from '../views/DressRecommendView.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -24,6 +26,16 @@ const router = createRouter({
       path: '/profile',
       name: 'profile',
       component: () => import('../views/ProfileView.vue')
+    },
+    {
+      path: '/daily-match',
+      name: 'daily-match',
+      component: DailyMatchView
+    },
+    {
+      path: '/dress-recommend',
+      name: 'dress-recommend',
+      component: DressRecommendView
     }
   ]
 })
