@@ -147,13 +147,40 @@ export default {
       this.gender = gender
     },
     handleNext() {
-      // TODO: 处理下一步逻辑
-      console.log({
+      // 表单验证
+      if (!this.selectedScene) {
+        alert('请选择穿搭场景')
+        return
+      }
+      
+      if (this.selectedTags.length === 0) {
+        alert('请至少选择一个形象标签')
+        return
+      }
+      
+      if (!this.gender) {
+        alert('请选择性别')
+        return
+      }
+
+      // 准备推荐数据
+      const recommendData = {
         useProfile: this.useProfile,
         selectedScene: this.selectedScene,
         selectedTags: this.selectedTags,
         gender: this.gender,
-        additionalInfo: this.additionalInfo
+        additionalInfo: this.additionalInfo.trim()
+      }
+      
+      // 导航到结果页面，并传递数据
+      this.$router.push({
+        name: 'OutfitResult',
+        query: {
+          scene: this.selectedScene,
+          tags: this.selectedTags.join(','),
+          gender: this.gender
+        },
+        state: recommendData
       })
     }
   }

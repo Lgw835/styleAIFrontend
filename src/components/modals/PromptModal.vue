@@ -29,6 +29,7 @@
         <button 
           class="flex-1 py-2 bg-blue-500 text-white rounded-lg"
           @click="save"
+          :disabled="!localPrompt.trim()"
         >
           应用并重新生成
         </button>
@@ -64,12 +65,13 @@ export default {
     })
     
     const close = () => {
+      localPrompt.value = props.prompt
       emit('update:show', false)
     }
     
     const save = () => {
-      emit('update:prompt', localPrompt.value)
-      close()
+      emit('update:prompt', localPrompt.value.trim())
+      emit('update:show', false)
     }
     
     return {
