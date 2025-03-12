@@ -163,24 +163,16 @@ export default {
         return
       }
 
-      // 准备推荐数据
-      const recommendData = {
-        useProfile: this.useProfile,
-        selectedScene: this.selectedScene,
-        selectedTags: this.selectedTags,
-        gender: this.gender,
-        additionalInfo: this.additionalInfo.trim()
-      }
-      
       // 导航到结果页面，并传递数据
       this.$router.push({
         name: 'outfit-result',
         query: {
           scene: this.selectedScene,
           tags: this.selectedTags.join(','),
-          gender: this.gender
-        },
-        state: recommendData
+          gender: this.gender,
+          useProfile: this.useProfile.toString(),
+          additionalInfo: this.additionalInfo.trim()
+        }
       })
     }
   }

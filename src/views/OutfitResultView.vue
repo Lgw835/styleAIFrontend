@@ -165,7 +165,17 @@ export default {
     const scene = route.query.scene || ''
     const tags = (route.query.tags || '').split(',').filter(Boolean)
     const gender = route.query.gender || ''
-    const recommendData = route.state || {}
+    const useProfile = route.query.useProfile === 'true'
+    const additionalInfo = route.query.additionalInfo || ''
+    
+    // 构建推荐数据对象
+    const recommendData = {
+      useProfile,
+      selectedScene: scene,
+      selectedTags: tags,
+      gender,
+      additionalInfo
+    }
     
     // 状态管理
     const currentVersion = ref(1)

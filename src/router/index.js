@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import PlazaView from '../views/PlazaView.vue'
 import DailyMatchView from '../views/DailyMatchView.vue'
@@ -8,7 +8,7 @@ import OutfitRecordView from '../views/OutfitRecordView.vue'
 import UploadOutfitView from '../views/UploadOutfitView.vue'
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHashHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
