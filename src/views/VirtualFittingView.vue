@@ -119,7 +119,18 @@
             <h3 class="text-lg font-medium">试衣效果</h3>
           </div>
           <div class="aspect-[3/4] bg-gray-100 rounded-lg overflow-hidden">
-            <div class="flex items-center justify-center h-full">
+            <div v-if="isLoading" class="flex flex-col items-center justify-center h-full">
+              <div class="loading-spinner mb-4"></div>
+              <p class="text-gray-500">正在生成试衣效果，请稍候...</p>
+            </div>
+            <div v-else-if="fittingResult" class="h-full">
+              <img 
+                :src="fittingResult" 
+                class="w-full h-full object-cover" 
+                alt="试衣效果"
+              >
+            </div>
+            <div v-else class="flex items-center justify-center h-full">
               <p class="text-gray-500">选择人物和衣物后查看试衣效果</p>
             </div>
           </div>
@@ -128,9 +139,15 @@
         <button 
           @click="startFitting"
           class="btn-primary w-full mt-4"
-          :disabled="!canStartFitting"
+          :disabled="!canStartFitting || isLoading"
         >
-          开始试衣
+          <template v-if="isLoading">
+            <i class="fas fa-spinner fa-spin mr-2"></i>
+            试衣中...
+          </template>
+          <template v-else>
+            开始试衣
+          </template>
         </button>
       </div>
 
@@ -160,6 +177,12 @@
           </button>
         </div>
       </div>
+
+      <!-- 错误消息 -->
+      <div v-if="errorMessage" class="error-message my-2 px-4 py-2 bg-red-100 text-red-600 rounded-lg">
+        <i class="fas fa-exclamation-circle mr-2"></i>
+        {{ errorMessage }}
+      </div>
     </div>
   </div>
 </template>
@@ -167,6 +190,7 @@
 <script setup>
 import { ref, computed } from 'vue'
 import SubPageNavBar from '@/components/SubPageNavBar.vue'
+import { Toast } from 'vant'  // 修正为正确的导入方式
 
 // 标签页配置
 const tabs = [
@@ -188,6 +212,8 @@ const personImage = ref(null)
 const clothImage = ref(null)
 const fittingResult = ref(null)
 const isFittingDone = ref(false)
+const isLoading = ref(false)
+const errorMessage = ref('')
 
 // 衣柜示例数据
 const wardrobeClothes = ref([
@@ -244,13 +270,84 @@ const handleClothUpload = (e) => {
 
 // 试衣功能
 const startFitting = async () => {
-  // TODO: 调用试衣API
-  isFittingDone.value = true
-  fittingResult.value = 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=600&h=800&fit=crop'
+  try {
+    isLoading.value = true
+    errorMessage.value = ''
+    
+    // 模拟API调用延迟
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    
+    // TODO: 替换为实际的API调用
+    // const response = await fetch('你的试衣API地址', {
+    //   method: 'POST',
+    //   body: JSON.stringify({
+    //     personImage: personImage.value,
+    //     clothImage: clothImage.value,
+    //     fittingType: selectedFittingType.value
+    //   })
+    // })
+    
+    // if (!response.ok) {
+    //   throw new Error('服务器响应错误')
+    // }
+    
+    // const data = await response.json()
+    // fittingResult.value = data.resultImage
+    
+    // 模拟结果
+    fittingResult.value = 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=600&h=800&fit=crop'
+    isFittingDone.value = true
+  } catch (error) {
+    console.error('试衣过程中出错:', error)
+    errorMessage.value = error.message || '试衣失败，请稍后重试'
+    Toast.fail(errorMessage.value) // 使用正确的 Vant Toast API
+  } finally {
+    isLoading.value = false
+  }
 }
 
-const regenerate = () => {
-  // TODO: 重新生成逻辑
+// 更新重新生成功能
+const regenerate = async () => {
+  try {
+    // 显示加载状态
+    isLoading.value = true
+    errorMessage.value = ''
+    
+    // 模拟API调用延迟
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    
+    // TODO: 替换为实际的API调用
+    // 与startFitting类似，但保持当前的人物和衣物图片不变
+    // const response = await fetch('你的试衣API地址', {
+    //   method: 'POST',
+    //   body: JSON.stringify({
+    //     personImage: personImage.value,
+    //     clothImage: clothImage.value,
+    //     fittingType: selectedFittingType.value,
+    //     regenerate: true  // 可以添加标记表示这是重新生成请求
+    //   })
+    // })
+    
+    // if (!response.ok) {
+    //   throw new Error('服务器响应错误')
+    // }
+    
+    // const data = await response.json()
+    // fittingResult.value = data.resultImage
+    
+    // 模拟生成不同结果
+    const randomId = Math.floor(Math.random() * 1000)
+    fittingResult.value = `https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=600&h=800&fit=crop&r=${randomId}`
+    
+    // 显示成功提示
+    Toast.success('已重新生成效果')
+  } catch (error) {
+    console.error('重新生成过程中出错:', error)
+    errorMessage.value = error.message || '重新生成失败，请稍后重试'
+    Toast.fail(errorMessage.value)
+  } finally {
+    isLoading.value = false
+  }
 }
 
 const resetFitting = () => {
@@ -261,6 +358,27 @@ const resetFitting = () => {
 
 const saveImage = () => {
   // TODO: 实现图片保存逻辑
+}
+
+// 添加从衣柜选择衣物的函数
+const selectFromWardrobe = (cloth) => {
+  // 将选中的衣物图片设置为当前衣物
+  clothImage.value = cloth.image
+  
+  // 根据衣物类型自动选择对应的试衣类别
+  if (cloth.type === 'top') {
+    selectedFittingType.value = 'upper'
+  } else if (cloth.type === 'bottom') {
+    selectedFittingType.value = 'lower'
+  } else if (cloth.type === 'full') {
+    selectedFittingType.value = 'full'
+  }
+  
+  // 可选：切换回上传标签页以便用户查看选中的衣物
+  activeTab.value = 'upload'
+  
+  // 显示成功提示
+  Toast.success('已选择：' + cloth.name)
 }
 </script>
 
@@ -310,5 +428,31 @@ const saveImage = () => {
 /* 调整顶部间距 */
 .pt-16 {
   padding-top: 4rem;
+}
+
+/* 加载动画样式 */
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid rgba(64, 150, 255, 0.2);
+  border-radius: 50%;
+  border-top-color: #4096FF;
+  animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* 错误消息样式 */
+.error-message {
+  font-size: 14px;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 </style> 
