@@ -47,7 +47,14 @@ const switchTab = (tab) => {
 
 // 切换关注状态
 const toggleFollow = (post) => {
-  post.isFollowing = !post.isFollowing;
+  // 查找当前帖子在数组中的索引
+  const index = posts.value.findIndex(p => p.id === post.id);
+  if (index !== -1) {
+    // 创建一个新的帖子对象并更新isFollowing属性
+    const updatedPost = { ...posts.value[index], isFollowing: !posts.value[index].isFollowing };
+    // 通过直接替换数组中的对象来确保响应式更新
+    posts.value[index] = updatedPost;
+  }
 };
 </script>
 
