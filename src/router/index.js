@@ -72,7 +72,7 @@ const router = createRouter({
     },
     {
       path: '/outfit-result',
-      name: 'OutfitResult',
+      name: 'outfit-result',
       component: () => import('@/views/OutfitResultView.vue')
     },
     {

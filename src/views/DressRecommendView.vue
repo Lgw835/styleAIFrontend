@@ -174,7 +174,7 @@ export default {
       
       // 导航到结果页面，并传递数据
       this.$router.push({
-        name: 'OutfitResult',
+        name: 'outfit-result',
         query: {
           scene: this.selectedScene,
           tags: this.selectedTags.join(','),
