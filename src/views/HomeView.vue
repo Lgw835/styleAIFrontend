@@ -88,6 +88,9 @@ export default {
 
 .content {
   padding: 16px;
+  max-height: calc(100vh - 56px);
+  overflow-y: auto;
+  box-sizing: border-box;
 }
 
 .weather-card, .lucky-color {
