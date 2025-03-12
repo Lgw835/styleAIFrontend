@@ -51,6 +51,26 @@ const router = createRouter({
       component: () => import('../views/ProfileView.vue')
     },
     {
+      path: '/edit-profile',
+      name: 'edit-profile',
+      component: () => import('../views/EditProfileView.vue')
+    },
+    {
+      path: '/user-portrait',
+      name: 'user-portrait',
+      component: () => import('../views/UserPortraitView.vue')
+    },
+    {
+      path: '/edit-portrait',
+      name: 'edit-portrait',
+      component: () => import('../views/EditPortraitView.vue')
+    },
+    {
+      path: '/change-password',
+      name: 'change-password',
+      component: () => import('../views/ChangePasswordView.vue')
+    },
+    {
       path: '/daily-match',
       name: 'daily-match',
       component: DailyMatchView
@@ -79,6 +99,36 @@ const router = createRouter({
       path: '/upload-outfit',
       name: 'upload-outfit',
       component: UploadOutfitView
+    },
+    {
+      path: '/schedule',
+      name: 'schedule',
+      component: () => import('@/views/ScheduleView.vue')
+    },
+    {
+      path: '/schedule-detail/:id',
+      name: 'schedule-detail',
+      component: () => import('@/views/ScheduleDetailView.vue')
+    },
+    {
+      path: '/schedule-edit',
+      name: 'schedule-add',
+      component: () => import('@/views/ScheduleEditView.vue')
+    },
+    {
+      path: '/schedule-edit/:id',
+      name: 'schedule-edit',
+      component: () => import('@/views/ScheduleEditView.vue')
+    },
+    {
+      path: '/help-center',
+      name: 'help-center',
+      component: () => import('@/views/HelpCenterView.vue')
+    },
+    {
+      path: '/contact-service',
+      name: 'contact-service',
+      component: () => import('@/views/ContactServiceView.vue')
     }
   ]
 })
