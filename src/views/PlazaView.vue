@@ -1,9 +1,13 @@
 <script setup>
 import { ref } from 'vue';
 import TopNavBar from '@/components/TopNavBar.vue'
+import PostPublisher from '@/components/PostPublisher.vue'
 
 // 当前激活的标签
 const activeTab = ref('follow'); // 'follow' 或 'recommend'
+
+// 显示发布帖子组件
+const showPublisher = ref(false);
 
 // 模拟的帖子数据
 const posts = ref([
@@ -56,6 +60,64 @@ const toggleFollow = (post) => {
     posts.value[index] = updatedPost;
   }
 };
+
+// 打开发布帖子弹窗
+const openPublisher = () => {
+  showPublisher.value = true;
+};
+
+// 关闭发布帖子弹窗
+const closePublisher = () => {
+  showPublisher.value = false;
+};
+
+// 处理发布帖子
+const handlePublish = (postData) => {
+  // 生成新帖子ID
+  const newPostId = posts.value.length > 0 ? Math.max(...posts.value.map(p => p.id)) + 1 : 1;
+  
+  // 提取媒体数据
+  let postImages = [];
+  let videoSource = '';
+  
+  if (postData.mediaType === 'image' && Array.isArray(postData.media)) {
+    // 最多只取9张图片
+    postImages = postData.media.slice(0, 9).map(img => img.url);
+  } else if (postData.mediaType === 'video' && postData.media) {
+    // 处理视频
+    videoSource = postData.media;
+  }
+  
+  // 创建新帖子对象
+  const newPost = {
+    id: newPostId,
+    author: '我', // 假设当前用户名
+    avatar: 'https://i.pravatar.cc/40?img=1', // 假设当前用户头像
+    location: '广州', // 假设当前用户位置
+    content: postData.content,
+    images: postImages,
+    video: videoSource, // 添加视频字段
+    mediaType: postData.mediaType, // 保存媒体类型
+    likes: '0',
+    comments: '0',
+    views: '0',
+    isFollowing: false,
+    // 可以添加标签信息，但不渲染在视图中
+    tags: {
+      hard: postData.hardTag,
+      soft: postData.softTags
+    }
+  };
+  
+  // 添加到帖子列表开头
+  posts.value.unshift(newPost);
+  
+  // 关闭发布窗口
+  showPublisher.value = false;
+  
+  // 切换到关注标签页，让用户立即看到自己发布的帖子
+  activeTab.value = 'follow';
+};
 </script>
 
 <template>
@@ -103,7 +165,17 @@ const toggleFollow = (post) => {
               </button>
             </div>
             <p class="post-content">{{ post.content }}</p>
-            <div :class="['post-images', post.images.length === 2 ? 'two-images' : '']">
+            
+            <!-- 图片显示 -->
+            <div 
+              v-if="post.images && post.images.length > 0" 
+              :class="[
+                'post-images', 
+                post.images.length === 1 ? 'one-image' : '',
+                post.images.length === 2 ? 'two-images' : '',
+                post.images.length === 4 ? 'four-images' : ''
+              ]"
+            >
               <img 
                 v-for="(image, index) in post.images" 
                 :key="index" 
@@ -112,6 +184,16 @@ const toggleFollow = (post) => {
                 alt="穿搭图片"
               >
             </div>
+            
+            <!-- 视频显示 -->
+            <div v-if="post.video" class="post-video">
+              <video 
+                controls 
+                :src="post.video" 
+                class="video-player"
+              ></video>
+            </div>
+            
             <div class="post-actions">
               <button class="action-button">
                 <i class="far fa-heart"></i>
@@ -127,13 +209,23 @@ const toggleFollow = (post) => {
               </div>
             </div>
           </div>
+          
+          <!-- 添加底部填充元素，确保最后一项内容完全可见 -->
+          <div class="bottom-placeholder"></div>
         </div>
       </div>
 
       <!-- 发布按钮 -->
-      <div class="publish-button">
+      <div class="publish-button" @click="openPublisher">
         <i class="fas fa-pen-to-square"></i>
       </div>
+      
+      <!-- 发布帖子组件 -->
+      <PostPublisher 
+        :visible="showPublisher" 
+        @close="closePublisher" 
+        @publish="handlePublish"
+      />
     </div>
   </div>
 </template>
@@ -144,6 +236,7 @@ const toggleFollow = (post) => {
   padding-bottom: 60px; /* 为底部导航栏留出空间 */
   background-color: #F5F5F5;
   min-height: 100vh;
+  position: relative; /* 确保相对定位 */
 }
 
 /* 标签页 */
@@ -204,8 +297,12 @@ const toggleFollow = (post) => {
 
 /* 内容区域 */
 .content-container {
-  height: calc(100vh - 104px);
+  /* 调整高度计算，考虑顶部标题(56px)、标签栏(48px)和底部导航栏(60px)的高度 */
+  height: calc(100vh - 164px); 
+  padding-bottom: 20px; /* 增加底部内边距，确保最后一项内容完全可见 */
   overflow-y: auto;
+  position: relative; /* 添加相对定位 */
+  -webkit-overflow-scrolling: touch; /* 增加iOS滚动性能 */
 }
 
 .posts-list {
@@ -213,6 +310,7 @@ const toggleFollow = (post) => {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding-bottom: 80px; /* 为发布按钮留出额外的空间 */
 }
 
 /* 帖子卡片 */
@@ -287,7 +385,28 @@ const toggleFollow = (post) => {
   margin-bottom: 12px;
 }
 
+/* 一张图片时的样式 */
+.post-images.one-image {
+  grid-template-columns: 1fr;
+}
+
+.post-images.one-image .post-image {
+  height: 240px;
+  width: 100%;
+  max-width: 100%;
+}
+
+/* 两张图片时的样式 */
 .post-images.two-images {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.post-images.two-images .post-image {
+  height: 160px;
+}
+
+/* 四张图片时的样式 */
+.post-images.four-images {
   grid-template-columns: repeat(2, 1fr);
 }
 
@@ -296,10 +415,6 @@ const toggleFollow = (post) => {
   height: 112px;
   object-fit: cover;
   border-radius: 4px;
-}
-
-.two-images .post-image {
-  height: 160px;
 }
 
 .post-actions {
@@ -327,7 +442,7 @@ const toggleFollow = (post) => {
 /* 发布按钮 */
 .publish-button {
   position: fixed;
-  bottom: 96px;
+  bottom: 76px; /* 调整位置，确保在底部导航栏上方且不会被遮挡 */
   right: 16px;
   width: 56px;
   height: 56px;
@@ -344,5 +459,26 @@ const toggleFollow = (post) => {
 
 .publish-button i {
   font-size: 1.25rem;
+}
+
+/* 视频样式 */
+.post-video {
+  margin-bottom: 12px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.video-player {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16/9;
+  object-fit: contain;
+  background-color: #000;
+}
+
+/* 添加底部占位符样式 */
+.bottom-placeholder {
+  height: 80px; /* 为底部留出足够的空间 */
+  width: 100%;
 }
 </style> 
