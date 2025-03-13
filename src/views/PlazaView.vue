@@ -232,7 +232,7 @@ const handlePublish = (postData) => {
 
 <style scoped>
 .plaza-container {
-  padding-top: 100px; /* 为顶部标题和标签页留出空间 */
+  padding-top: 56px; /* 从100px减少到56px，仅为顶部导航栏留出空间 */
   padding-bottom: 60px; /* 为底部导航栏留出空间 */
   background-color: #F5F5F5;
   min-height: 100vh;
@@ -242,7 +242,7 @@ const handlePublish = (postData) => {
 /* 标签页 */
 .tabs {
   position: fixed;
-  top: 56px;
+  top: 56px; /* 保持在顶部导航栏下方 */
   left: 0;
   right: 0;
   background-color: white;
@@ -299,6 +299,7 @@ const handlePublish = (postData) => {
 .content-container {
   /* 调整高度计算，考虑顶部标题(56px)、标签栏(48px)和底部导航栏(60px)的高度 */
   height: calc(100vh - 164px); 
+  margin-top: 48px; /* 添加上边距，为标签栏留出空间 */
   padding-bottom: 20px; /* 增加底部内边距，确保最后一项内容完全可见 */
   overflow-y: auto;
   position: relative; /* 添加相对定位 */
