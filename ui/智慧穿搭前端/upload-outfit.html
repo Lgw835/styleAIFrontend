@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>上传穿搭</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .content-container {
+            height: calc(100vh - 56px);
+            overflow-y: auto;
+        }
+        .content-container::-webkit-scrollbar {
+            width: 4px;
+        }
+        .content-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .content-container::-webkit-scrollbar-thumb {
+            background: #ddd;
+            border-radius: 4px;
+        }
+        .preview-image {
+            max-height: 300px;
+            max-width: 100%;
+            object-fit: contain;
+        }
+        .btn-primary {
+            background-color: #4096FF;
+            color: white;
+            border-radius: 8px;
+            padding: 10px 20px;
+            font-size: 16px;
+            border: none;
+            width: 100%;
+        }
+        .btn-primary:disabled {
+            background-color: #B3D4FF;
+        }
+    </style>
+</head>
+<body class="bg-[#F5F5F5]">
+    <!-- 顶部导航栏 -->
+    <nav class="bg-white shadow-sm fixed top-0 left-0 right-0 z-10">
+        <div class="max-w-7xl mx-auto">
+            <div class="flex justify-between h-14 items-center px-4">
+                <a href="javascript:history.back()" class="text-gray-600">
+                    <i class="fas fa-arrow-left"></i>
+                </a>
+                <h1 class="text-lg font-semibold text-gray-900">上传穿搭</h1>
+                <div class="w-6"></div> <!-- 占位，保持标题居中 -->
+            </div>
+        </div>
+    </nav>
+
+    <!-- 内容区域 -->
+    <div class="content-container pt-14 pb-20 px-4">
+        <!-- 上传区域 -->
+        <div class="upload-area rounded-lg p-8 mb-6 bg-white text-center">
+            <input type="file" id="image-upload" class="hidden" accept="image/*">
+            <label for="image-upload" class="cursor-pointer">
+                <div class="space-y-4">
+                    <i class="fas fa-cloud-upload-alt text-4xl text-gray-400"></i>
+                    <div class="text-gray-600">
+                        点击或拖拽上传穿搭照片
+                    </div>
+                    <div class="text-sm text-gray-400">
+                        支持 JPG、PNG 格式，大小不超过 10MB
+                    </div>
+                </div>
+            </label>
+        </div>
+
+        <!-- 图片预览区域 -->
+        <div id="preview-container" class="hidden mb-6">
+            <div class="bg-white rounded-lg p-4 text-center">
+                <h3 class="text-lg font-medium mb-4">预览</h3>
+                <img id="preview-image" src="#" alt="穿搭预览" class="preview-image mx-auto mb-4">
+                <button id="remove-image" class="text-red-500 text-sm">
+                    <i class="fas fa-trash-alt mr-1"></i> 删除图片
+                </button>
+            </div>
+        </div>
+
+        <!-- 提交按钮 -->
+        <button id="submit-button" class="btn-primary mb-6" disabled>
+            获取AI穿搭评价
+        </button>
+    </div>
+
+    <script>
+        // 图片上传和预览功能
+        const imageUpload = document.getElementById('image-upload');
+        const previewContainer = document.getElementById('preview-container');
+        const previewImage = document.getElementById('preview-image');
+        const removeImage = document.getElementById('remove-image');
+        const submitButton = document.getElementById('submit-button');
+
+        // 监听文件选择
+        imageUpload.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                // 验证文件类型
+                if (!file.type.match('image.*')) {
+                    alert('请上传图片文件');
+                    return;
+                }
+                
+                // 验证文件大小 (10MB = 10 * 1024 * 1024 bytes)
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('图片大小不能超过10MB');
+                    return;
+                }
+
+                // 创建预览
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImage.src = e.target.result;
+                    previewContainer.classList.remove('hidden');
+                    validateForm();
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // 删除图片
+        removeImage.addEventListener('click', function() {
+            imageUpload.value = '';
+            previewContainer.classList.add('hidden');
+            validateForm();
+        });
+
+        // 表单验证
+        function validateForm() {
+            if (imageUpload.files.length > 0) {
+                submitButton.disabled = false;
+            } else {
+                submitButton.disabled = true;
+            }
+        }
+
+        // 提交表单
+        submitButton.addEventListener('click', function() {
+            // 这里可以添加表单提交逻辑，例如AJAX请求
+            // 提交成功后跳转到评价结果页面
+            window.location.href = 'ai-review.html';
+        });
+
+        // 支持拖放上传
+        const uploadArea = document.querySelector('.upload-area');
+        
+        uploadArea.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.classList.add('bg-gray-50');
+        });
+        
+        uploadArea.addEventListener('dragleave', function() {
+            this.classList.remove('bg-gray-50');
+        });
+        
+        uploadArea.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('bg-gray-50');
+            
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                // 以编程方式设置文件输入的值
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                imageUpload.files = dataTransfer.files;
+                
+                // 触发change事件
+                const event = new Event('change', { bubbles: true });
+                imageUpload.dispatchEvent(event);
+            }
+        });
+    </script>
+</body>
+</html> 

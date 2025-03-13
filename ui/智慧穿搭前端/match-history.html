@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>穿搭记录</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .tab-active {
+            color: #4096FF;
+            position: relative;
+        }
+        .tab-active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: #4096FF;
+            border-radius: 2px;
+        }
+        .content-container {
+            height: calc(100vh - 104px);
+            overflow-y: auto;
+        }
+        .content-container::-webkit-scrollbar {
+            width: 4px;
+        }
+        .content-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .content-container::-webkit-scrollbar-thumb {
+            background: #ddd;
+            border-radius: 4px;
+        }
+        .record-card {
+            border-radius: 12px;
+            background: white;
+            margin-bottom: 12px;
+        }
+        .score-badge {
+            background: rgba(64, 150, 255, 0.1);
+            color: #4096FF;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .tag {
+            background: #F5F5F5;
+            color: #666;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body class="bg-[#F5F5F5]">
+    <!-- 顶部导航栏 -->
+    <nav class="bg-white shadow-sm fixed top-0 left-0 right-0 z-10">
+        <div class="max-w-7xl mx-auto">
+            <div class="flex justify-center h-14 items-center relative">
+                <h1 class="text-lg font-semibold text-gray-900">穿搭记录</h1>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 标签页 -->
+    <div class="bg-white fixed top-14 left-0 right-0 z-10">
+        <div class="flex justify-center border-b border-[#F0F0F0]">
+            <button class="tab-active px-8 py-3.5 text-sm font-medium">推荐记录</button>
+            <button class="text-[#666666] px-8 py-3.5 text-sm font-medium">评价记录</button>
+        </div>
+    </div>
+
+    <!-- 内容区域 -->
+    <div class="content-container pt-28 pb-20">
+        <div class="px-4">
+            <!-- 推荐记录卡片 -->
+            <div class="record-card p-4">
+                <div class="flex justify-between items-start mb-3">
+                    <div>
+                        <div class="text-base font-medium text-gray-900">春季通勤穿搭</div>
+                        <div class="text-xs text-gray-500 mt-1">2024-03-15 10:30</div>
+                    </div>
+                    <div class="score-badge">评分 9.5</div>
+                </div>
+                <div class="flex gap-2 mb-3">
+                    <span class="tag">商务场景</span>
+                    <span class="tag">知性优雅</span>
+                    <span class="tag">春季</span>
+                </div>
+                <div class="text-sm text-gray-600 mb-3 line-clamp-2">
+                    简约知性风格，米色风衣搭配白色丝质衬衫，下装选择高腰直筒西装裤，整体搭配既正式又不失温柔感。
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                    <img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=200&h=200&fit=crop" 
+                         class="w-full h-24 object-cover rounded-lg" alt="穿搭图片">
+                    <div class="col-span-2 bg-[#F8F9FA] rounded-lg p-3">
+                        <div class="text-xs text-gray-500 mb-1">AI 生成描述</div>
+                        <div class="text-sm text-gray-700 line-clamp-3">
+                            一位年轻女性穿着米色风衣，内搭白色丝质衬衫，下身是高腰直筒西装裤，整体造型简约大方，突出职业女性的知性美。
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI评价记录卡片 -->
+            <div class="record-card p-4">
+                <div class="flex justify-between items-start mb-3">
+                    <div>
+                        <div class="text-base font-medium text-gray-900">休闲运动风评价</div>
+                        <div class="text-xs text-gray-500 mt-1">2024-03-14 15:20</div>
+                    </div>
+                    <div class="score-badge">评分 8.5</div>
+                </div>
+                <div class="grid grid-cols-3 gap-2 mb-3">
+                    <img src="https://images.unsplash.com/photo-1483721310020-03333e577078?w=200&h=200&fit=crop" 
+                         class="w-full h-24 object-cover rounded-lg" alt="穿搭图片">
+                    <div class="col-span-2">
+                        <div class="flex gap-2 mb-2">
+                            <span class="tag">运动休闲</span>
+                            <span class="tag">舒适</span>
+                        </div>
+                        <div class="text-sm text-gray-600 line-clamp-2">
+                            灰色连帽卫衣搭配黑色运动裤，简约时尚的运动休闲风格，适合日常运动或周末休闲活动。
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-[#F8F9FA] rounded-lg p-3">
+                    <div class="text-xs text-gray-500 mb-1">AI 评价建议</div>
+                    <div class="text-sm text-gray-700">
+                        可以考虑在细节处增加亮色点缀，例如配饰或运动鞋，让整体造型更有亮点。建议选择机能性面料，提升运动实用性。
+                    </div>
+                </div>
+            </div>
+
+            <!-- 更多记录卡片 -->
+            <div class="record-card p-4">
+                <div class="flex justify-between items-start mb-3">
+                    <div>
+                        <div class="text-base font-medium text-gray-900">约会穿搭推荐</div>
+                        <div class="text-xs text-gray-500 mt-1">2024-03-13 18:45</div>
+                    </div>
+                    <div class="score-badge">评分 9.0</div>
+                </div>
+                <div class="flex gap-2 mb-3">
+                    <span class="tag">约会场景</span>
+                    <span class="tag">甜美</span>
+                    <span class="tag">春季</span>
+                </div>
+                <div class="text-sm text-gray-600 mb-3 line-clamp-2">
+                    甜美淑女风格，粉色针织开衫搭配白色蕾丝连衣裙，搭配精致配饰，打造浪漫约会造型。
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                    <img src="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?w=200&h=200&fit=crop" 
+                         class="w-full h-24 object-cover rounded-lg" alt="穿搭图片">
+                    <div class="col-span-2 bg-[#F8F9FA] rounded-lg p-3">
+                        <div class="text-xs text-gray-500 mb-1">AI 生成描述</div>
+                        <div class="text-sm text-gray-700 line-clamp-3">
+                            温柔甜美的约会装扮，粉色针织开衫搭配白色蕾丝连衣裙，突出女性柔美气质，适合浪漫的约会场合。
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

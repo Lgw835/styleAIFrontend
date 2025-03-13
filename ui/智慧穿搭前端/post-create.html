@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>发布帖子 - 智慧穿搭助手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background: #F7F7F7;
+            color: #333;
+        }
+        
+        .input-area {
+            background: white;
+            min-height: 150px;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .placeholder {
+            color: #9CA3AF;
+        }
+        
+        .image-preview {
+            position: relative;
+            width: calc(33.333% - 8px);
+            aspect-ratio: 1;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+        
+        .image-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .delete-button {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            width: 24px;
+            height: 24px;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+        
+        .add-image {
+            width: calc(33.333% - 8px);
+            aspect-ratio: 1;
+            background: #F3F4F6;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #9CA3AF;
+            margin-bottom: 8px;
+        }
+
+        .add-video {
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: #F3F4F6;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #9CA3AF;
+            margin-bottom: 8px;
+        }
+        
+        .video-preview {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16/9;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 8px;
+            background: #000;
+        }
+        
+        .video-preview video {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        
+        .tag-item {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 14px;
+            margin-right: 8px;
+            margin-bottom: 8px;
+            background: #F3F4F6;
+            color: #4B5563;
+        }
+        
+        .tag-item.selected {
+            background: #EBF5FF;
+            color: #2563EB;
+        }
+
+        .hard-tag-item {
+            display: inline-flex;
+            align-items: center;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 15px;
+            margin-right: 10px;
+            margin-bottom: 12px;
+            background: #F3F4F6;
+            color: #4B5563;
+            font-weight: 500;
+        }
+        
+        .hard-tag-item.selected {
+            background: #2563EB;
+            color: white;
+        }
+        
+        .media-type-switcher {
+            display: flex;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #E5E7EB;
+            margin-bottom: 16px;
+        }
+        
+        .media-type-option {
+            flex: 1;
+            text-align: center;
+            padding: 10px;
+            font-size: 14px;
+            color: #6B7280;
+            background: #F9FAFB;
+            position: relative;
+        }
+        
+        .media-type-option.active {
+            background: #2563EB;
+            color: white;
+        }
+        
+        .soft-tag-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #E5E7EB;
+            border-radius: 8px;
+            font-size: 15px;
+            margin-top: 8px;
+        }
+        
+        .soft-tag-input:focus {
+            outline: none;
+            border-color: #2563EB;
+            box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <nav class="bg-white h-14 flex items-center px-4 border-b fixed w-full top-0 z-10">
+        <button onclick="history.back()" class="text-gray-600">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <h1 class="text-lg font-medium text-center flex-1">发布帖子</h1>
+        <button id="publishBtn" class="px-4 py-1.5 bg-blue-500 text-white rounded-full text-sm">发布</button>
+    </nav>
+
+    <!-- 主要内容区 -->
+    <div class="pt-16 pb-20 px-4">
+        
+        <!-- 内容输入 -->
+        <div class="input-area mb-4">
+            <div class="min-h-[100px]" contenteditable="true" placeholder="分享你的穿搭心得..."></div>
+            
+            <!-- 媒体类型切换 -->
+            <div class="media-type-switcher mt-4">
+                <div class="media-type-option active" data-type="image">
+                    <i class="fas fa-image mr-1"></i> 图片
+                </div>
+                <div class="media-type-option" data-type="video">
+                    <i class="fas fa-video mr-1"></i> 视频
+                </div>
+            </div>
+            
+            <!-- 图片预览区域 (默认显示) -->
+            <div id="imageUploadSection" class="mt-2 flex flex-wrap gap-3">
+                <!-- 预览图1 -->
+                <div class="image-preview">
+                    <img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=200&h=200&fit=crop" alt="预览图">
+                    <button class="delete-button">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <!-- 预览图2 -->
+                <div class="image-preview">
+                    <img src="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?w=200&h=200&fit=crop" alt="预览图">
+                    <button class="delete-button">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <!-- 添加图片按钮 -->
+                <label for="imageUpload" class="add-image cursor-pointer">
+                    <i class="fas fa-plus text-xl mb-2"></i>
+                    <span class="text-xs">添加图片</span>
+                    <input type="file" id="imageUpload" accept="image/*" multiple class="hidden">
+                </label>
+            </div>
+            
+            <!-- 视频上传区域 (默认隐藏) -->
+            <div id="videoUploadSection" class="mt-2 hidden">
+                <!-- 视频预览 (上传后显示) -->
+                <div id="videoPreviewContainer" class="hidden">
+                    <div class="video-preview">
+                        <video controls id="videoPreview"></video>
+                        <button class="delete-button" id="deleteVideoBtn">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 添加视频按钮 -->
+                <label for="videoUpload" class="add-video cursor-pointer" id="addVideoLabel">
+                    <i class="fas fa-film text-2xl mb-2"></i>
+                    <span class="text-sm">添加视频</span>
+                    <span class="text-xs text-gray-400 mt-1">仅支持上传一个视频</span>
+                    <input type="file" id="videoUpload" accept="video/*" class="hidden">
+                </label>
+            </div>
+        </div>
+        
+        <!-- 硬标签选择 -->
+        <div class="bg-white rounded-xl p-4 mb-4">
+            <h3 class="text-base font-medium mb-3">选择一个类别 <span class="text-red-500">*</span></h3>
+            <div>
+                <div class="hard-tag-item selected" data-tag="生活">生活</div>
+                <div class="hard-tag-item" data-tag="工作">工作</div>
+                <div class="hard-tag-item" data-tag="休闲">休闲</div>
+                <div class="hard-tag-item" data-tag="运动">运动</div>
+                <div class="hard-tag-item" data-tag="聚会">聚会</div>
+                <div class="hard-tag-item" data-tag="约会">约会</div>
+                <div class="hard-tag-item" data-tag="其他">其他</div>
+            </div>
+        </div>
+        
+        <!-- 软标签输入 -->
+        <div class="bg-white rounded-xl p-4 mb-4">
+            <h3 class="text-base font-medium mb-2">添加穿搭标签</h3>
+            <p class="text-sm text-gray-500 mb-2">用#分隔多个标签，例如：#日常穿搭#职场搭配#简约风</p>
+            <input type="text" class="soft-tag-input" placeholder="输入标签..." id="softTagInput">
+            
+            <div class="mt-4">
+                <div class="text-sm text-gray-500 mb-2">常用标签：</div>
+                <div class="tag-item" data-tag="#日常穿搭"># 日常穿搭</div>
+                <div class="tag-item" data-tag="#职场穿搭"># 职场穿搭</div>
+                <div class="tag-item" data-tag="#约会装扮"># 约会装扮</div>
+                <div class="tag-item" data-tag="#休闲风格"># 休闲风格</div>
+                <div class="tag-item" data-tag="#春季搭配"># 春季搭配</div>
+                <div class="tag-item" data-tag="#配饰搭配"># 配饰搭配</div>
+            </div>
+        </div>
+        
+    </div>
+
+    <script>
+        // 处理 placeholder
+        const editableDiv = document.querySelector('[contenteditable=true]');
+        
+        editableDiv.addEventListener('focus', function() {
+            if (this.textContent.trim() === '') {
+                this.classList.remove('placeholder');
+                this.textContent = '';
+            }
+        });
+        
+        editableDiv.addEventListener('blur', function() {
+            if (this.textContent.trim() === '') {
+                this.classList.add('placeholder');
+                this.textContent = this.getAttribute('placeholder');
+            }
+        });
+        
+        // 初始化显示 placeholder
+        if (editableDiv.textContent.trim() === '') {
+            editableDiv.classList.add('placeholder');
+            editableDiv.textContent = editableDiv.getAttribute('placeholder');
+        }
+        
+        // 媒体类型切换
+        const mediaTypeOptions = document.querySelectorAll('.media-type-option');
+        const imageUploadSection = document.getElementById('imageUploadSection');
+        const videoUploadSection = document.getElementById('videoUploadSection');
+        
+        mediaTypeOptions.forEach(option => {
+            option.addEventListener('click', function() {
+                const type = this.getAttribute('data-type');
+                
+                // 更新选中状态
+                mediaTypeOptions.forEach(opt => opt.classList.remove('active'));
+                this.classList.add('active');
+                
+                // 显示对应的上传区域
+                if (type === 'image') {
+                    imageUploadSection.classList.remove('hidden');
+                    videoUploadSection.classList.add('hidden');
+                    // 清空视频
+                    const videoPreview = document.getElementById('videoPreview');
+                    videoPreview.src = '';
+                    document.getElementById('videoUpload').value = '';
+                    document.getElementById('videoPreviewContainer').classList.add('hidden');
+                    document.getElementById('addVideoLabel').classList.remove('hidden');
+                } else {
+                    imageUploadSection.classList.add('hidden');
+                    videoUploadSection.classList.remove('hidden');
+                    // 清空图片
+                    document.querySelectorAll('.image-preview').forEach(preview => {
+                        if (!preview.classList.contains('add-image')) {
+                            preview.remove();
+                        }
+                    });
+                    document.getElementById('imageUpload').value = '';
+                }
+            });
+        });
+        
+        // 处理图片上传
+        const imageUpload = document.getElementById('imageUpload');
+        const imagePreviewContainer = document.querySelector('#imageUploadSection');
+        const addImageLabel = document.querySelector('.add-image');
+        
+        imageUpload.addEventListener('change', function(event) {
+            const files = event.target.files;
+            
+            if (files) {
+                for (let i = 0; i < files.length; i++) {
+                    const file = files[i];
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(e) {
+                        const previewDiv = document.createElement('div');
+                        previewDiv.className = 'image-preview';
+                        
+                        previewDiv.innerHTML = `
+                            <img src="${e.target.result}" alt="预览图">
+                            <button class="delete-button">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        `;
+                        
+                        // 添加删除按钮事件
+                        previewDiv.querySelector('.delete-button').addEventListener('click', function() {
+                            previewDiv.remove();
+                        });
+                        
+                        // 插入到添加按钮之前
+                        imagePreviewContainer.insertBefore(previewDiv, addImageLabel);
+                    };
+                    
+                    reader.readAsDataURL(file);
+                }
+            }
+        });
+        
+        // 处理视频上传
+        const videoUpload = document.getElementById('videoUpload');
+        const videoPreviewContainer = document.getElementById('videoPreviewContainer');
+        const videoPreview = document.getElementById('videoPreview');
+        const addVideoLabel = document.getElementById('addVideoLabel');
+        
+        videoUpload.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            
+            if (file) {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    videoPreview.src = e.target.result;
+                    videoPreviewContainer.classList.remove('hidden');
+                    addVideoLabel.classList.add('hidden');
+                };
+                
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        // 删除视频
+        document.getElementById('deleteVideoBtn').addEventListener('click', function() {
+            videoPreview.src = '';
+            videoUpload.value = '';
+            videoPreviewContainer.classList.add('hidden');
+            addVideoLabel.classList.remove('hidden');
+        });
+        
+        // 处理预览图删除
+        document.querySelectorAll('.delete-button').forEach(button => {
+            button.addEventListener('click', function() {
+                this.closest('.image-preview').remove();
+            });
+        });
+        
+        // 处理硬标签选择（单选）
+        document.querySelectorAll('.hard-tag-item').forEach(tag => {
+            tag.addEventListener('click', function() {
+                // 移除其他标签的选中状态
+                document.querySelectorAll('.hard-tag-item').forEach(t => {
+                    t.classList.remove('selected');
+                });
+                // 选中当前标签
+                this.classList.add('selected');
+            });
+        });
+        
+        // 处理软标签推荐点击
+        document.querySelectorAll('.tag-item').forEach(tag => {
+            tag.addEventListener('click', function() {
+                const tagText = this.getAttribute('data-tag');
+                const softTagInput = document.getElementById('softTagInput');
+                
+                // 如果输入框为空，直接添加标签
+                if (!softTagInput.value.trim()) {
+                    softTagInput.value = tagText;
+                } else {
+                    // 检查是否已有该标签
+                    if (!softTagInput.value.includes(tagText)) {
+                        // 确保添加的格式正确
+                        if (softTagInput.value.endsWith('#')) {
+                            softTagInput.value += tagText.substring(1);
+                        } else if (softTagInput.value.endsWith(' ')) {
+                            softTagInput.value += tagText;
+                        } else {
+                            softTagInput.value += ' ' + tagText;
+                        }
+                    }
+                }
+                
+                // 标签选中效果
+                this.classList.toggle('selected');
+            });
+        });
+        
+        // 发布按钮处理
+        document.getElementById('publishBtn').addEventListener('click', function() {
+            // 收集表单数据
+            let content = editableDiv.textContent;
+            if (content === editableDiv.getAttribute('placeholder')) {
+                content = '';
+            }
+            
+            // 获取选中的硬标签
+            const selectedHardTag = document.querySelector('.hard-tag-item.selected').getAttribute('data-tag');
+            
+            // 获取软标签
+            const softTags = document.getElementById('softTagInput').value;
+            
+            // 检查是否有媒体文件
+            const activeMediaType = document.querySelector('.media-type-option.active').getAttribute('data-type');
+            let hasMedia = false;
+            
+            if (activeMediaType === 'image') {
+                const imageCount = document.querySelectorAll('.image-preview:not(.add-image)').length;
+                hasMedia = imageCount > 0;
+            } else {
+                hasMedia = videoPreview.src !== '';
+            }
+            
+            // 验证
+            if (!content.trim()) {
+                alert('请输入帖子内容');
+                return;
+            }
+            
+            if (!hasMedia) {
+                alert('请上传' + (activeMediaType === 'image' ? '图片' : '视频'));
+                return;
+            }
+            
+            // 收集的数据
+            const postData = {
+                content: content,
+                mediaType: activeMediaType,
+                hardTag: selectedHardTag,
+                softTags: softTags,
+            };
+            
+            console.log('帖子数据:', postData);
+            
+            // 模拟发布成功
+            alert('发布成功！');
+            window.location.href = 'community.html';
+        });
+    </script>
+</body>
+</html> 

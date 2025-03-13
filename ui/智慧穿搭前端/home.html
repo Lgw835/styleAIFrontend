@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能穿搭 - 智慧穿搭助手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: #6B7280;
+        }
+
+        .nav-item.active {
+            color: #4096FF;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="min-h-screen flex flex-col">
+        <!-- 顶部导航栏 -->
+        <nav class="bg-white h-12 flex items-center px-4 border-b fixed w-full top-0 z-10">
+            <h1 class="text-lg font-medium flex-1">智能穿搭</h1>
+            <a href="#" class="text-gray-600">
+                <i class="fas fa-bell"></i>
+            </a>
+        </nav>
+
+        <!-- 主要内容区 -->
+        <div class="flex-1 pt-12 pb-16"> <!-- 适应顶部导航和底部标签栏 -->
+            <!-- 天气卡片 -->
+            <div class="bg-white p-4 mx-4 mt-4 rounded-xl shadow-sm">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="text-lg font-medium">北京</h3>
+                        <p class="text-gray-500 text-sm">晴朗 • 空气优</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="text-3xl font-light">23°</p>
+                        <p class="text-gray-500 text-sm">15° / 26°</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 今日幸运色 -->
+            <div class="bg-white p-4 mx-4 mt-4 rounded-xl shadow-sm">
+                <h3 class="text-lg font-medium mb-3">今日幸运色</h3>
+                <div class="flex items-center space-x-4">
+                    <div class="w-16 h-16 rounded-full" style="background-color: #FFB6C1;"></div>
+                    <div>
+                        <p class="font-medium">浅粉红色</p>
+                        <p class="text-gray-500 text-sm">带来好运与温暖</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 功能入口网格 -->
+            <div class="grid grid-cols-2 gap-4 p-4">
+                <!-- 每日一搭 -->
+                <a href="daily-outfit.html" class="bg-white p-4 rounded-xl shadow-sm">
+                    <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mb-3">
+                        <i class="fas fa-tshirt text-blue-500 text-xl"></i>
+                    </div>
+                    <h3 class="font-medium">每日一搭</h3>
+                    <p class="text-gray-500 text-sm mt-1">AI为您精选搭配</p>
+                </a>
+
+                <!-- 穿搭推荐 -->
+                <div class="bg-white p-4 rounded-xl shadow-sm">
+                    <div class="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mb-3">
+                        <i class="fas fa-magic text-purple-500 text-xl"></i>
+                    </div>
+                    <h3 class="font-medium">穿搭推荐</h3>
+                    <p class="text-gray-500 text-sm mt-1">个性化搭配建议</p>
+                </div>
+
+                <!-- AI评价 -->
+                <div class="bg-white p-4 rounded-xl shadow-sm">
+                    <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-3">
+                        <i class="fas fa-star text-green-500 text-xl"></i>
+                    </div>
+                    <h3 class="font-medium">AI评价</h3>
+                    <p class="text-gray-500 text-sm mt-1">专业搭配点评</p>
+                </div>
+
+                <!-- 穿搭记录 -->
+                <div class="bg-white p-4 rounded-xl shadow-sm">
+                    <div class="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center mb-3">
+                        <i class="fas fa-history text-yellow-500 text-xl"></i>
+                    </div>
+                    <h3 class="font-medium">穿搭记录</h3>
+                    <p class="text-gray-500 text-sm mt-1">查看历史搭配</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部导航栏 -->
+        <nav class="bg-white border-t fixed bottom-0 w-full h-16 flex items-center justify-around">
+            <a href="#" class="flex flex-col items-center text-blue-500">
+                <i class="fas fa-tshirt text-xl"></i>
+                <span class="text-xs mt-1">智能穿搭</span>
+            </a>
+            <a href="#" class="flex flex-col items-center text-gray-400">
+                <i class="fas fa-box text-xl"></i>
+                <span class="text-xs mt-1">衣柜</span>
+            </a>
+            <a href="#" class="flex flex-col items-center text-gray-400">
+                <i class="fas fa-compass text-xl"></i>
+                <span class="text-xs mt-1">广场</span>
+            </a>
+            <a href="#" class="flex flex-col items-center text-gray-400">
+                <i class="fas fa-user text-xl"></i>
+                <span class="text-xs mt-1">我的</span>
+            </a>
+        </nav>
+    </div>
+</body>
+</html> 

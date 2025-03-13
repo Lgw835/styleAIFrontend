@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>穿搭推荐结果 - 智慧穿搭助手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .tab-active {
+            color: #4096FF;
+            border-bottom: 2px solid #4096FF;
+        }
+        
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: none;
+            z-index: 50;
+            overflow-y: auto;
+        }
+        
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .rating {
+            display: flex;
+            flex-direction: row-reverse;
+            justify-content: center;
+        }
+        
+        .rating input {
+            display: none;
+        }
+        
+        .rating label {
+            color: #ddd;
+            font-size: 28px;
+            padding: 0 2px;
+            cursor: pointer;
+        }
+        
+        .rating label:hover,
+        .rating label:hover ~ label,
+        .rating input:checked ~ label {
+            color: #FFD700;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="min-h-screen flex flex-col">
+        <!-- 顶部导航栏 -->
+        <nav class="bg-white h-12 flex items-center px-4 border-b fixed w-full top-0 z-10">
+            <a href="match-recommend.html" class="text-gray-600">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <h1 class="text-lg font-medium text-center flex-1">穿搭推荐</h1>
+            <button class="text-gray-500 hover:text-blue-500" id="historyBtn">
+                <i class="fas fa-history"></i>
+            </button>
+        </nav>
+
+        <!-- 主要内容区 -->
+        <div class="flex-1 pt-12 pb-4">
+            <div class="p-4 space-y-4">
+                <!-- 步骤指示器 -->
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center space-x-2">
+                        <span class="text-sm text-gray-500">版本 3</span>
+                    </div>
+                </div>
+
+                <!-- 推荐结果页 -->
+                <div id="result-tab" class="space-y-4">
+                    <!-- 穿搭方案 -->
+                    <div class="bg-white rounded-xl p-4 shadow-sm">
+                        <h3 class="text-lg font-medium mb-3">穿搭方案</h3>
+                        <div class="prose text-gray-600 text-sm leading-relaxed">
+                            <h4 class="font-medium text-black mb-2">上装</h4>
+                            <p class="mb-4">米色修身西装外套，搭配白色丝质衬衫，展现干练专业的形象。</p>
+                            
+                            <h4 class="font-medium text-black mb-2">下装</h4>
+                            <p class="mb-4">深灰色直筒西装裤，裤长恰到好处，突出腿部线条。</p>
+                            
+                            <h4 class="font-medium text-black mb-2">鞋子配饰</h4>
+                            <p class="mb-4">黑色尖头细跟高跟鞋，搭配简约银色项链和手表。</p>
+                            
+                            <h4 class="font-medium text-black mb-2">搭配要点</h4>
+                            <p>- 整体配色以中性色调为主，突出职业感<br>
+                               - 版型修身但不紧绷，保持舒适度<br>
+                               - 配饰简约大方，提升整体质感</p>
+                        </div>
+                    </div>
+
+                    <!-- 提示词描述 -->
+                    <div class="bg-white rounded-xl p-4 shadow-sm">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="text-lg font-medium">AI提示词</h3>
+                            <button class="text-sm text-blue-500" id="editPromptBtn">编辑</button>
+                        </div>
+                        <div class="bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
+                            <p id="prompt-display">professional business woman, wearing beige fitted blazer, white silk shirt, gray straight-leg pants, black pointed high heels, minimal silver accessories, clean and modern office background, natural lighting, 4k quality</p>
+                        </div>
+                    </div>
+
+                    <!-- AI生成的穿搭图片 -->
+                    <div class="bg-white rounded-xl p-4 shadow-sm">
+                        <div class="flex justify-between items-center mb-3">
+                            <h3 class="text-lg font-medium">穿搭效果图</h3>
+                            <div class="flex space-x-2">
+                                <button class="text-gray-600 hover:text-blue-500" id="regenerateImageBtn" style="display: none;">
+                                    <i class="fas fa-redo"></i>
+                                    <span class="text-sm ml-1">重新生成</span>
+                                </button>
+                                <button class="text-gray-600 hover:text-blue-500" id="downloadBtn" style="display: none;">
+                                    <i class="fas fa-download"></i>
+                                    <span class="text-sm ml-1">保存图片</span>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- 生成前的预览按钮 -->
+                        <button id="previewBtn" class="w-full py-4 bg-blue-500 hover:bg-blue-600 text-white rounded-lg flex items-center justify-center transition-colors mb-4">
+                            <i class="fas fa-magic text-xl mr-2"></i>
+                            <span>点击生成穿搭效果图</span>
+                        </button>
+
+                        <!-- 生成进度提示 -->
+                        <div id="generatingProgress" class="hidden">
+                            <div class="flex items-center justify-center space-x-3 mb-4">
+                                <div class="animate-spin rounded-full h-6 w-6 border-4 border-blue-500 border-t-transparent"></div>
+                                <span class="text-blue-500" id="progressText">正在生成中...</span>
+                            </div>
+                            <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div class="h-full bg-blue-500 rounded-full transition-all duration-300" id="progressBar" style="width: 0%"></div>
+                            </div>
+                        </div>
+
+                        <!-- 生成后的图片展示 -->
+                        <div id="imageContainer" class="hidden">
+                            <div class="aspect-w-1 aspect-h-1 bg-gray-100 rounded-lg overflow-hidden">
+                                <img src="" alt="穿搭效果图" class="w-full h-auto object-cover" id="outfit-image">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 操作按钮 -->
+                    <div class="flex space-x-4">
+                        <button class="flex-1 bg-white border border-blue-500 text-blue-500 py-3 rounded-lg" id="modifyBtn">
+                            修改方案
+                        </button>
+                        <button class="flex-1 bg-blue-500 text-white py-3 rounded-lg opacity-50 cursor-not-allowed" id="saveBtn" disabled>
+                            保存方案
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 对话调整页 -->
+                <div id="chat-tab" class="space-y-4 hidden">
+                    <!-- 对话历史 -->
+                    <div class="bg-white rounded-xl p-4 shadow-sm">
+                        <div class="space-y-4 max-h-96 overflow-y-auto" id="chat-history">
+                            <!-- 系统消息 -->
+                            <div class="flex">
+                                <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-2 flex-shrink-0">
+                                    <i class="fas fa-robot text-blue-500"></i>
+                                </div>
+                                <div class="bg-blue-50 rounded-lg p-3 text-sm max-w-[85%]">
+                                    <p>您好！我已经根据您的需求生成了一套商务风格的穿搭方案，如果您有任何调整需求，可以直接告诉我。</p>
+                                </div>
+                            </div>
+                            
+                            <!-- 用户消息 -->
+                            <div class="flex justify-end">
+                                <div class="bg-blue-500 text-white rounded-lg p-3 text-sm max-w-[85%]">
+                                    <p>能不能把颜色改成深蓝色系的？我更喜欢深色系。</p>
+                                </div>
+                                <div class="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center ml-2 flex-shrink-0">
+                                    <i class="fas fa-user text-gray-500"></i>
+                                </div>
+                            </div>
+                            
+                            <!-- 系统消息 -->
+                            <div class="flex">
+                                <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center mr-2 flex-shrink-0">
+                                    <i class="fas fa-robot text-blue-500"></i>
+                                </div>
+                                <div class="bg-blue-50 rounded-lg p-3 text-sm max-w-[85%]">
+                                    <p>好的，我已将方案调整为深蓝色系。现在搭配是深蓝色修身西装外套，搭配浅蓝色衬衫，下装是藏青色西装裤，搭配黑色皮鞋和银色简约配饰。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 输入区域 -->
+                    <div class="bg-white rounded-xl p-3 shadow-sm">
+                        <div class="flex items-center">
+                            <input type="text" placeholder="输入您的调整需求..." 
+                                   class="flex-1 border-0 focus:ring-0 text-sm" id="chat-input">
+                            <button class="ml-2 bg-blue-500 text-white p-2 rounded-full" id="sendBtn">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 预览生成按钮 -->
+                    <button class="w-full bg-blue-500 text-white py-3 rounded-lg" id="previewBtn">
+                        实时预览
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 提示词编辑模态框 -->
+    <div class="modal" id="promptModal">
+        <div class="bg-white rounded-xl w-11/12 max-w-lg p-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-medium">编辑AI提示词</h3>
+                <button class="text-gray-500" id="closePromptModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="mb-4">
+                <textarea id="prompt-editor" rows="5" class="w-full border border-gray-300 rounded-lg p-3 text-sm" 
+                         placeholder="输入AI生成图像的提示词...">professional business woman, wearing beige fitted blazer, white silk shirt, gray straight-leg pants, black pointed high heels, minimal silver accessories, clean and modern office background, natural lighting, 4k quality</textarea>
+            </div>
+            
+            <p class="text-xs text-gray-500 mb-4">提示：详细描述服装类型、颜色、风格、场景等，可以获得更好的效果。</p>
+            
+            <div class="flex space-x-3">
+                <button class="flex-1 py-2 border border-gray-300 rounded-lg text-gray-600" id="cancelPromptBtn">
+                    取消
+                </button>
+                <button class="flex-1 py-2 bg-blue-500 text-white rounded-lg" id="savePromptBtn">
+                    应用并重新生成
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 保存评价模态框 -->
+    <div class="modal" id="saveModal">
+        <div class="bg-white rounded-xl w-11/12 max-w-lg p-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-medium">保存并评价</h3>
+                <button class="text-gray-500" id="closeSaveModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="mb-4">
+                <p class="text-sm text-gray-600 mb-2">请为此次穿搭推荐评分：</p>
+                <div class="rating mb-4">
+                    <input type="radio" id="star5" name="rating" value="5">
+                    <label for="star5" class="fas fa-star"></label>
+                    <input type="radio" id="star4" name="rating" value="4">
+                    <label for="star4" class="fas fa-star"></label>
+                    <input type="radio" id="star3" name="rating" value="3">
+                    <label for="star3" class="fas fa-star"></label>
+                    <input type="radio" id="star2" name="rating" value="2">
+                    <label for="star2" class="fas fa-star"></label>
+                    <input type="radio" id="star1" name="rating" value="1">
+                    <label for="star1" class="fas fa-star"></label>
+                </div>
+            </div>
+            
+            <div class="mb-4">
+                <label class="block text-sm text-gray-600 mb-2">您的评价或建议：</label>
+                <textarea id="comment" rows="3" class="w-full border border-gray-300 rounded-lg p-3 text-sm" 
+                         placeholder="分享您对这套穿搭的看法..."></textarea>
+            </div>
+            
+            <div class="bg-blue-50 rounded-lg p-3 mb-4">
+                <p class="text-xs text-blue-600 flex items-start">
+                    <i class="fas fa-info-circle mr-2 mt-0.5"></i>
+                    保存后将不能再修改此推荐方案。您可以在"推荐记录"中查看所有已保存的方案。
+                </p>
+            </div>
+            
+            <div class="flex space-x-3">
+                <button class="flex-1 py-2 border border-gray-300 rounded-lg text-gray-600" id="cancelSaveBtn">
+                    取消
+                </button>
+                <button class="flex-1 py-2 border border-gray-300 rounded-lg text-gray-600" id="laterSaveBtn">
+                    稍后评价
+                </button>
+                <button class="flex-1 py-2 bg-blue-500 text-white rounded-lg" id="confirmSaveBtn">
+                    保存并完成
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 修改描述模态框 -->
+    <div class="modal" id="modifyModal">
+        <div class="bg-white rounded-xl w-11/12 max-w-lg p-4">
+            <div class="mb-4">
+                <textarea id="modifyDescription" rows="8" class="w-full border border-gray-300 rounded-lg p-3 text-sm" 
+                         placeholder="请详细描述您想要的修改，例如：&#10;1. 我想要更正式的风格&#10;2. 颜色改成深色系的搭配&#10;3. 增加一些亮色点缀"></textarea>
+            </div>
+            
+            <div class="flex space-x-3">
+                <button class="flex-1 py-2 border border-gray-300 rounded-lg text-gray-600" id="cancelModifyBtn">
+                    取消
+                </button>
+                <button class="flex-1 py-2 bg-blue-500 text-white rounded-lg" id="confirmModifyBtn">
+                    确认修改
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 历史版本模态框 -->
+    <div class="modal" id="historyModal">
+        <div class="bg-white rounded-xl w-11/12 max-w-lg p-4">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-medium">历史版本</h3>
+                <button class="text-gray-500" id="closeHistoryModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4 max-h-96 overflow-y-auto">
+                <!-- 历史版本将由 JavaScript 动态生成 -->
+            </div>
+            
+            <div class="mt-4 pt-4 border-t">
+                <button class="w-full py-2 bg-blue-500 text-white rounded-lg" id="restoreVersionBtn">
+                    恢复选中版本
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 获取 DOM 元素
+            const resultTab = document.getElementById('result-tab');
+            const chatTab = document.getElementById('chat-tab');
+            const modifyBtn = document.getElementById('modifyBtn');
+            const saveBtn = document.getElementById('saveBtn');
+            const promptModal = document.getElementById('promptModal');
+            const saveModal = document.getElementById('saveModal');
+            const editPromptBtn = document.getElementById('editPromptBtn');
+            const promptDisplay = document.getElementById('prompt-display');
+            const promptEditor = document.getElementById('prompt-editor');
+            const previewBtn = document.getElementById('previewBtn');
+            const regenerateImageBtn = document.getElementById('regenerateImageBtn');
+            const imageContainer = document.getElementById('imageContainer');
+            const outfitImage = document.getElementById('outfit-image');
+            const downloadBtn = document.getElementById('downloadBtn');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            const generatingProgress = document.getElementById('generatingProgress');
+            
+            // 获取修改相关的DOM元素
+            const modifyModal = document.getElementById('modifyModal');
+            const cancelModifyBtn = document.getElementById('cancelModifyBtn');
+            const confirmModifyBtn = document.getElementById('confirmModifyBtn');
+            const modifyDescription = document.getElementById('modifyDescription');
+            
+            // 获取历史版本相关的DOM元素
+            const historyBtn = document.getElementById('historyBtn');
+            const historyModal = document.getElementById('historyModal');
+            const closeHistoryModal = document.getElementById('closeHistoryModal');
+            const restoreVersionBtn = document.getElementById('restoreVersionBtn');
+
+            // 获取保存相关的DOM元素
+            const laterSaveBtn = document.getElementById('laterSaveBtn');
+
+            // 修改按钮点击事件 - 打开修改模态框
+            modifyBtn.addEventListener('click', function() {
+                modifyModal.classList.add('active');
+            });
+            
+            // 取消修改
+            cancelModifyBtn.addEventListener('click', function() {
+                modifyModal.classList.remove('active');
+            });
+            
+            // 确认修改
+            confirmModifyBtn.addEventListener('click', function() {
+                const description = modifyDescription.value.trim();
+                if (!description) {
+                    alert('请输入修改描述');
+                    return;
+                }
+                
+                // 关闭模态框
+                modifyModal.classList.remove('active');
+                
+                // 更新版本号
+                const versionText = document.querySelector('.text-sm.text-gray-500');
+                const currentVersion = parseInt(versionText.textContent.match(/\d+/)[0]);
+                const newVersion = currentVersion + 1;
+                versionText.textContent = `版本 ${newVersion}`;
+                
+                // 更新穿搭描述
+                const outfitDescriptions = document.querySelectorAll('.prose p');
+                outfitDescriptions.forEach(desc => {
+                    desc.textContent = description;
+                });
+                
+                // 更新提示词
+                const promptDisplay = document.getElementById('prompt-display');
+                promptDisplay.textContent = description;
+                
+                // 不重新生成图片，但启用保存按钮
+                saveBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                saveBtn.disabled = false;
+            });
+
+            // 保存方案按钮 - 打开评价模态框
+            saveBtn.addEventListener('click', function() {
+                saveModal.classList.add('active');
+            });
+
+            // 编辑提示词按钮 - 打开提示词模态框
+            editPromptBtn.addEventListener('click', function() {
+                promptModal.classList.add('active');
+            });
+
+            // 预览生成按钮
+            previewBtn.addEventListener('click', function() {
+                // 隐藏预览按钮
+                previewBtn.style.display = 'none';
+                
+                // 显示加载状态
+                const loadingIndicator = document.createElement('div');
+                loadingIndicator.innerHTML = `
+                    <div class="flex items-center justify-center space-x-3 mb-4">
+                        <div class="animate-spin rounded-full h-6 w-6 border-4 border-blue-500 border-t-transparent"></div>
+                        <span class="text-blue-500">正在生成穿搭效果图...</span>
+                    </div>
+                `;
+                previewBtn.parentNode.insertBefore(loadingIndicator, previewBtn.nextSibling);
+                
+                // 模拟生成过程
+                setTimeout(() => {
+                    // 移除加载状态
+                    loadingIndicator.remove();
+                    
+                    // 显示图片
+                    imageContainer.classList.remove('hidden');
+                    outfitImage.src = 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80';
+                    
+                    // 显示操作按钮
+                    regenerateImageBtn.style.display = 'block';
+                    downloadBtn.style.display = 'block';
+                    
+                    // 启用保存方案按钮
+                    saveBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    saveBtn.disabled = false;
+                }, 1500); // 模拟1.5秒生成时间
+            });
+
+            // 重新生成按钮
+            regenerateImageBtn.addEventListener('click', function() {
+                // 隐藏图片
+                imageContainer.classList.add('hidden');
+                
+                // 显示加载状态
+                const loadingIndicator = document.createElement('div');
+                loadingIndicator.innerHTML = `
+                    <div class="flex items-center justify-center space-x-3 mb-4">
+                        <div class="animate-spin rounded-full h-6 w-6 border-4 border-blue-500 border-t-transparent"></div>
+                        <span class="text-blue-500">正在重新生成穿搭效果图...</span>
+                    </div>
+                `;
+                regenerateImageBtn.parentNode.insertBefore(loadingIndicator, regenerateImageBtn.nextSibling);
+                
+                // 模拟生成过程
+                setTimeout(() => {
+                    // 移除加载状态
+                    loadingIndicator.remove();
+                    
+                    // 显示图片
+                    imageContainer.classList.remove('hidden');
+                    outfitImage.src = 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80';
+                }, 1500); // 模拟1.5秒生成时间
+            });
+
+            // 历史版本按钮
+            historyBtn.addEventListener('click', function() {
+                historyModal.classList.add('active');
+            });
+
+            // 关闭历史版本模态框
+            closeHistoryModal.addEventListener('click', function() {
+                historyModal.classList.remove('active');
+            });
+
+            // 恢复历史版本
+            restoreVersionBtn.addEventListener('click', function() {
+                const selectedVersion = document.querySelector('#historyModal .border.bg-gray-50.border-blue-500');
+                if (!selectedVersion) {
+                    alert('请选择要恢复的版本');
+                    return;
+                }
+                
+                const versionToRestore = parseInt(selectedVersion.getAttribute('data-version'));
+                const restoredVersion = versionHistory.find(v => v.version === versionToRestore);
+                
+                if (restoredVersion) {
+                    // 更新界面
+                    document.querySelector('.text-sm.text-gray-500').textContent = `版本 ${restoredVersion.version}`;
+                    
+                    // 更新穿搭描述的每个段落
+                    const descriptionParagraphs = document.querySelectorAll('.prose p');
+                    descriptionParagraphs.forEach((p, index) => {
+                        // 根据不同的段落更新不同的描述
+                        switch(index) {
+                            case 0: p.textContent = restoredVersion.outfit.split('，')[0]; break;
+                            case 1: p.textContent = restoredVersion.outfit.split('，')[1]; break;
+                            case 2: p.textContent = restoredVersion.outfit.split('，')[2]; break;
+                            case 3: p.textContent = '- 整体配色以中性色调为主，突出职业感\n- 版型修身但不紧绷，保持舒适度\n- 配饰简约大方，提升整体质感'; break;
+                        }
+                    });
+                    
+                    // 更新提示词
+                    document.getElementById('prompt-display').textContent = restoredVersion.prompt;
+                    
+                    // 关闭历史版本模态框
+                    historyModal.classList.remove('active');
+                    
+                    // 启用保存按钮
+                    saveBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                    saveBtn.disabled = false;
+                }
+            });
+
+            // 稍后评价按钮事件
+            laterSaveBtn.addEventListener('click', function() {
+                // 关闭模态框
+                saveModal.classList.remove('active');
+                
+                // 提示用户可以稍后在推荐记录中评价
+                alert('您可以稍后在"推荐记录"中评价此穿搭方案。');
+                
+                // 重定向到推荐记录页面
+                window.location.href = 'recommend-history.html';
+            });
+
+            // 初始化历史版本模态框
+            updateHistoryModal();
+        });
+
+        // 历史版本数据
+        const MAX_VERSIONS = 10; // 最大版本数量
+        const versionHistory = [
+            {
+                version: 1,
+                timestamp: '2024-03-15 15:10',
+                description: '初始方案',
+                outfit: '米色西装外套，白色衬衫，深灰色西装裤',
+                prompt: 'professional business woman, wearing beige fitted blazer, white silk shirt, gray straight-leg pants, black pointed high heels, minimal silver accessories, clean and modern office background, natural lighting, 4k quality'
+            }
+        ];
+
+        // 测试：添加多个版本
+        for (let i = 2; i <= 15; i++) {
+            versionHistory.push({
+                version: i,
+                timestamp: `2024-03-15 15:${10 + i}`,
+                description: `版本 ${i} 的修改描述`,
+                outfit: `深色系西装外套，${i % 2 === 0 ? '浅蓝' : '深蓝'}色衬衫，${i % 3 === 0 ? '藏青' : '灰色'}西装裤`,
+                prompt: `Updated prompt for version ${i}`
+            });
+        }
+
+        // 更新历史版本模态框的函数
+        function updateHistoryModal() {
+            const historyContainer = document.querySelector('#historyModal .space-y-4');
+            
+            // 对版本历史进行排序和截取
+            const sortedVersions = versionHistory.slice().reverse();
+            const displayVersions = sortedVersions.slice(0, MAX_VERSIONS);
+            
+            // 生成HTML
+            historyContainer.innerHTML = displayVersions.map((version, index) => `
+                <div class="border rounded-lg p-3 hover:bg-gray-50 cursor-pointer ${index === 0 ? 'bg-gray-50 border-blue-500' : ''}" data-version="${version.version}">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="font-medium">
+                            版本 ${version.version}
+                            ${index === 0 ? '（当前）' : ''}
+                        </span>
+                        <span class="text-xs text-gray-500">${version.timestamp}</span>
+                    </div>
+                    <p class="text-sm text-gray-600">${version.description}</p>
+                </div>
+            `).join('');
+            
+            // 添加点击事件，实现版本选择
+            const versionItems = historyContainer.querySelectorAll('.border');
+            versionItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    // 移除所有版本的选中状态
+                    versionItems.forEach(v => {
+                        v.classList.remove('bg-gray-50', 'border-blue-500');
+                    });
+                    
+                    // 为当前点击的版本添加选中状态
+                    this.classList.add('bg-gray-50', 'border-blue-500');
+                });
+            });
+            
+            // 如果版本数量超过最大限制，添加"查看更多"按钮
+            if (sortedVersions.length > MAX_VERSIONS) {
+                const moreButton = document.createElement('div');
+                moreButton.innerHTML = `
+                    <button id="viewMoreVersions" class="w-full py-2 text-blue-500 text-sm text-center hover:bg-gray-100 rounded-lg">
+                        查看更多历史版本 (${sortedVersions.length - MAX_VERSIONS} 个)
+                    </button>
+                `;
+                historyContainer.appendChild(moreButton);
+                
+                // 添加查看更多的点击事件
+                document.getElementById('viewMoreVersions').addEventListener('click', function() {
+                    const fullVersionsModal = createFullVersionsModal(sortedVersions);
+                    document.body.appendChild(fullVersionsModal);
+                    fullVersionsModal.classList.add('active');
+                });
+            }
+        }
+
+        // 创建完整历史版本的模态框
+        function createFullVersionsModal(versions) {
+            const modal = document.createElement('div');
+            modal.className = 'modal fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50';
+            modal.innerHTML = `
+                <div class="bg-white rounded-xl w-11/12 max-w-lg max-h-[80vh] flex flex-col">
+                    <div class="flex justify-between items-center p-4 border-b">
+                        <h3 class="text-lg font-medium">全部历史版本</h3>
+                        <button class="text-gray-500 close-modal">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="flex-1 overflow-y-auto p-4 space-y-4">
+                        ${versions.map((version, index) => `
+                            <div class="border rounded-lg p-3 hover:bg-gray-50 cursor-pointer ${index === 0 ? 'bg-gray-50 border-blue-500' : ''}" data-version="${version.version}">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="font-medium">
+                                        版本 ${version.version}
+                                        ${index === 0 ? '（当前）' : ''}
+                                    </span>
+                                    <span class="text-xs text-gray-500">${version.timestamp}</span>
+                                </div>
+                                <p class="text-sm text-gray-600">${version.description}</p>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div class="p-4 border-t">
+                        <button class="w-full py-2 bg-blue-500 text-white rounded-lg close-modal">
+                            关闭
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // 添加关闭事件
+            modal.querySelectorAll('.close-modal').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    modal.classList.remove('active');
+                    setTimeout(() => {
+                        modal.remove();
+                    }, 300);
+                });
+            });
+            
+            return modal;
+        }
+    </script>
+</body>
+</html>

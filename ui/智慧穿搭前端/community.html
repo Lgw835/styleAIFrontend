@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>广场圈子</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .tab-active {
+            color: #3B82F6;
+            position: relative;
+        }
+        .tab-active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: #3B82F6;
+            border-radius: 2px;
+        }
+        .post-card {
+            border-bottom: 1px solid #E5E7EB;
+        }
+        .post-card:last-child {
+            border-bottom: none;
+        }
+        .content-container {
+            height: calc(100vh - 104px); /* 减去顶部导航和标签页的高度 */
+            overflow-y: auto;
+        }
+        /* 自定义滚动条样式 */
+        .content-container::-webkit-scrollbar {
+            width: 4px;
+        }
+        .content-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .content-container::-webkit-scrollbar-thumb {
+            background: #ddd;
+            border-radius: 4px;
+        }
+        .content-container::-webkit-scrollbar-thumb:hover {
+            background: #bbb;
+        }
+        .nav-item {
+            @apply flex flex-col items-center;
+            color: #999;
+            font-size: 12px;
+        }
+        .nav-item.active {
+            color: #4096FF;
+        }
+        .nav-item i {
+            font-size: 20px;
+            margin-bottom: 2px;
+        }
+        .nav-item span {
+            @apply text-xs;
+        }
+        .nav-icon {
+            width: 20px;
+            height: 20px;
+            margin-bottom: 2px;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-size: 20px;
+        }
+        .icon-match {
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="%23999" d="M19.48 7.255a.75.75 0 0 0-1.5 0h1.5Zm-13.46 0a.75.75 0 0 0-1.5 0h1.5Zm11.96 9.49a.75.75 0 0 0 1.5 0h-1.5Zm-11.96 0a.75.75 0 0 0 1.5 0h-1.5Zm13.46-9.49v9.49h1.5V7.255h-1.5ZM6.02 16.745V7.255h-1.5v9.49h1.5Z"/><path fill="%23999" d="M16.48 6.5H7.52v1.5h8.96V6.5ZM16.48 16H7.52v1.5h8.96V16Z"/></svg>');
+        }
+        .icon-wardrobe {
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="%23999" d="M17 3H7c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H7V5h10v14z"/></svg>');
+        }
+        .icon-community {
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="%23999" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>');
+        }
+        .icon-profile {
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle fill="%23999" cx="12" cy="12" r="10" stroke="none"/><circle fill="white" cx="12" cy="9" r="3"/><path fill="white" d="M12 12.5c-3 0-5 2-5.5 4.5h11c-.5-2.5-2.5-4.5-5.5-4.5z"/></svg>');
+        }
+        .active .icon-match {
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="%234096FF" d="M19.48 7.255a.75.75 0 0 0-1.5 0h1.5Zm-13.46 0a.75.75 0 0 0-1.5 0h1.5Zm11.96 9.49a.75.75 0 0 0 1.5 0h-1.5Zm-11.96 0a.75.75 0 0 0 1.5 0h-1.5Zm13.46-9.49v9.49h1.5V7.255h-1.5ZM6.02 16.745V7.255h-1.5v9.49h1.5Z"/><path fill="%234096FF" d="M16.48 6.5H7.52v1.5h8.96V6.5ZM16.48 16H7.52v1.5h8.96V16Z"/></svg>');
+        }
+        .active .icon-wardrobe {
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="%234096FF" d="M17 3H7c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h10c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H7V5h10v14z"/></svg>');
+        }
+        .active .icon-community {
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="%234096FF" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/></svg>');
+        }
+        .active .icon-profile {
+            background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle fill="%234096FF" cx="12" cy="12" r="10" stroke="none"/><circle fill="white" cx="12" cy="9" r="3"/><path fill="white" d="M12 12.5c-3 0-5 2-5.5 4.5h11c-.5-2.5-2.5-4.5-5.5-4.5z"/></svg>');
+        }
+        .bottom-safe-area {
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+            border-top: 0.5px solid #F0F0F0;
+        }
+        /* 底部导航栏样式 */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 8px 0;
+            border-top: 1px solid #F3F4F6;
+            box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: #6B7280;
+        }
+
+        .nav-item.active {
+            color: #8B5CF6;
+        }
+    </style>
+</head>
+<body class="bg-[#F5F5F5]">
+    <!-- 顶部导航栏 -->
+    <nav class="bg-white shadow-sm fixed top-0 left-0 right-0 z-10">
+        <div class="max-w-7xl mx-auto">
+            <div class="flex justify-center h-14 items-center relative">
+                <h1 class="text-lg font-semibold text-gray-900">广场圈子</h1>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 标签页 -->
+    <div class="bg-white fixed top-14 left-0 right-0 z-10">
+        <div class="flex justify-center border-b border-[#F0F0F0]">
+            <button class="tab-active px-8 py-3.5 text-sm font-medium">关注</button>
+            <button class="text-[#666666] px-8 py-3.5 text-sm font-medium hover:text-gray-700">推荐</button>
+        </div>
+    </div>
+
+    <!-- 内容区域 -->
+    <div class="content-container pt-28 pb-20 bg-[#F5F5F5]">
+        <!-- 帖子卡片 -->
+        <div class="space-y-3 px-4">
+            <!-- Sarah的帖子 -->
+            <div class="bg-white p-4 post-card">
+                <a href="post-detail.html" class="block">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center">
+                            <img src="https://i.pravatar.cc/40?img=5" class="w-10 h-10 rounded-full" alt="Sarah">
+                            <div class="ml-3">
+                                <div class="font-medium">Sarah</div>
+                                <div class="text-xs text-gray-500">IP属地：北京</div>
+                            </div>
+                        </div>
+                        <button class="px-4 py-1 border border-blue-500 text-blue-500 rounded-full text-sm hover:bg-blue-50 transition-colors">
+                            关注
+                        </button>
+                    </div>
+                    <p class="text-gray-900 mb-3 text-sm leading-relaxed">
+                        今日穿搭分享 ✨ 简约知性风，适合日常通勤。上衣选择了米色针织开衫，内搭白色丝质衬衫，下装是高腰直筒西装裤，整体搭配既正式又不失温柔感。
+                    </p>
+                    <div class="grid grid-cols-3 gap-1 mb-3">
+                        <img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=200&h=200&fit=crop" class="w-full h-28 object-cover rounded" alt="穿搭图片">
+                        <img src="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?w=200&h=200&fit=crop" class="w-full h-28 object-cover rounded" alt="穿搭图片">
+                        <img src="https://images.unsplash.com/photo-1485968579580-b6d095142e6e?w=200&h=200&fit=crop" class="w-full h-28 object-cover rounded" alt="穿搭图片">
+                    </div>
+                    <div class="flex items-center space-x-6 text-gray-400">
+                        <button class="flex items-center space-x-1 hover:text-gray-600">
+                            <i class="far fa-heart"></i>
+                            <span class="text-sm">1.2k</span>
+                        </button>
+                        <button class="flex items-center space-x-1 hover:text-gray-600">
+                            <i class="far fa-comment"></i>
+                            <span class="text-sm">368</span>
+                        </button>
+                        <div class="flex items-center space-x-1">
+                            <i class="far fa-eye"></i>
+                            <span class="text-sm">5.6k</span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Michael的帖子 -->
+            <div class="bg-white p-4 post-card">
+                <a href="post-detail.html" class="block">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center">
+                            <img src="https://i.pravatar.cc/40?img=8" class="w-10 h-10 rounded-full" alt="Michael">
+                            <div class="ml-3">
+                                <div class="font-medium">Michael</div>
+                                <div class="text-xs text-gray-500">IP属地：上海</div>
+                            </div>
+                        </div>
+                        <button class="px-4 py-1 bg-gray-100 text-gray-400 rounded-full text-sm">
+                            已关注
+                        </button>
+                    </div>
+                    <p class="text-gray-900 mb-3 text-sm leading-relaxed">
+                        分享一套休闲运动风穿搭 🏃 灰色连帽卫衣搭配黑色运动裤，既舒适又时尚。最近天气转凉，这样搭配运动或者周末出街都很合适。
+                    </p>
+                    <div class="grid grid-cols-2 gap-1 mb-3">
+                        <img src="https://images.unsplash.com/photo-1483721310020-03333e577078?w=200&h=200&fit=crop" class="w-full h-40 object-cover rounded" alt="穿搭图片">
+                        <img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=200&h=200&fit=crop" class="w-full h-40 object-cover rounded" alt="穿搭图片">
+                    </div>
+                    <div class="flex items-center space-x-6 text-gray-400">
+                        <button class="flex items-center space-x-1 hover:text-gray-600">
+                            <i class="far fa-heart"></i>
+                            <span class="text-sm">856</span>
+                        </button>
+                        <button class="flex items-center space-x-1 hover:text-gray-600">
+                            <i class="far fa-comment"></i>
+                            <span class="text-sm">234</span>
+                        </button>
+                        <div class="flex items-center space-x-1">
+                            <i class="far fa-eye"></i>
+                            <span class="text-sm">3.2k</span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 发布按钮 -->
+    <a href="post-create.html" class="fixed bottom-24 right-4 w-14 h-14 bg-blue-500 rounded-full flex items-center justify-center shadow-lg text-white z-20">
+        <i class="fas fa-pen-to-square text-xl"></i>
+    </a>
+
+    <!-- 底部导航栏 -->
+    <div class="bottom-nav">
+        <div class="grid grid-cols-4 gap-2">
+            <a href="home.html" class="nav-item">
+                <i class="fas fa-home text-lg"></i>
+                <span class="text-xs">首页</span>
+            </a>
+            <a href="wardrobe.html" class="nav-item">
+                <i class="fas fa-tshirt text-lg"></i>
+                <span class="text-xs">衣柜</span>
+            </a>
+            <a href="community.html" class="nav-item active">
+                <i class="fas fa-compass text-lg"></i>
+                <span class="text-xs">广场</span>
+            </a>
+            <a href="profile.html" class="nav-item">
+                <i class="fas fa-user text-lg"></i>
+                <span class="text-xs">我的</span>
+            </a>
+        </div>
+    </div>
+</body>
+</html> 

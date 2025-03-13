@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人中心 - 智慧穿搭助手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background: #F7F7F7;
+            color: #333;
+            padding-top: calc(24px + 44px); /* 状态栏 + 标题栏高度 */
+        }
+        
+        /* 移除所有列表样式 */
+        *, *::before, *::after {
+            list-style: none;
+            list-style-type: none;
+        }
+        
+        .divide-y > * {
+            list-style: none;
+            list-style-type: none;
+        }
+
+        .list-item {
+            list-style: none !important;
+            list-style-type: none !important;
+        }
+        
+        /* 优化状态栏样式 */
+        .status-bar {
+            height: 24px;
+            background: black;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 16px;
+            color: white;
+            font-size: 12px;
+        }
+        
+        .status-bar .icons {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .status-bar .icons i {
+            font-size: 12px;
+        }
+        
+        /* 优化标题栏样式 */
+        .title-bar {
+            height: 44px;
+            background: white;
+            position: fixed;
+            top: 24px;
+            left: 0;
+            right: 0;
+            z-index: 40;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 17px;
+            font-weight: 600;
+            border-bottom: 0.5px solid rgba(0, 0, 0, 0.1);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+
+        /* 优化用户信息卡片样式 */
+        .user-card {
+            background: linear-gradient(135deg, #9333EA 0%, #EC4899 100%);
+            padding: 20px 16px;
+            border-radius: 0 0 24px 24px;
+            margin-bottom: 16px;
+        }
+
+        /* 统一卡片样式 */
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            margin-bottom: 12px;
+        }
+
+        .card-title {
+            font-size: 15px;
+            color: #374151;
+            font-weight: 500;
+            padding: 12px 16px;
+            border-bottom: 1px solid #F3F4F6;
+        }
+
+        /* 统一列表项样式 */
+        .list-item {
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #F3F4F6;
+        }
+
+        .list-item .icon {
+            color: #9CA3AF;
+            width: 16px;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+
+        .list-item .content {
+            flex: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        .list-item .label {
+            font-size: 15px;
+            color: #374151;
+        }
+
+        .list-item .description {
+            font-size: 13px;
+            color: #9CA3AF;
+            margin-left: 12px;
+        }
+
+        .list-item .arrow {
+            color: #D1D5DB;
+            font-size: 12px;
+            margin-left: 8px;
+        }
+
+        /* 底部导航栏优化 */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 8px 0;
+            border-top: 1px solid #F3F4F6;
+            box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.05);
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: #6B7280;
+        }
+
+        .nav-item.active {
+            color: #4096FF;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+
+    <!-- 顶部标题栏 -->
+    <div class="title-bar">
+        <h1 class="list-none">个人中心</h1>
+    </div>
+
+    <!-- 顶部个人信息卡片 -->
+    <div class="user-card">
+        <div class="flex items-start px-4">
+            <!-- 头像区域 -->
+            <div class="relative">
+                <div class="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center">
+                    <div class="text-white text-sm">用户头像</div>
+                    <button class="absolute -bottom-1 -right-1 bg-white/20 rounded-full w-6 h-6 flex items-center justify-center">
+                        <i class="fas fa-camera text-white text-xs"></i>
+                    </button>
+                </div>
+            </div>
+            <!-- 用户信息区域 -->
+            <div class="flex-1 ml-4">
+                <h1 class="text-2xl font-medium text-white mb-4">时尚达人</h1>
+                <div class="grid grid-cols-3 gap-4 max-w-[280px]">
+                    <a href="followers.html" class="text-center">
+                        <p class="text-2xl font-medium text-white">128</p>
+                        <p class="text-sm text-white/90">关注</p>
+                    </a>
+                    <a href="fans.html" class="text-center">
+                        <p class="text-2xl font-medium text-white">256</p>
+                        <p class="text-sm text-white/90">粉丝</p>
+                    </a>
+                    <div class="text-center">
+                        <p class="text-2xl font-medium text-white">1024</p>
+                        <p class="text-sm text-white/90">获赞</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 功能区 -->
+    <div class="px-4 space-y-3 mb-20">
+        <!-- 基本信息设置 -->
+        <div class="card">
+            <h2 class="card-title">基本信息</h2>
+            <ul class="divide-y">
+                <li class="list-item">
+                    <a href="edit-profile.html" class="w-full flex items-center justify-between">
+                        <div class="content">
+                            <i class="fas fa-user-circle icon"></i>
+                            <span class="label">个人资料</span>
+                            <span class="description">完善个人信息</span>
+                        </div>
+                        <i class="fas fa-chevron-right arrow"></i>
+                    </a>
+                </li>
+                <li class="list-item">
+                    <a href="user-portrait.html" class="w-full flex items-center justify-between">
+                        <div class="content">
+                            <i class="fas fa-palette icon"></i>
+                            <span class="label">用户画像</span>
+                            <span class="description">定制专属穿搭方案</span>
+                        </div>
+                        <i class="fas fa-chevron-right arrow"></i>
+                    </a>
+                </li>
+                <li class="list-item">
+                    <a href="change-password.html" class="w-full flex items-center justify-between">
+                        <div class="content">
+                            <i class="fas fa-lock icon"></i>
+                            <span class="label">修改密码</span>
+                            <span class="description">验证码确认</span>
+                        </div>
+                        <i class="fas fa-chevron-right arrow"></i>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- 其他功能 -->
+        <div class="card mb-4">
+            <ul class="list">
+                <li class="list-item">
+                    <a href="schedule.html" class="w-full flex items-center justify-between">
+                        <div class="content">
+                            <i class="fas fa-calendar-alt icon"></i>
+                            <span class="label">我的日程</span>
+                            <span class="description">查看和管理日程安排</span>
+                        </div>
+                        <i class="fas fa-chevron-right arrow"></i>
+                    </a>
+                </li>
+                <li class="list-item">
+                    <a href="help-center.html" class="w-full flex items-center justify-between">
+                        <div class="content">
+                            <i class="fas fa-question-circle icon"></i>
+                            <span class="label">帮助中心</span>
+                        </div>
+                        <i class="fas fa-chevron-right arrow"></i>
+                    </a>
+                </li>
+                <li class="list-item">
+                    <a href="contact-service.html" class="w-full flex items-center justify-between">
+                        <div class="content">
+                            <i class="fas fa-headset icon"></i>
+                            <span class="label">联系客服</span>
+                        </div>
+                        <i class="fas fa-chevron-right arrow"></i>
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- 退出登录按钮 -->
+        <button class="w-full bg-white text-red-500 py-3 rounded-xl font-medium shadow-sm hover:bg-gray-50 transition-colors">
+            退出登录
+        </button>
+    </div>
+
+    <!-- 底部导航栏 -->
+    <div class="bottom-nav">
+        <div class="grid grid-cols-4 gap-2">
+            <a href="home.html" class="nav-item">
+                <i class="fas fa-home text-lg"></i>
+                <span class="text-xs">首页</span>
+            </a>
+            <a href="wardrobe.html" class="nav-item">
+                <i class="fas fa-tshirt text-lg"></i>
+                <span class="text-xs">衣柜</span>
+            </a>
+            <a href="community.html" class="nav-item">
+                <i class="fas fa-compass text-lg"></i>
+                <span class="text-xs">广场</span>
+            </a>
+            <a href="profile.html" class="nav-item active">
+                <i class="fas fa-user text-lg"></i>
+                <span class="text-xs">我的</span>
+            </a>
+        </div>
+    </div>
+</body>
+</html> 

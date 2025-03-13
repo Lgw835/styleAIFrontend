@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日程详情 - 智慧穿搭助手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background: #F7F7F7;
+            color: #333;
+        }
+        
+        .detail-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .section-title {
+            font-size: 14px;
+            color: #6B7280;
+            margin-bottom: 8px;
+        }
+        
+        .section-content {
+            font-size: 16px;
+            margin-bottom: 20px;
+        }
+        
+        .action-button {
+            display: block;
+            padding: 14px;
+            text-align: center;
+            border-radius: 10px;
+            font-weight: 500;
+            margin-bottom: 12px;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <nav class="bg-white h-12 flex items-center px-4 border-b fixed w-full top-0 z-10">
+        <a href="schedule.html" class="text-gray-600">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <h1 class="text-lg font-medium text-center flex-1">日程详情</h1>
+        <a href="schedule-edit.html?id=1" class="text-blue-500">
+            <i class="fas fa-edit"></i>
+        </a>
+    </nav>
+
+    <!-- 主要内容区 -->
+    <div class="pt-16 px-4 pb-20">
+        <!-- 日程标题和时间 -->
+        <div class="detail-card">
+            <h2 class="text-xl font-semibold mb-2">公司月度会议</h2>
+            
+            <div class="flex items-center mb-4">
+                <i class="fas fa-calendar-alt text-blue-500 mr-2"></i>
+                <span>2023年10月17日 (周二)</span>
+            </div>
+            
+            <div class="flex items-center">
+                <i class="fas fa-bell text-yellow-500 mr-2"></i>
+                <span>提醒：已开启</span>
+            </div>
+        </div>
+        
+        <!-- 日程详情 -->
+        <div class="detail-card">
+            <div class="section-title">详情描述</div>
+            <div class="section-content">
+                与团队成员讨论本月业绩和下月计划，准备PPT演示文稿。本次会议将回顾第三季度的业绩表现，并制定第四季度的关键目标和行动计划。所有部门负责人需提前准备好相关数据和材料。
+            </div>
+        </div>
+        
+        <!-- 附加备注 -->
+        <div class="detail-card">
+            <div class="section-title">备注</div>
+            <div class="section-content">
+                <ul class="list-disc pl-5">
+                    <li>带上笔记本电脑和会议文件</li>
+                    <li>提前15分钟到场准备设备</li>
+                    <li>会后与销售团队单独讨论新产品上市计划</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- 操作按钮 -->
+        <div class="mt-6">
+            <a href="#" class="action-button bg-white border border-red-500 text-red-500" id="deleteBtn">
+                <i class="fas fa-trash mr-2"></i>删除日程
+            </a>
+        </div>
+    </div>
+    
+    <!-- 删除确认弹窗 -->
+    <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-20 hidden" id="deleteModal">
+        <div class="bg-white rounded-lg w-4/5 max-w-sm p-5">
+            <h3 class="text-lg font-medium mb-3">确认删除</h3>
+            <p class="text-gray-600 mb-5">确定要删除该日程吗？此操作无法撤销。</p>
+            
+            <div class="flex gap-3">
+                <button class="flex-1 py-2.5 border border-gray-300 rounded-lg text-gray-600" id="cancelDelete">
+                    取消
+                </button>
+                <button class="flex-1 py-2.5 bg-red-500 text-white rounded-lg" id="confirmDelete">
+                    确认删除
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 删除确认弹窗
+        const deleteBtn = document.getElementById('deleteBtn');
+        const deleteModal = document.getElementById('deleteModal');
+        const cancelDelete = document.getElementById('cancelDelete');
+        const confirmDelete = document.getElementById('confirmDelete');
+        
+        deleteBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            deleteModal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden'; // 防止背景滚动
+        });
+        
+        cancelDelete.addEventListener('click', function() {
+            deleteModal.classList.add('hidden');
+            document.body.style.overflow = ''; // 恢复背景滚动
+        });
+        
+        confirmDelete.addEventListener('click', function() {
+            // 这里添加实际的删除逻辑
+            alert('日程已删除');
+            deleteModal.classList.add('hidden');
+            document.body.style.overflow = '';
+            
+            // 模拟删除后跳转回日程列表页
+            setTimeout(() => {
+                window.location.href = 'schedule.html';
+            }, 500);
+        });
+    </script>
+</body>
+</html> 

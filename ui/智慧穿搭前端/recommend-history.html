@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>推荐记录</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .content-container {
+            height: calc(100vh - 56px);
+            overflow-y: auto;
+        }
+        .content-container::-webkit-scrollbar {
+            width: 4px;
+        }
+        .content-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .content-container::-webkit-scrollbar-thumb {
+            background: #ddd;
+            border-radius: 4px;
+        }
+        .record-card {
+            border-radius: 12px;
+            background: white;
+            margin-bottom: 12px;
+            position: relative;
+        }
+        .score-badge {
+            background: rgba(64, 150, 255, 0.1);
+            color: #4096FF;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .tag {
+            background: #F5F5F5;
+            color: #666;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        
+        /* 删除按钮样式 - 移除旧的悬浮样式 */
+        .more-options-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            width: 30px;
+            height: 30px;
+            background-color: rgba(255, 255, 255, 0.9);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #666;
+            font-size: 14px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            z-index: 10;
+        }
+        
+        .more-options-btn:active {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+        
+        /* 操作菜单样式 */
+        .action-menu {
+            position: absolute;
+            top: 45px;
+            right: 10px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            z-index: 20;
+            overflow: hidden;
+            display: none;
+            width: 110px;
+        }
+        
+        .action-menu.active {
+            display: block;
+        }
+        
+        .action-menu-item {
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .action-menu-item i {
+            margin-right: 8px;
+            font-size: 14px;
+        }
+        
+        .action-menu-item.delete {
+            color: #ff4d4f;
+        }
+        
+        .action-menu-item:active {
+            background-color: #f5f5f5;
+        }
+        
+        /* 模态框样式 */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: none;
+            z-index: 50;
+            overflow-y: auto;
+        }
+        
+        .modal.active {
+            display: block;
+        }
+        
+        .modal-content {
+            background-color: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            margin: 20px auto;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal-content::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        .modal-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        .modal-content::-webkit-scrollbar-thumb {
+            background: #ddd;
+            border-radius: 4px;
+        }
+        
+        /* 星级评分样式 */
+        .rating {
+            display: flex;
+            flex-direction: row-reverse;
+            justify-content: flex-end;
+        }
+        
+        .rating input {
+            display: none;
+        }
+        
+        .rating label {
+            color: #ddd;
+            font-size: 24px;
+            padding: 0 2px;
+            cursor: pointer;
+        }
+        
+        .rating label:hover,
+        .rating label:hover ~ label,
+        .rating input:checked ~ label {
+            color: #FFD700;
+        }
+        
+        .comment-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .empty-comment {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 30px 0;
+            color: #9CA3AF;
+        }
+    </style>
+</head>
+<body class="bg-[#F5F5F5]">
+    <!-- 顶部导航栏 -->
+    <nav class="bg-white shadow-sm fixed top-0 left-0 right-0 z-10">
+        <div class="max-w-7xl mx-auto">
+            <div class="flex justify-between h-14 items-center px-4">
+                <button onclick="history.back()" class="text-gray-600">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <h1 class="text-lg font-semibold text-gray-900">推荐记录</h1>
+                <div class="w-6"></div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 内容区域 -->
+    <div class="content-container pt-14 pb-20">
+        <div class="px-4">
+            <!-- 推荐记录卡片 -->
+            <div class="record-card p-4 mt-4" data-outfit-id="1001">
+                <button class="more-options-btn" data-outfit-id="1001">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <div class="action-menu" id="menu-1001">
+                    <div class="action-menu-item delete" data-action="delete" data-outfit-id="1001">
+                        <i class="fas fa-trash"></i> 删除记录
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="text-base font-medium text-gray-900">春季通勤穿搭</div>
+                    <div class="flex justify-between items-center mt-1">
+                        <div class="text-xs text-gray-500">2024-03-15 10:30</div>
+                        <div class="score-badge">评分 暂无</div>
+                    </div>
+                </div>
+                <div class="flex gap-2 mb-3">
+                    <span class="tag">商务场景</span>
+                    <span class="tag">知性优雅</span>
+                    <span class="tag">春季</span>
+                </div>
+                <div class="text-sm text-gray-600 mb-3 line-clamp-2">
+                    简约知性风格，米色风衣搭配白色丝质衬衫，下装选择高腰直筒西装裤，整体搭配既正式又不失温柔感。
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                    <img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=200&h=200&fit=crop" 
+                         class="w-full h-24 object-cover rounded-lg" alt="穿搭图片">
+                    <div class="col-span-2 bg-[#F8F9FA] rounded-lg p-3">
+                        <div class="text-xs text-gray-500 mb-1">AI 生成描述</div>
+                        <div class="text-sm text-gray-700 line-clamp-3">
+                            一位年轻女性穿着米色风衣，内搭白色丝质衬衫，下身是高腰直筒西装裤，整体造型简约大方，突出职业女性的知性美。
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 更多推荐记录卡片 -->
+            <div class="record-card p-4" data-outfit-id="1002">
+                <button class="more-options-btn" data-outfit-id="1002">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <div class="action-menu" id="menu-1002">
+                    <div class="action-menu-item delete" data-action="delete" data-outfit-id="1002">
+                        <i class="fas fa-trash"></i> 删除记录
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="text-base font-medium text-gray-900">约会穿搭推荐</div>
+                    <div class="flex justify-between items-center mt-1">
+                        <div class="text-xs text-gray-500">2024-03-13 18:45</div>
+                        <div class="score-badge">评分 暂无</div>
+                    </div>
+                </div>
+                <div class="flex gap-2 mb-3">
+                    <span class="tag">约会场景</span>
+                    <span class="tag">甜美</span>
+                    <span class="tag">春季</span>
+                </div>
+                <div class="text-sm text-gray-600 mb-3 line-clamp-2">
+                    甜美淑女风格，粉色针织开衫搭配白色蕾丝连衣裙，搭配精致配饰，打造浪漫约会造型。
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                    <img src="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?w=200&h=200&fit=crop" 
+                         class="w-full h-24 object-cover rounded-lg" alt="穿搭图片">
+                    <div class="col-span-2 bg-[#F8F9FA] rounded-lg p-3">
+                        <div class="text-xs text-gray-500 mb-1">AI 生成描述</div>
+                        <div class="text-sm text-gray-700 line-clamp-3">
+                            温柔甜美的约会装扮，粉色针织开衫搭配白色蕾丝连衣裙，突出女性柔美气质，适合浪漫的约会场合。
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 周末休闲穿搭 -->
+            <div class="record-card p-4" data-outfit-id="1003" data-has-comment="true">
+                <button class="more-options-btn" data-outfit-id="1003">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <div class="action-menu" id="menu-1003">
+                    <div class="action-menu-item delete" data-action="delete" data-outfit-id="1003">
+                        <i class="fas fa-trash"></i> 删除记录
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="text-base font-medium text-gray-900">周末休闲穿搭</div>
+                    <div class="flex justify-between items-center mt-1">
+                        <div class="text-xs text-gray-500">2024-03-10 09:15</div>
+                        <div class="score-badge">评分 4</div>
+                    </div>
+                </div>
+                <div class="flex gap-2 mb-3">
+                    <span class="tag">休闲场景</span>
+                    <span class="tag">舒适</span>
+                    <span class="tag">春季</span>
+                </div>
+                <div class="text-sm text-gray-600 mb-3 line-clamp-2">
+                    舒适休闲风格，宽松牛仔裤搭配基础款T恤，外搭轻薄夹克，适合周末逛街、看电影等轻松场合。
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                    <img src="https://images.unsplash.com/photo-1543087903-1ac2ec7aa8c5?w=200&h=200&fit=crop" 
+                         class="w-full h-24 object-cover rounded-lg" alt="穿搭图片">
+                    <div class="col-span-2 bg-[#F8F9FA] rounded-lg p-3">
+                        <div class="text-xs text-gray-500 mb-1">AI 生成描述</div>
+                        <div class="text-sm text-gray-700 line-clamp-3">
+                            随性舒适的休闲搭配，主打轻松自在的生活态度，适合各种非正式场合，展现休闲中的时尚感。
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 穿搭详情模态框 -->
+    <div class="modal" id="outfitDetailModal">
+        <div class="modal-content">
+            <!-- 模态框头部 -->
+            <div class="p-4 border-b sticky top-0 bg-white z-10">
+                <div class="flex justify-between items-center">
+                    <h2 class="text-lg font-semibold">穿搭详情</h2>
+                    <button id="closeModal" class="text-gray-500">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 穿搭详情内容 -->
+            <div class="p-4" id="outfitDetailContent">
+                <!-- 动态加载内容 -->
+            </div>
+            
+            <!-- 评论区域 -->
+            <div class="border-t p-4">
+                <h3 class="text-base font-medium mb-3">我的评价</h3>
+                
+                <!-- 评价显示区域 - 只显示个人评价 -->
+                <div id="userCommentSection" class="mb-4">
+                    <!-- 动态加载用户评价内容 -->
+                </div>
+                
+                <!-- 评分与评论表单 - 仅未评价时显示 -->
+                <div id="commentForm" class="pt-3 border-t">
+                    <div class="mb-3">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">评分</label>
+                        <div class="rating">
+                            <input type="radio" id="star5" name="rating" value="5">
+                            <label for="star5" class="fas fa-star"></label>
+                            <input type="radio" id="star4" name="rating" value="4">
+                            <label for="star4" class="fas fa-star"></label>
+                            <input type="radio" id="star3" name="rating" value="3">
+                            <label for="star3" class="fas fa-star"></label>
+                            <input type="radio" id="star2" name="rating" value="2">
+                            <label for="star2" class="fas fa-star"></label>
+                            <input type="radio" id="star1" name="rating" value="1">
+                            <label for="star1" class="fas fa-star"></label>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">评论</label>
+                        <textarea id="commentText" rows="3" class="w-full border border-gray-300 rounded-lg p-2 text-sm" placeholder="分享您对这套穿搭的看法..."></textarea>
+                    </div>
+                    
+                    <button id="submitComment" class="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors">
+                        提交评价
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 模拟的用户数据
+        const currentUser = {
+            user_id: "user123",
+            username: "当前用户"
+        };
+        
+        // 模拟的评论数据 - 每个穿搭一个用户只有一条评价
+        const userEvaluations = {
+            "1003": {
+                evaluation_id: "eval001",
+                user_id: "user123",
+                outfit_id: "1003",
+                evaluation_text: "这套搭配非常适合周末，舒适又时尚，我很喜欢！",
+                rating: 4,
+                created_at: "2024-03-11 14:25"
+            }
+        };
+        
+        // 模拟的穿搭详情数据
+        const outfitsData = {
+            "1001": {
+                outfit_id: "1001",
+                title: "春季通勤穿搭",
+                date: "2024-03-15 10:30",
+                score: "暂无",
+                tags: ["商务场景", "知性优雅", "春季"],
+                description: "简约知性风格，米色风衣搭配白色丝质衬衫，下装选择高腰直筒西装裤，整体搭配既正式又不失温柔感。适合春季办公室环境，展现专业与优雅兼具的形象。",
+                image_url: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=600&h=600&fit=crop",
+                ai_description: "一位年轻女性穿着米色风衣，内搭白色丝质衬衫，下身是高腰直筒西装裤，整体造型简约大方，突出职业女性的知性美。米色的风衣增添了温暖感，同时保持了整体造型的高级感。适合春季办公室或商务场合，既专业又不失时尚度。"
+            },
+            "1002": {
+                outfit_id: "1002",
+                title: "约会穿搭推荐",
+                date: "2024-03-13 18:45",
+                score: "暂无",
+                tags: ["约会场景", "甜美", "春季"],
+                description: "甜美淑女风格，粉色针织开衫搭配白色蕾丝连衣裙，搭配精致配饰，打造浪漫约会造型。色彩柔和，细节精致，适合春季约会场合。",
+                image_url: "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?w=600&h=600&fit=crop",
+                ai_description: "温柔甜美的约会装扮，粉色针织开衫搭配白色蕾丝连衣裙，突出女性柔美气质，适合浪漫的约会场合。粉色增添了甜美感，蕾丝元素则提升了整体的精致度和女性魅力。搭配简约的配饰，整体造型平衡了甜美与优雅的气质。"
+            },
+            "1003": {
+                outfit_id: "1003",
+                title: "周末休闲穿搭",
+                date: "2024-03-10 09:15",
+                score: 4,
+                tags: ["休闲场景", "舒适", "春季"],
+                description: "舒适休闲风格，宽松牛仔裤搭配基础款T恤，外搭轻薄夹克，适合周末逛街、看电影等轻松场合。注重舒适度的同时保持时尚感。",
+                image_url: "https://images.unsplash.com/photo-1543087903-1ac2ec7aa8c5?w=600&h=600&fit=crop",
+                ai_description: "随性舒适的休闲搭配，主打轻松自在的生活态度，适合各种非正式场合，展现休闲中的时尚感。宽松的牛仔裤与基础款T恤为主体，外搭轻薄夹克增添层次感，整体造型简约却不失个性。适合周末休闲活动，既舒适又不失时尚感。"
+            }
+        };
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const modal = document.getElementById('outfitDetailModal');
+            const closeModal = document.getElementById('closeModal');
+            const outfitDetailContent = document.getElementById('outfitDetailContent');
+            const userCommentSection = document.getElementById('userCommentSection');
+            const commentForm = document.getElementById('commentForm');
+            const submitComment = document.getElementById('submitComment');
+            
+            // 当前选中的穿搭ID
+            let currentOutfitId = null;
+            
+            // 点击记录卡片打开模态框
+            document.querySelectorAll('.record-card').forEach(card => {
+                card.addEventListener('click', function(e) {
+                    // 如果点击的是更多按钮或操作菜单，不打开模态框
+                    if (e.target.closest('.more-options-btn') || e.target.closest('.action-menu')) {
+                        return;
+                    }
+                    
+                    currentOutfitId = this.getAttribute('data-outfit-id');
+                    openModal(currentOutfitId);
+                });
+            });
+            
+            // 绑定更多选项按钮点击事件
+            document.querySelectorAll('.more-options-btn').forEach(btn => {
+                btn.addEventListener('click', function(e) {
+                    e.stopPropagation(); // 阻止事件冒泡
+                    const outfitId = this.getAttribute('data-outfit-id');
+                    const menuId = 'menu-' + outfitId;
+                    const menu = document.getElementById(menuId);
+                    
+                    // 关闭所有其他菜单
+                    document.querySelectorAll('.action-menu.active').forEach(m => {
+                        if (m.id !== menuId) {
+                            m.classList.remove('active');
+                        }
+                    });
+                    
+                    // 切换当前菜单
+                    menu.classList.toggle('active');
+                });
+            });
+            
+            // 绑定删除操作点击事件
+            document.querySelectorAll('.action-menu-item[data-action="delete"]').forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.stopPropagation(); // 阻止事件冒泡
+                    const outfitId = this.getAttribute('data-outfit-id');
+                    deleteOutfitRecord(outfitId);
+                });
+            });
+            
+            // 点击页面其他地方关闭操作菜单
+            document.addEventListener('click', function(e) {
+                if (!e.target.closest('.more-options-btn') && !e.target.closest('.action-menu')) {
+                    document.querySelectorAll('.action-menu.active').forEach(menu => {
+                        menu.classList.remove('active');
+                    });
+                }
+            });
+            
+            // 关闭模态框
+            closeModal.addEventListener('click', function() {
+                modal.classList.remove('active');
+                document.body.style.overflow = ''; // 恢复背景滚动
+            });
+            
+            // 提交评论
+            submitComment.addEventListener('click', function() {
+                const rating = document.querySelector('input[name="rating"]:checked');
+                const commentText = document.getElementById('commentText').value;
+                
+                // 验证表单
+                if (!rating) {
+                    alert('请选择评分');
+                    return;
+                }
+                
+                if (!commentText.trim()) {
+                    alert('请输入评论内容');
+                    return;
+                }
+                
+                // 创建新评价对象
+                const newEvaluation = {
+                    evaluation_id: 'eval' + Date.now(),
+                    user_id: currentUser.user_id,
+                    outfit_id: currentOutfitId,
+                    evaluation_text: commentText,
+                    rating: parseInt(rating.value),
+                    created_at: new Date().toLocaleString('zh-CN', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    }).replace(/\//g, '-')
+                };
+                
+                // 保存用户评价
+                userEvaluations[currentOutfitId] = newEvaluation;
+                
+                // 更新评分显示在卡片上
+                updateCardRating(currentOutfitId, newEvaluation.rating);
+                
+                // 更新UI
+                renderUserEvaluation(currentOutfitId);
+                
+                // 重置表单
+                document.querySelectorAll('input[name="rating"]').forEach(radio => radio.checked = false);
+                document.getElementById('commentText').value = '';
+                
+                // 模拟向服务器提交数据
+                console.log('提交评价:', newEvaluation);
+                
+                // 提示用户
+                alert('评价提交成功！');
+            });
+            
+            // 更新卡片上的评分显示
+            function updateCardRating(outfitId, rating) {
+                // 直接使用1-5评分，不转换为10分制
+                const displayScore = rating;
+                
+                // 找到对应的卡片
+                const card = document.querySelector(`.record-card[data-outfit-id="${outfitId}"]`);
+                if (card) {
+                    const scoreBadge = card.querySelector('.score-badge');
+                    if (scoreBadge) {
+                        scoreBadge.textContent = `评分 ${displayScore}`;
+                    }
+                    
+                    // 更新数据对象
+                    if (outfitsData[outfitId]) {
+                        outfitsData[outfitId].score = displayScore;
+                    }
+                }
+            }
+            
+            // 打开模态框并加载数据
+            function openModal(outfitId) {
+                // 获取穿搭详情
+                const outfit = outfitsData[outfitId];
+                
+                if (outfit) {
+                    // 渲染穿搭详情
+                    outfitDetailContent.innerHTML = `
+                        <div class="mb-6">
+                            <div class="mb-4">
+                                <h3 class="text-xl font-semibold">${outfit.title}</h3>
+                                <div class="flex justify-between items-center mt-1">
+                                    <p class="text-sm text-gray-500">${outfit.date}</p>
+                                    <div class="score-badge">评分 ${outfit.score}</div>
+                                </div>
+                            </div>
+                            
+                            <div class="flex gap-2 mb-4">
+                                ${outfit.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                            </div>
+                            
+                            <div class="w-full mb-4">
+                                <img src="${outfit.image_url}" class="w-full h-auto rounded-lg" alt="${outfit.title}">
+                            </div>
+                            
+                            <div class="bg-[#F8F9FA] rounded-lg p-4 mb-4">
+                                <div class="text-sm text-gray-500 mb-2">AI 生成描述</div>
+                                <div class="text-gray-700">${outfit.ai_description}</div>
+                            </div>
+                            
+                            <div class="text-gray-700 mb-4">
+                                <div class="font-medium mb-2">穿搭描述</div>
+                                <p>${outfit.description}</p>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // 渲染用户评价
+                    renderUserEvaluation(outfitId);
+                    
+                    // 显示模态框
+                    modal.classList.add('active');
+                    document.body.style.overflow = 'hidden'; // 防止背景滚动
+                }
+            }
+            
+            // 渲染用户评价
+            function renderUserEvaluation(outfitId) {
+                const userEvaluation = userEvaluations[outfitId];
+                
+                if (userEvaluation) {
+                    // 用户已评价，显示评价内容，隐藏评价表单
+                    userCommentSection.innerHTML = `
+                        <div>
+                            <!-- 评分星星 -->
+                            <div class="flex mb-4 justify-center">
+                                ${Array(5).fill().map((_, i) => 
+                                    `<i class="fas fa-star ${i < userEvaluation.rating ? 'text-yellow-400' : 'text-gray-300'} text-2xl mx-1"></i>`
+                                ).join('')}
+                            </div>
+                            
+                            <!-- 评价内容 -->
+                            <div class="bg-gray-50 rounded-lg p-4 mb-3">
+                                <p class="text-gray-700">${userEvaluation.evaluation_text}</p>
+                            </div>
+                            
+                            <!-- 删除按钮 -->
+                            <div class="text-right">
+                                <button id="deleteEvaluation" class="text-red-500 text-sm flex items-center ml-auto">
+                                    <i class="fas fa-trash mr-1"></i> 删除评价
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    commentForm.style.display = 'none';
+                    
+                    // 添加删除按钮事件监听
+                    document.getElementById('deleteEvaluation').addEventListener('click', function() {
+                        deleteUserEvaluation(outfitId);
+                    });
+                } else {
+                    // 用户未评价，显示评价表单
+                    userCommentSection.innerHTML = `
+                        <div class="text-center text-gray-500 my-4">
+                            <p>您还没有评价过这套穿搭</p>
+                        </div>
+                    `;
+                    commentForm.style.display = 'block';
+                }
+            }
+            
+            // 删除用户评价的函数
+            function deleteUserEvaluation(outfitId) {
+                // 确认删除
+                if (confirm('确定要删除此评价吗？')) {
+                    // 从评价数据中删除
+                    delete userEvaluations[outfitId];
+                    
+                    // 更新卡片显示
+                    const card = document.querySelector(`.record-card[data-outfit-id="${outfitId}"]`);
+                    if (card) {
+                        const scoreBadge = card.querySelector('.score-badge');
+                        if (scoreBadge) {
+                            scoreBadge.textContent = '评分 暂无';
+                        }
+                    }
+                    
+                    // 更新数据对象
+                    if (outfitsData[outfitId]) {
+                        outfitsData[outfitId].score = '暂无';
+                    }
+                    
+                    // 更新UI
+                    renderUserEvaluation(outfitId);
+                    
+                    // 显示评论表单
+                    commentForm.style.display = 'block';
+                    
+                    // 通知用户
+                    alert('评价已删除');
+                }
+            }
+            
+            // 删除穿搭记录
+            function deleteOutfitRecord(outfitId) {
+                if (confirm('确定要删除这条穿搭推荐记录吗？此操作不可恢复。')) {
+                    // 找到并删除卡片元素
+                    const card = document.querySelector(`.record-card[data-outfit-id="${outfitId}"]`);
+                    if (card) {
+                        // 添加淡出动画效果
+                        card.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                        card.style.opacity = '0';
+                        card.style.transform = 'scale(0.95)';
+                        
+                        // 等待动画完成后移除元素
+                        setTimeout(() => {
+                            card.remove();
+                            
+                            // 如果没有更多记录，显示空状态
+                            const remainingCards = document.querySelectorAll('.record-card');
+                            if (remainingCards.length === 0) {
+                                const container = document.querySelector('.px-4');
+                                container.innerHTML = `
+                                    <div class="text-center py-12 text-gray-500">
+                                        <i class="fas fa-inbox text-4xl mb-3"></i>
+                                        <p>暂无穿搭推荐记录</p>
+                                    </div>
+                                `;
+                            }
+                        }, 300);
+                        
+                        // 删除数据
+                        delete outfitsData[outfitId];
+                        
+                        // 如果有相关评价，也一并删除
+                        if (userEvaluations[outfitId]) {
+                            delete userEvaluations[outfitId];
+                        }
+                        
+                        console.log('已删除穿搭记录:', outfitId);
+                    }
+                }
+            }
+            
+            // 初始化时检查是否有已评价的穿搭，更新卡片评分
+            for (const outfitId in userEvaluations) {
+                updateCardRating(outfitId, userEvaluations[outfitId].rating);
+            }
+        });
+    </script>
+</body>
+</html> 

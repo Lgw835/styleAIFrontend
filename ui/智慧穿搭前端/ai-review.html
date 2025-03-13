@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI穿搭评价</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .upload-area {
+            border: 2px dashed #CBD5E0;
+            transition: all 0.3s ease;
+        }
+        .upload-area:hover {
+            border-color: #4F46E5;
+            background-color: #F3F4F6;
+        }
+        .score-ring {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: conic-gradient(#4F46E5 calc(var(--score) * 3.6deg), #E5E7EB 0deg);
+            position: relative;
+        }
+        .score-ring::before {
+            content: '';
+            position: absolute;
+            inset: 10px;
+            border-radius: 50%;
+            background: white;
+        }
+        .evaluation-card {
+            transition: transform 0.3s ease;
+        }
+        .evaluation-card:hover {
+            transform: translateY(-2px);
+        }
+        .outfit-image {
+            width: 100%;
+            height: 300px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 h-full">
+    <!-- 顶部导航栏 -->
+    <nav class="bg-white shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center">
+                    <button class="text-gray-600" onclick="window.location.href='review-history.html'">
+                        <i class="fas fa-arrow-left text-xl"></i>
+                    </button>
+                    <h1 class="ml-4 text-xl font-semibold text-gray-900">AI穿搭评价</h1>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要内容区域 -->
+    <div class="max-w-7xl mx-auto px-4 py-6">
+        <!-- 穿搭图片展示区域 -->
+        <div class="bg-white rounded-lg p-6 mb-6 shadow-sm">
+            <img src="https://images.unsplash.com/photo-1483721310020-03333e577078?w=800&h=600&fit=crop" 
+                 class="outfit-image mx-auto" alt="穿搭图片">
+        </div>
+
+        <!-- AI评价结果区域 -->
+        <div class="grid grid-cols-1 gap-6">
+            <!-- 总体评分 -->
+            <div class="bg-white rounded-lg p-6 shadow-sm evaluation-card">
+                <div class="flex items-center justify-between">
+                    <div class="score-ring" style="--score: 85">
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <span class="text-3xl font-bold text-indigo-600">8.5</span>
+                        </div>
+                    </div>
+                    <div class="ml-6 flex-1">
+                        <h3 class="text-lg font-semibold text-gray-900">总体评分</h3>
+                        <p class="text-gray-600 mt-2">整体搭配时尚大方，展现出不错的个人风格</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 图片描述 -->
+            <div class="bg-white rounded-lg p-6 shadow-sm evaluation-card">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-image text-indigo-600 mr-2"></i>图片描述
+                </h3>
+                <p class="text-gray-600">这是一套休闲商务风格的穿搭，包含米色风衣、白色衬衫、深色休闲裤和棕色皮鞋。整体色调协调，展现出专业且不失时尚的气质。</p>
+            </div>
+
+            <!-- 优点分析 -->
+            <div class="bg-white rounded-lg p-6 shadow-sm evaluation-card">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-thumbs-up text-green-600 mr-2"></i>优点分析
+                </h3>
+                <ul class="space-y-2 text-gray-600">
+                    <li><i class="fas fa-check text-green-500 mr-2"></i>色彩搭配和谐，主色调统一</li>
+                    <li><i class="fas fa-check text-green-500 mr-2"></i>单品选择得当，风格统一</li>
+                    <li><i class="fas fa-check text-green-500 mr-2"></i>整体比例协调，突出个人优势</li>
+                </ul>
+            </div>
+
+            <!-- 不足之处 -->
+            <div class="bg-white rounded-lg p-6 shadow-sm evaluation-card">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-exclamation-circle text-yellow-600 mr-2"></i>不足之处
+                </h3>
+                <ul class="space-y-2 text-gray-600">
+                    <li><i class="fas fa-minus text-yellow-500 mr-2"></i>配饰可以再丰富一些</li>
+                    <li><i class="fas fa-minus text-yellow-500 mr-2"></i>鞋子与整体搭配可以更出彩</li>
+                </ul>
+            </div>
+
+            <!-- 改进建议 -->
+            <div class="bg-white rounded-lg p-6 shadow-sm evaluation-card">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">
+                    <i class="fas fa-lightbulb text-blue-600 mr-2"></i>改进建议
+                </h3>
+                <div class="space-y-4">
+                    <p class="text-gray-600">1. 可以考虑添加一条简约的项链或手表，提升整体精致感</p>
+                    <p class="text-gray-600">2. 建议选择更有设计感的皮鞋，比如牛津鞋或布洛克鞋</p>
+                    <p class="text-gray-600">3. 可以尝试在细节处加入一些亮色点缀，让整体造型更有亮点</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+</body>
+</html> 

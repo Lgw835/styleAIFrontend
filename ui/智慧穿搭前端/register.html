@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>注册 - 智慧穿搭助手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-white">
+    <div class="min-h-screen flex flex-col">
+        <!-- 顶部导航栏 -->
+        <nav class="bg-white h-12 flex items-center px-4 border-b">
+            <a href="login.html" class="text-gray-600">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <h1 class="text-lg font-medium text-center flex-1">注册账号</h1>
+        </nav>
+
+        <!-- 主要内容区 -->
+        <div class="flex-1 p-6">
+            <!-- 注册表单 -->
+            <form class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">手机号</label>
+                    <div class="mt-1 flex rounded-md shadow-sm">
+                        <span class="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm">
+                            +86
+                        </span>
+                        <input type="tel" class="flex-1 block w-full px-3 py-2 border border-gray-300 rounded-none rounded-r-md focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="请输入手机号">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">验证码</label>
+                    <div class="mt-1 flex rounded-md shadow-sm">
+                        <input type="text" class="flex-1 block w-full px-3 py-2 border border-gray-300 rounded-l-md focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="请输入验证码">
+                        <button type="button" class="inline-flex items-center px-4 py-2 border border-l-0 border-gray-300 text-sm font-medium rounded-r-md text-blue-500 bg-gray-50 hover:bg-gray-100">
+                            获取验证码
+                        </button>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">用户名</label>
+                    <input type="text" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="请设置用户名">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">密码</label>
+                    <input type="password" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="请设置密码">
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">确认密码</label>
+                    <input type="password" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" placeholder="请再次输入密码">
+                </div>
+
+                <div class="flex items-center">
+                    <input type="checkbox" class="h-4 w-4 text-blue-500 border-gray-300 rounded">
+                    <label class="ml-2 text-sm text-gray-600">
+                        我已阅读并同意
+                        <a href="#" class="text-blue-500">用户协议</a>
+                        和
+                        <a href="#" class="text-blue-500">隐私政策</a>
+                    </label>
+                </div>
+
+                <button type="submit" class="w-full bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 transition-colors">
+                    注册
+                </button>
+            </form>
+
+            <!-- 登录入口 -->
+            <div class="mt-6 text-center">
+                <span class="text-gray-600">已有账号？</span>
+                <a href="login.html" class="text-blue-500 font-medium">立即登录</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

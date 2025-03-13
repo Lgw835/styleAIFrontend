@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的日程 - 智慧穿搭助手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background: #F7F7F7;
+            color: #333;
+        }
+        
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+        }
+        
+        .calendar-header {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        .calendar-day {
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-size: 14px;
+            position: relative;
+            cursor: pointer;
+        }
+        
+        .calendar-day.has-event::after {
+            content: '';
+            position: absolute;
+            bottom: 4px;
+            width: 4px;
+            height: 4px;
+            background-color: #4096FF;
+            border-radius: 50%;
+        }
+        
+        .calendar-day.today {
+            background-color: #4096FF;
+            color: white;
+        }
+        
+        .calendar-day.other-month {
+            color: #9CA3AF;
+        }
+        
+        .event-card {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .event-card .time {
+            font-size: 12px;
+            color: #6B7280;
+        }
+        
+        .event-card .title {
+            font-size: 16px;
+            font-weight: 500;
+            margin: 6px 0;
+        }
+        
+        .event-card .description {
+            font-size: 14px;
+            color: #4B5563;
+            margin-bottom: 12px;
+        }
+        
+        .calendar-popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 50;
+            display: none;
+        }
+        
+        .calendar-popup.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .calendar-container {
+            background: white;
+            border-radius: 12px;
+            padding: 16px;
+            width: 90%;
+            max-width: 360px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .add-button {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background-color: #4096FF;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+            text-align: center;
+            color: #9CA3AF;
+        }
+        
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 16px;
+            color: #E5E7EB;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <nav class="bg-white h-12 flex items-center px-4 border-b fixed w-full top-0 z-10">
+        <a href="profile.html" class="text-gray-600">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <h1 class="text-lg font-medium text-center flex-1">我的日程</h1>
+        <button id="calendarBtn" class="text-blue-500">
+            <i class="fas fa-calendar-alt"></i>
+        </button>
+    </nav>
+
+    <!-- 主要内容区 -->
+    <div class="pt-14 pb-20">
+        <!-- 选中日期显示 -->
+        <div class="bg-white p-4 flex items-center justify-between border-b">
+            <div class="flex items-center">
+                <h2 class="text-lg font-medium" id="selectedDate">2025年3月8日</h2>
+                <div class="ml-2 text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded" id="weekdayLabel">周四</div>
+            </div>
+            <button id="todayBtn" class="text-sm text-blue-500">今天</button>
+        </div>
+
+        <!-- 日程列表 -->
+        <div class="p-4">
+            <div class="space-y-3" id="eventsContainer">
+                <!-- 日程列表项 -->
+                <a href="schedule-detail.html?id=1" class="block">
+                    <div class="event-card">
+                        <div class="time">上午 10:00</div>
+                        <div class="title">公司月度会议</div>
+                        <div class="description line-clamp-2">与团队成员讨论本月业绩和下月计划，准备PPT演示文稿</div>
+                        <div class="flex items-center mt-2">
+                            <i class="fas fa-bell text-yellow-500 mr-2"></i>
+                            <span class="text-xs text-gray-500">提醒已开启</span>
+                        </div>
+                    </div>
+                </a>
+                
+                <a href="schedule-detail.html?id=2" class="block">
+                    <div class="event-card">
+                        <div class="time">下午 18:30</div>
+                        <div class="title">与客户共进晚餐</div>
+                        <div class="description line-clamp-2">在新开的日式餐厅与重要客户共进晚餐，讨论合作细节</div>
+                    </div>
+                </a>
+            </div>
+            
+            <!-- 空状态显示 -->
+            <div class="empty-state hidden" id="emptyState">
+                <i class="fas fa-calendar-day"></i>
+                <p class="text-base mb-2">今日没有日程安排</p>
+                <p class="text-sm">点击右下角"+"按钮添加新日程</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 日历弹出框 -->
+    <div class="calendar-popup" id="calendarPopup">
+        <div class="calendar-container">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-medium">选择日期</h3>
+                <button id="closeCalendarBtn" class="text-gray-500">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <!-- 月份选择器 -->
+            <div class="flex justify-between items-center mb-4">
+                <button id="prevMonthBtn" class="text-gray-500">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <h4 class="text-base font-medium" id="currentMonth">2025年3月</h4>
+                <button id="nextMonthBtn" class="text-gray-500">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+
+            <!-- 日历头部 -->
+            <div class="calendar-header mb-2">
+                <div class="text-gray-500">日</div>
+                <div class="text-gray-500">一</div>
+                <div class="text-gray-500">二</div>
+                <div class="text-gray-500">三</div>
+                <div class="text-gray-500">四</div>
+                <div class="text-gray-500">五</div>
+                <div class="text-gray-500">六</div>
+            </div>
+
+            <!-- 日历网格 -->
+            <div class="calendar-grid mb-4" id="calendarGrid">
+                <!-- 日历内容将由JavaScript生成 -->
+            </div>
+            
+            <div class="flex justify-end">
+                <button id="confirmDateBtn" class="bg-blue-500 text-white px-4 py-2 rounded-lg text-sm">确定</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 添加按钮 -->
+    <a href="schedule-edit.html" class="add-button">
+        <i class="fas fa-plus text-xl"></i>
+    </a>
+
+    <script>
+        // 初始化日期和事件数据
+        let currentDate = new Date(2025, 2, 8); // JavaScript月份是0-11，所以3月是2
+        let selectedDate = new Date(2025, 2, 8);
+        
+        // 示例事件数据
+        const events = {
+            '2023-10-12': [
+                { id: 10, time: '上午 08:30', title: '部门早会', description: '讨论本周各部门工作进展和问题', hasReminder: true },
+                { id: 11, time: '下午 16:00', title: '项目需求讨论', description: '和产品团队讨论新版本功能需求', hasReminder: true }
+            ],
+            '2023-10-13': [
+                { id: 12, time: '全天', title: '团队建设活动', description: '前往郊外参加团队拓展活动，增强团队凝聚力', hasReminder: true }
+            ],
+            '2023-10-14': [
+                { id: 13, time: '上午 10:30', title: '客户会议', description: '与重要客户讨论合作计划，准备演示文档', hasReminder: true }
+            ],
+            '2023-10-15': [
+                { id: 5, time: '下午 15:00', title: '产品培训会议', description: '新产品功能介绍和使用培训', hasReminder: true },
+                { id: 14, time: '晚上 19:00', title: '朋友聚餐', description: '和大学同学在市中心新开的餐厅聚餐', hasReminder: false }
+            ],
+            '2023-10-16': [
+                { id: 6, time: '上午 09:30', title: '团队周会', description: '讨论本周工作进展和计划', hasReminder: true }
+            ],
+            '2023-10-17': [
+                { id: 1, time: '上午 10:00', title: '公司月度会议', description: '与团队成员讨论本月业绩和下月计划，准备PPT演示文稿', hasReminder: true },
+                { id: 2, time: '下午 18:30', title: '与客户共进晚餐', description: '在新开的日式餐厅与重要客户共进晚餐，讨论合作细节', hasReminder: false }
+            ],
+            '2023-10-18': [
+                { id: 3, time: '下午 14:00', title: '产品设计评审', description: '与设计团队一起评审新产品设计方案', hasReminder: true }
+            ],
+            '2023-10-20': [
+                { id: 15, time: '上午 11:00', title: '健康体检', description: '年度健康体检，需空腹', hasReminder: true }
+            ],
+            '2023-10-21': [
+                { id: 16, time: '下午 13:30', title: '逛街购物', description: '去商场购买冬季衣物', hasReminder: false },
+                { id: 17, time: '晚上 20:00', title: '电影之夜', description: '和家人一起去看最新上映的电影', hasReminder: true }
+            ],
+            '2023-10-23': [
+                { id: 18, time: '上午 08:00', title: '送孩子上学', description: '送孩子去参加学校特别活动', hasReminder: true }
+            ],
+            '2023-10-25': [
+                { id: 19, time: '下午 16:30', title: '牙医预约', description: '定期牙齿检查和洁牙', hasReminder: true }
+            ],
+            '2023-10-27': [
+                { id: 4, time: '晚上 19:30', title: '朋友生日聚会', description: '参加朋友的生日派对，地点在市中心的The Lounge餐厅', hasReminder: false }
+            ],
+            '2023-10-28': [
+                { id: 20, time: '上午 09:00', title: '家居购物', description: '去宜家购买新的家具和装饰品', hasReminder: false }
+            ],
+            '2023-10-30': [
+                { id: 21, time: '下午 15:30', title: '业绩回顾会', description: '与销售团队一起回顾本月业绩及分析', hasReminder: true },
+                { id: 22, time: '晚上 18:00', title: '瑜伽课', description: '参加健身中心的瑜伽课程', hasReminder: true }
+            ],
+            '2023-10-31': [
+                { id: 23, time: '晚上 20:00', title: '万圣节派对', description: '参加公司举办的万圣节主题派对，需要准备服装', hasReminder: true }
+            ],
+            '2023-11-01': [
+                { id: 24, time: '上午 10:00', title: '季度计划会', description: '制定新季度的工作计划和目标', hasReminder: true }
+            ],
+            '2023-11-03': [
+                { id: 25, time: '下午 14:00', title: '新员工培训', description: '给新入职的团队成员进行系统培训', hasReminder: true }
+            ],
+            '2023-11-05': [
+                { id: 26, time: '全天', title: '家庭日', description: '全天陪伴家人，可能去郊外野餐', hasReminder: false }
+            ],
+            '2025-03-07': [
+                { id: 101, time: '上午 09:00', title: '季度规划会议', description: '讨论下一季度的产品规划和发展方向', hasReminder: true },
+                { id: 102, time: '下午 15:00', title: '团队建设活动', description: '参加公司组织的团队拓展训练', hasReminder: true }
+            ],
+            '2025-03-08': [
+                { id: 103, time: '上午 10:30', title: '产品发布会', description: '参加新品发布会，负责技术演示环节', hasReminder: true },
+                { id: 104, time: '下午 14:00', title: '客户洽谈', description: '与潜在客户讨论合作方案', hasReminder: false },
+                { id: 105, time: '晚上 18:30', title: '家庭聚餐', description: '和家人在喜欢的餐厅共进晚餐', hasReminder: true }
+            ],
+            '2025-03-09': [
+                { id: 106, time: '全天', title: '周末出游', description: '带家人去郊外度假，放松心情', hasReminder: true }
+            ],
+            '2025-03-10': [
+                { id: 107, time: '上午 11:00', title: '项目评审', description: '第一季度项目成果评审会议', hasReminder: true }
+            ],
+            '2025-03-15': [
+                { id: 108, time: '下午 16:30', title: '健身课程', description: '参加健身房的有氧运动课程', hasReminder: false }
+            ]
+        };
+        
+        // 获取DOM元素
+        const calendarBtn = document.getElementById('calendarBtn');
+        const calendarPopup = document.getElementById('calendarPopup');
+        const closeCalendarBtn = document.getElementById('closeCalendarBtn');
+        const prevMonthBtn = document.getElementById('prevMonthBtn');
+        const nextMonthBtn = document.getElementById('nextMonthBtn');
+        const currentMonthEl = document.getElementById('currentMonth');
+        const calendarGrid = document.getElementById('calendarGrid');
+        const confirmDateBtn = document.getElementById('confirmDateBtn');
+        const selectedDateEl = document.getElementById('selectedDate');
+        const weekdayLabel = document.getElementById('weekdayLabel');
+        const eventsContainer = document.getElementById('eventsContainer');
+        const emptyState = document.getElementById('emptyState');
+        const todayBtn = document.getElementById('todayBtn');
+        
+        // 初始化页面
+        updateSelectedDateDisplay();
+        renderEvents();
+        
+        // 日历按钮点击事件
+        calendarBtn.addEventListener('click', function() {
+            calendarPopup.classList.add('active');
+            renderCalendar();
+        });
+        
+        // 关闭日历按钮点击事件
+        closeCalendarBtn.addEventListener('click', function() {
+            calendarPopup.classList.remove('active');
+        });
+        
+        // 确认日期按钮点击事件
+        confirmDateBtn.addEventListener('click', function() {
+            calendarPopup.classList.remove('active');
+            updateSelectedDateDisplay();
+            renderEvents();
+        });
+        
+        // 上个月按钮点击事件
+        prevMonthBtn.addEventListener('click', function() {
+            currentDate.setMonth(currentDate.getMonth() - 1);
+            renderCalendar();
+        });
+        
+        // 下个月按钮点击事件
+        nextMonthBtn.addEventListener('click', function() {
+            currentDate.setMonth(currentDate.getMonth() + 1);
+            renderCalendar();
+        });
+        
+        // 今天按钮点击事件
+        todayBtn.addEventListener('click', function() {
+            selectedDate = new Date();
+            updateSelectedDateDisplay();
+            renderEvents();
+        });
+        
+        // 渲染日历
+        function renderCalendar() {
+            const year = currentDate.getFullYear();
+            const month = currentDate.getMonth();
+            
+            // 更新月份显示
+            currentMonthEl.textContent = `${year}年${month + 1}月`;
+            
+            // 清空日历网格
+            calendarGrid.innerHTML = '';
+            
+            // 获取当月第一天和最后一天
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            
+            // 获取当月第一天是星期几（0是星期日）
+            const firstDayIndex = firstDay.getDay();
+            
+            // 获取上个月的最后几天
+            const prevLastDay = new Date(year, month, 0);
+            
+            // 计算需要显示的日期总数
+            const daysInMonth = lastDay.getDate();
+            const daysInPrevMonth = prevLastDay.getDate();
+            
+            // 生成日历网格
+            for (let i = firstDayIndex; i > 0; i--) {
+                const day = daysInPrevMonth - i + 1;
+                const date = new Date(year, month - 1, day);
+                const dateStr = formatDate(date);
+                
+                const dayElement = createDayElement(day, 'other-month', date, dateStr);
+                calendarGrid.appendChild(dayElement);
+            }
+            
+            for (let i = 1; i <= daysInMonth; i++) {
+                const date = new Date(year, month, i);
+                const dateStr = formatDate(date);
+                
+                let className = '';
+                if (isSameDay(date, new Date())) {
+                    className = 'today';
+                } else if (isSameDay(date, selectedDate)) {
+                    className = 'selected bg-blue-100';
+                }
+                
+                if (events[dateStr]) {
+                    className += ' has-event';
+                }
+                
+                const dayElement = createDayElement(i, className, date, dateStr);
+                calendarGrid.appendChild(dayElement);
+            }
+            
+            // 填充下个月的前几天
+            const nextDays = 42 - (firstDayIndex + daysInMonth);
+            for (let i = 1; i <= nextDays; i++) {
+                const date = new Date(year, month + 1, i);
+                const dateStr = formatDate(date);
+                
+                const dayElement = createDayElement(i, 'other-month', date, dateStr);
+                calendarGrid.appendChild(dayElement);
+            }
+        }
+        
+        // 创建日期元素
+        function createDayElement(day, className, date, dateStr) {
+            const dayElement = document.createElement('div');
+            dayElement.className = `calendar-day ${className}`;
+            dayElement.textContent = day;
+            dayElement.addEventListener('click', function() {
+                // 移除之前选中的样式
+                const selectedDays = document.querySelectorAll('.calendar-day.selected');
+                selectedDays.forEach(el => el.classList.remove('selected', 'bg-blue-100'));
+                
+                // 选中当前日期
+                if (!dayElement.classList.contains('today')) {
+                    dayElement.classList.add('selected', 'bg-blue-100');
+                }
+                
+                selectedDate = date;
+            });
+            return dayElement;
+        }
+        
+        // 更新选中日期显示
+        function updateSelectedDateDisplay() {
+            const year = selectedDate.getFullYear();
+            const month = selectedDate.getMonth() + 1;
+            const day = selectedDate.getDate();
+            const weekday = ['日', '一', '二', '三', '四', '五', '六'][selectedDate.getDay()];
+            
+            selectedDateEl.textContent = `${year}年${month}月${day}日`;
+            weekdayLabel.textContent = `周${weekday}`;
+        }
+        
+        // 渲染事件列表
+        function renderEvents() {
+            const dateStr = formatDate(selectedDate);
+            const dayEvents = events[dateStr] || [];
+            
+            // 清空事件容器
+            eventsContainer.innerHTML = '';
+            
+            if (dayEvents.length === 0) {
+                // 显示空状态
+                emptyState.classList.remove('hidden');
+                eventsContainer.classList.add('hidden');
+            } else {
+                // 显示事件列表
+                emptyState.classList.add('hidden');
+                eventsContainer.classList.remove('hidden');
+                
+                // 添加事件卡片
+                dayEvents.forEach(event => {
+                    const eventCard = document.createElement('a');
+                    eventCard.href = `schedule-detail.html?id=${event.id}`;
+                    eventCard.className = 'block';
+                    
+                    const reminderHtml = event.hasReminder ? `
+                        <div class="flex items-center mt-2">
+                            <i class="fas fa-bell text-yellow-500 mr-2"></i>
+                            <span class="text-xs text-gray-500">提醒已开启</span>
+                        </div>
+                    ` : '';
+                    
+                    eventCard.innerHTML = `
+                        <div class="event-card">
+                            <div class="time">${event.time}</div>
+                            <div class="title">${event.title}</div>
+                            <div class="description line-clamp-2">${event.description}</div>
+                            ${reminderHtml}
+                        </div>
+                    `;
+                    
+                    eventsContainer.appendChild(eventCard);
+                });
+            }
+        }
+        
+        // 格式化日期为 YYYY-MM-DD 字符串
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = (date.getMonth() + 1).toString().padStart(2, '0');
+            const day = date.getDate().toString().padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+        
+        // 检查两个日期是否为同一天
+        function isSameDay(date1, date2) {
+            return date1.getFullYear() === date2.getFullYear() &&
+                   date1.getMonth() === date2.getMonth() &&
+                   date1.getDate() === date2.getDate();
+        }
+    </script>
+</body>
+</html> 

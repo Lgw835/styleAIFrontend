@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>虚拟试衣 - 智慧穿搭助手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .radio-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            border: 1px solid #DDDDDD;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+        }
+        
+        .radio-item.active {
+            border-color: #4096FF;
+            background-color: rgba(64, 150, 255, 0.05);
+        }
+        
+        .radio-item input[type="radio"] {
+            margin-right: 10px;
+        }
+        
+        .tab-button {
+            flex: 1;
+            text-align: center;
+            padding: 12px 0;
+            font-size: 14px;
+            border-bottom: 2px solid transparent;
+            color: #666666;
+        }
+        
+        .tab-button.active {
+            color: #4096FF;
+            border-bottom-color: #4096FF;
+            font-weight: 500;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .upload-container {
+            border: 2px dashed #DDDDDD;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            background-color: #F9F9F9;
+            cursor: pointer;
+        }
+
+        .btn-primary {
+            background-color: #4096FF;
+            color: white;
+            padding: 12px 0;
+            border-radius: 8px;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        .btn-outline {
+            border: 1px solid #4096FF;
+            color: #4096FF;
+            padding: 12px 0;
+            border-radius: 8px;
+            font-weight: 500;
+            text-align: center;
+        }
+
+        /* 状态切换 */
+        .fitting-state {
+            display: none;
+        }
+        
+        .fitting-state.active {
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="min-h-screen flex flex-col">
+        <!-- 顶部导航栏 -->
+        <nav class="bg-white h-12 flex items-center px-4 border-b fixed w-full top-0 z-10">
+            <a href="wardrobe.html" class="text-gray-600">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <h1 class="text-lg font-medium text-center flex-1">虚拟试衣</h1>
+            <a href="fitting-history.html" class="text-gray-600">
+                <i class="fas fa-history"></i>
+            </a>
+        </nav>
+
+        <!-- 主要内容区 -->
+        <div class="flex-1 pt-14 pb-6 px-4">
+            <div class="space-y-4">
+                <!-- 人物照片上传 -->
+                <div class="bg-white rounded-xl p-4 shadow-sm">
+                    <h3 class="text-base font-medium mb-3">上传人物照片</h3>
+                    <div class="upload-container">
+                        <input type="file" accept="image/*" class="hidden" id="person-image">
+                        <label for="person-image" class="block w-full h-full cursor-pointer">
+                            <i class="fas fa-user text-3xl text-gray-400 mb-2"></i>
+                            <p class="text-sm text-gray-500">点击上传全身照</p>
+                            <p class="text-xs text-gray-400 mt-1">建议正面站立拍摄</p>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 衣物选择 -->
+                <div class="bg-white rounded-xl p-4 shadow-sm">
+                    <h3 class="text-base font-medium mb-3">选择衣物</h3>
+                    
+                    <!-- 选择方式标签页 -->
+                    <div class="flex border-b mb-4">
+                        <div class="tab-button active" data-tab="upload">上传新衣物</div>
+                        <div class="tab-button" data-tab="wardrobe">从衣柜选择</div>
+                    </div>
+                    
+                    <!-- 上传新衣物 -->
+                    <div class="tab-content active" id="upload-tab">
+                        <div class="upload-container">
+                            <input type="file" accept="image/*" class="hidden" id="cloth-image">
+                            <label for="cloth-image" class="block w-full h-full cursor-pointer">
+                                <i class="fas fa-tshirt text-3xl text-gray-400 mb-2"></i>
+                                <p class="text-sm text-gray-500">点击上传衣物照</p>
+                                <p class="text-xs text-gray-400 mt-1">建议平铺拍摄，背景简单</p>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- 从衣柜选择 -->
+                    <div class="tab-content" id="wardrobe-tab">
+                        <div class="grid grid-cols-3 gap-3 max-h-60 overflow-y-auto">
+                            <!-- 衣柜中的衣物 -->
+                            <div class="rounded-lg border-2 border-transparent cursor-pointer hover:border-blue-500">
+                                <img src="https://images.unsplash.com/photo-1434389677669-e08b4cac3105?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=80" 
+                                     alt="白色衬衫"
+                                     class="w-full aspect-square object-cover rounded-lg">
+                            </div>
+                            <div class="rounded-lg border-2 border-transparent cursor-pointer hover:border-blue-500">
+                                <img src="https://images.unsplash.com/photo-1551028719-00167b16eac5?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=80" 
+                                     alt="黑色西装"
+                                     class="w-full aspect-square object-cover rounded-lg">
+                            </div>
+                            <div class="rounded-lg border-2 border-transparent cursor-pointer hover:border-blue-500">
+                                <img src="https://images.unsplash.com/photo-1584370848010-d7fe6bc767ec?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=80" 
+                                     alt="牛仔裤"
+                                     class="w-full aspect-square object-cover rounded-lg">
+                            </div>
+                            <div class="rounded-lg border-2 border-transparent cursor-pointer hover:border-blue-500">
+                                <img src="https://images.unsplash.com/photo-1543163521-1bf539c55dd2?ixlib=rb-1.2.1&auto=format&fit=crop&w=200&q=80" 
+                                     alt="运动鞋"
+                                     class="w-full aspect-square object-cover rounded-lg">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 试衣类别选择 -->
+                <div class="bg-white rounded-xl p-4 shadow-sm">
+                    <h3 class="text-base font-medium mb-3">选择试衣类别</h3>
+                    <div>
+                        <label class="radio-item active">
+                            <input type="radio" name="fitting-type" value="upper" checked>
+                            <span>上半身</span>
+                        </label>
+                        <label class="radio-item">
+                            <input type="radio" name="fitting-type" value="lower">
+                            <span>下半身</span>
+                        </label>
+                        <label class="radio-item">
+                            <input type="radio" name="fitting-type" value="full">
+                            <span>全身</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 试衣前状态 -->
+                <div class="fitting-state active" id="before-fitting">
+                    <!-- 试衣效果预览（试衣前） -->
+                    <div class="bg-white rounded-xl p-4 shadow-sm">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-medium">试衣效果</h3>
+                        </div>
+                        <div class="aspect-[3/4] bg-gray-100 rounded-lg overflow-hidden">
+                            <div class="flex items-center justify-center h-full">
+                                <p class="text-gray-500">选择人物和衣物后查看试衣效果</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 开始试衣按钮 -->
+                    <div class="mt-4">
+                        <button id="start-fitting-btn" class="btn-primary w-full">
+                            开始试衣
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 试衣后状态 -->
+                <div class="fitting-state" id="after-fitting">
+                    <!-- 试衣效果预览（试衣后） -->
+                    <div class="bg-white rounded-xl p-4 shadow-sm">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-lg font-medium">试衣效果</h3>
+                            <button class="text-sm text-blue-500">重新生成</button>
+                        </div>
+                        <div class="aspect-[3/4] bg-gray-100 rounded-lg overflow-hidden">
+                            <!-- 这里用示例图片替代试衣效果 -->
+                            <img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=600&h=800&fit=crop" 
+                                 class="w-full h-full object-cover" alt="试衣效果">
+                        </div>
+                    </div>
+                    
+                    <!-- 保存按钮 -->
+                    <div class="flex space-x-4 mt-4">
+                        <button id="try-again-btn" class="btn-outline flex-1">
+                            重新试衣
+                        </button>
+                        <button id="save-btn" class="btn-primary flex-1">
+                            保存图片
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 试衣类别选择
+        const radioItems = document.querySelectorAll('.radio-item');
+        radioItems.forEach(item => {
+            item.addEventListener('click', function() {
+                radioItems.forEach(i => i.classList.remove('active'));
+                this.classList.add('active');
+                this.querySelector('input').checked = true;
+            });
+        });
+        
+        // 切换标签页
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const tabContents = document.querySelectorAll('.tab-content');
+        
+        tabButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const tabName = this.getAttribute('data-tab');
+                
+                // 激活按钮
+                tabButtons.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                // 显示内容
+                tabContents.forEach(content => content.classList.remove('active'));
+                document.getElementById(tabName + '-tab').classList.add('active');
+            });
+        });
+        
+        // 试衣状态切换（示例，实际项目中会通过API调用切换）
+        document.getElementById('start-fitting-btn').addEventListener('click', function() {
+            document.getElementById('before-fitting').classList.remove('active');
+            document.getElementById('after-fitting').classList.add('active');
+        });
+        
+        document.getElementById('try-again-btn').addEventListener('click', function() {
+            document.getElementById('after-fitting').classList.remove('active');
+            document.getElementById('before-fitting').classList.add('active');
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智慧穿搭助手 - 原型展示</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .prototype-container {
+            width: 390px; /* iPhone 15 Pro 宽度 */
+            height: 844px; /* iPhone 15 Pro 高度 */
+            border-radius: 55px; /* 模拟 iPhone 圆角 */
+            overflow: hidden;
+            position: relative;
+            background: #fff;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+        }
+        .status-bar {
+            height: 44px;
+            background: #000;
+            position: relative;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            color: white;
+        }
+        .prototype-frame {
+            width: 100%;
+            height: calc(100% - 44px);
+            border: none;
+        }
+        .prototypes-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, 390px);
+            gap: 2rem;
+            padding: 2rem;
+            justify-content: center;
+        }
+        .prototype-label {
+            text-align: center;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 1rem;
+        }
+        .prototype-section {
+            margin-bottom: 2rem;
+        }
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1F2937;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #E5E7EB;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto py-8">
+        <h1 class="text-3xl font-bold text-center mb-8">智慧穿搭助手 - 界面原型</h1>
+        
+        <!-- 登录注册相关页面 -->
+        <div class="prototype-section">
+            <h2 class="section-title">登录与注册</h2>
+            <div class="prototypes-grid">
+                <!-- 登录页面 -->
+                <div>
+                    <div class="prototype-label">登录页面</div>
+                    <div class="prototype-container">
+                        <div class="status-bar">
+                            <span>9:41</span>
+                            <div>
+                                <i class="fas fa-signal"></i>
+                                <i class="fas fa-wifi ml-2"></i>
+                                <i class="fas fa-battery-full ml-2"></i>
+                            </div>
+                        </div>
+                        <iframe src="login.html" class="prototype-frame"></iframe>
+                    </div>
+                </div>
+
+                <!-- 手机号登录页面 -->
+                <div>
+                    <div class="prototype-label">手机号登录</div>
+                    <div class="prototype-container">
+                        <div class="status-bar">
+                            <span>9:41</span>
+                            <div>
+                                <i class="fas fa-signal"></i>
+                                <i class="fas fa-wifi ml-2"></i>
+                                <i class="fas fa-battery-full ml-2"></i>
+                            </div>
+                        </div>
+                        <iframe src="phone-login.html" class="prototype-frame"></iframe>
+                    </div>
+                </div>
+
+                <!-- 注册页面 -->
+                <div>
+                    <div class="prototype-label">注册页面</div>
+                    <div class="prototype-container">
+                        <div class="status-bar">
+                            <span>9:41</span>
+                            <div>
+                                <i class="fas fa-signal"></i>
+                                <i class="fas fa-wifi ml-2"></i>
+                                <i class="fas fa-battery-full ml-2"></i>
+                            </div>
+                        </div>
+                        <iframe src="register.html" class="prototype-frame"></iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 穿搭推荐相关页面 -->
+        <div class="prototype-section">
+            <h2 class="section-title">智能穿搭推荐</h2>
+            <div class="prototypes-grid">
+                <!-- 首页（智能穿搭） -->
+                <div>
+                    <div class="prototype-label">首页（智能穿搭）</div>
+                    <div class="prototype-container">
+                        <div class="status-bar">
+                            <span>9:41</span>
+                            <div>
+                                <i class="fas fa-signal"></i>
+                                <i class="fas fa-wifi ml-2"></i>
+                                <i class="fas fa-battery-full ml-2"></i>
+                            </div>
+                        </div>
+                        <iframe src="home.html" class="prototype-frame"></iframe>
+                    </div>
+                </div>
+
+                <!-- 穿搭推荐页面 -->
+                <div>
+                    <div class="prototype-label">穿搭推荐</div>
+                    <div class="prototype-container">
+                        <div class="status-bar">
+                            <span>9:41</span>
+                            <div>
+                                <i class="fas fa-signal"></i>
+                                <i class="fas fa-wifi ml-2"></i>
+                                <i class="fas fa-battery-full ml-2"></i>
+                            </div>
+                        </div>
+                        <iframe src="match-recommend.html" class="prototype-frame"></iframe>
+                    </div>
+                </div>
+
+                <!-- 穿搭推荐结果页面 -->
+                <div>
+                    <div class="prototype-label">穿搭推荐结果</div>
+                    <div class="prototype-container">
+                        <div class="status-bar">
+                            <span>9:41</span>
+                            <div>
+                                <i class="fas fa-signal"></i>
+                                <i class="fas fa-wifi ml-2"></i>
+                                <i class="fas fa-battery-full ml-2"></i>
+                            </div>
+                        </div>
+                        <iframe src="match-result.html" class="prototype-frame"></iframe>
+                    </div>
+                </div>
+                
+                <!-- 推荐记录页面 -->
+                <div>
+                    <div class="prototype-label">推荐记录</div>
+                    <div class="prototype-container">
+                        <div class="status-bar">
+                            <span>9:41</span>
+                            <div>
+                                <i class="fas fa-signal"></i>
+                                <i class="fas fa-wifi ml-2"></i>
+                                <i class="fas fa-battery-full ml-2"></i>
+                            </div>
+                        </div>
+                        <iframe src="recommend-history.html" class="prototype-frame"></iframe>
+                    </div>
+                </div>
+
+                <!-- AI穿搭评价页面 -->
+                <div>
+                    <div class="prototype-label">AI穿搭评价</div>
+                    <div class="prototype-container">
+                        <div class="status-bar">
+                            <span>9:41</span>
+                            <div>
+                                <i class="fas fa-signal"></i>
+                                <i class="fas fa-wifi ml-2"></i>
+                                <i class="fas fa-battery-full ml-2"></i>
+                            </div>
+                        </div>
+                        <iframe src="ai-review.html" class="prototype-frame"></iframe>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+        
+        <!-- 衣柜相关页面 -->
+        <div class="prototype-section">
+            <h2 class="section-title">衣柜管理</h2>
+            <div class="prototypes-grid">
+                <!-- 衣柜管理页面 -->
+                <div>
+                    <div class="prototype-label">衣柜管理</div>
+                    <div class="prototype-container">
+                        <div class="status-bar">
+                            <span>9:41</span>
+                            <div>
+                                <i class="fas fa-signal"></i>
+                                <i class="fas fa-wifi ml-2"></i>
+                                <i class="fas fa-battery-full ml-2"></i>
+                            </div>
+                        </div>
+                        <iframe src="wardrobe.html" class="prototype-frame"></iframe>
+                    </div>
+                </div>
+                
+                <!-- 衣物详情页面 -->
+                <div>
+                    <div class="prototype-label">衣物详情</div>
+                    <div class="prototype-container">
+                        <div class="status-bar">
+                            <span>9:41</span>
+                            <div>
+                                <i class="fas fa-signal"></i>
+                                <i class="fas fa-wifi ml-2"></i>
+                                <i class="fas fa-battery-full ml-2"></i>
+                            </div>
+                        </div>
+                        <iframe src="wardrobe-detail.html" class="prototype-frame"></iframe>
+                    </div>
+                </div>
+
+                <!-- 上传衣物页面 -->
+                <div>
+                    <div class="prototype-label">上传衣物</div>
+                    <div class="prototype-container">
+                        <div class="status-bar">
+                            <span>9:41</span>
+                            <div>
+                                <i class="fas fa-signal"></i>
+                                <i class="fas fa-wifi ml-2"></i>
+                                <i class="fas fa-battery-full ml-2"></i>
+                            </div>
+                        </div>
+                        <iframe src="wardrobe-upload.html" class="prototype-frame"></iframe>
+                    </div>
+                </div>
+
+                <!-- 虚拟试衣页面 -->
+                <div>
+                    <div class="prototype-label">虚拟试衣</div>
+                    <div class="prototype-container">
+                        <div class="status-bar">
+                            <span>9:41</span>
+                            <div>
+                                <i class="fas fa-signal"></i>
+                                <i class="fas fa-wifi ml-2"></i>
+                                <i class="fas fa-battery-full ml-2"></i>
+                            </div>
+                        </div>
+                        <iframe src="virtual-fitting.html" class="prototype-frame"></iframe>
+                    </div>
+                </div>
+                
+                <!-- 试衣记录页面 -->
+                <div>
+                    <div class="prototype-label">试衣记录</div>
+                    <div class="prototype-container">
+                        <div class="status-bar">
+                            <span>9:41</span>
+                            <div>
+                                <i class="fas fa-signal"></i>
+                                <i class="fas fa-wifi ml-2"></i>
+                                <i class="fas fa-battery-full ml-2"></i>
+                            </div>
+                        </div>
+                        <iframe src="fitting-history.html" class="prototype-frame"></iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 广场圈子相关页面 -->
+        <div class="prototype-section">
+            <h2 class="section-title">广场圈子</h2>
+            <div class="prototypes-grid">
+                <!-- 广场圈子页面 -->
+                <div>
+                    <div class="prototype-label">广场圈子</div>
+                    <div class="prototype-container">
+                        <div class="status-bar">
+                            <span>9:41</span>
+                            <div>
+                                <i class="fas fa-signal"></i>
+                                <i class="fas fa-wifi ml-2"></i>
+                                <i class="fas fa-battery-full ml-2"></i>
+                            </div>
+                        </div>
+                        <iframe src="community.html" class="prototype-frame"></iframe>
+                    </div>
+                </div>
+                
+                <!-- 帖子详情页面 -->
+                <div>
+                    <div class="prototype-label">帖子详情</div>
+                    <div class="prototype-container">
+                        <div class="status-bar">
+                            <span>9:41</span>
+                            <div>
+                                <i class="fas fa-signal"></i>
+                                <i class="fas fa-wifi ml-2"></i>
+                                <i class="fas fa-battery-full ml-2"></i>
+                            </div>
+                        </div>
+                        <iframe src="post-detail.html" class="prototype-frame"></iframe>
+                    </div>
+                </div>
+                
+                <!-- 发布帖子页面 -->
+                <div>
+                    <div class="prototype-label">发布帖子</div>
+                    <div class="prototype-container">
+                        <div class="status-bar">
+                            <span>9:41</span>
+                            <div>
+                                <i class="fas fa-signal"></i>
+                                <i class="fas fa-wifi ml-2"></i>
+                                <i class="fas fa-battery-full ml-2"></i>
+                            </div>
+                        </div>
+                        <iframe src="post-create.html" class="prototype-frame"></iframe>
+                    </div>
+                </div>
+                
+            </div>
+        </div>
+        
+        <!-- 个人信息相关页面 -->
+        <div class="prototype-section">
+            <h2 class="section-title">个人中心</h2>
+            <div class="prototypes-grid">
+                <!-- 个人中心页面 -->
+                <div>
+                    <div class="prototype-label">个人中心</div>
+                    <div class="prototype-container">
+                        <div class="status-bar">
+                            <span>9:41</span>
+                            <div>
+                                <i class="fas fa-signal"></i>
+                                <i class="fas fa-wifi ml-2"></i>
+                                <i class="fas fa-battery-full ml-2"></i>
+                            </div>
+                        </div>
+                        <iframe src="profile.html" class="prototype-frame"></iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

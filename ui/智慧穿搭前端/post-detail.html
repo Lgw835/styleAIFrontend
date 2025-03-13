@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>帖子详情</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .content-container {
+            height: calc(100vh - 56px);
+            overflow-y: auto;
+        }
+        .content-container::-webkit-scrollbar {
+            width: 4px;
+        }
+        .content-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        .content-container::-webkit-scrollbar-thumb {
+            background: #ddd;
+            border-radius: 4px;
+        }
+        .comment-input {
+            border: none;
+            outline: none;
+            flex: 1;
+            padding: 8px 12px;
+            background: #F5F5F5;
+            border-radius: 20px;
+        }
+        .bottom-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 8px 16px;
+            border-top: 1px solid #F3F4F6;
+        }
+        .action-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            background: #F5F5F5;
+            color: #666;
+            font-size: 14px;
+        }
+        .action-button.liked {
+            color: #FF4D4F;
+        }
+        .action-button.liked i {
+            color: #FF4D4F;
+        }
+    </style>
+</head>
+<body class="bg-white">
+    <!-- 顶部导航栏 -->
+    <nav class="bg-white shadow-sm fixed top-0 left-0 right-0 z-10">
+        <div class="max-w-7xl mx-auto">
+            <div class="flex justify-between h-14 items-center px-4">
+                <button onclick="history.back()" class="text-gray-600">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <h1 class="text-lg font-semibold text-gray-900">帖子详情</h1>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 内容区域 -->
+    <div class="content-container pt-14 pb-20">
+        <!-- 帖子内容 -->
+        <div class="p-4">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center">
+                    <img src="https://i.pravatar.cc/40?img=5" class="w-10 h-10 rounded-full" alt="Sarah">
+                    <div class="ml-3">
+                        <div class="font-medium">Sarah</div>
+                        <div class="text-xs text-gray-500">IP属地：北京</div>
+                    </div>
+                </div>
+                <button class="px-4 py-1 border border-blue-500 text-blue-500 rounded-full text-sm hover:bg-blue-50 transition-colors">
+                    关注
+                </button>
+            </div>
+            
+            <p class="text-gray-900 mb-4 text-base leading-relaxed">
+                今日穿搭分享 ✨ 简约知性风，适合日常通勤。上衣选择了米色针织开衫，内搭白色丝质衬衫，下装是高腰直筒西装裤，整体搭配既正式又不失温柔感。搭配了一条细链条项链和一个小巧的手表作为装饰，既不会太过张扬又能突出细节。
+            </p>
+
+            <div class="grid grid-cols-3 gap-1 mb-4">
+                <img src="https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&h=800&fit=crop" 
+                     class="w-full aspect-square object-cover rounded-lg" alt="穿搭图片"
+                     onclick="window.open(this.src, '_blank')">
+                <img src="https://images.unsplash.com/photo-1539109136881-3be0616acf4b?w=800&h=800&fit=crop" 
+                     class="w-full aspect-square object-cover rounded-lg" alt="穿搭图片"
+                     onclick="window.open(this.src, '_blank')">
+                <img src="https://images.unsplash.com/photo-1485968579580-b6d095142e6e?w=800&h=800&fit=crop" 
+                     class="w-full aspect-square object-cover rounded-lg" alt="穿搭图片"
+                     onclick="window.open(this.src, '_blank')">
+            </div>
+
+            <div class="flex items-center justify-between text-sm text-gray-500 mb-6">
+                <span>3月15日 10:30</span>
+            </div>
+
+        </div>
+
+        <!-- 评论区 -->
+        <div class="bg-gray-50 min-h-screen">
+            <div class="p-4">
+                <h2 class="text-base font-medium mb-4">全部评论 (368)</h2>
+                
+                <!-- 热门评论 -->
+                <div class="bg-white rounded-lg p-4 mb-4">
+                    <div class="flex items-start mb-3">
+                        <img src="https://i.pravatar.cc/40?img=1" class="w-8 h-8 rounded-full" alt="用户头像">
+                        <div class="ml-3 flex-1">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <span class="font-medium text-sm">Emma</span>
+                                    <span class="text-xs text-gray-500 ml-2">IP属地：上海</span>
+                                </div>
+                            </div>
+                            <p class="text-sm text-gray-900 mt-1">
+                                搭配得很精致！针织开衫的颜色很温柔，跟衬衫的搭配也很和谐。请问项链是在哪里买的呀？
+                            </p>
+                            <div class="flex items-center mt-2">
+                                <span class="text-xs text-gray-500">3小时前</span>
+                                <button class="text-xs text-gray-500 ml-4">回复</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 最新评论 -->
+                <div class="bg-white rounded-lg p-4">
+                    <div class="flex items-start mb-3">
+                        <img src="https://i.pravatar.cc/40?img=2" class="w-8 h-8 rounded-full" alt="用户头像">
+                        <div class="ml-3 flex-1">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <span class="font-medium text-sm">Lily</span>
+                                    <span class="text-xs text-gray-500 ml-2">IP属地：广州</span>
+                                </div>
+                            </div>
+                            <p class="text-sm text-gray-900 mt-1">
+                                这套搭配太适合春天了！看起来很舒服，而且很有气质。
+                            </p>
+                            <div class="flex items-center mt-2">
+                                <span class="text-xs text-gray-500">1小时前</span>
+                                <button class="text-xs text-gray-500 ml-4">回复</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部评论栏 -->
+    <div class="bottom-bar">
+        <div class="flex items-center gap-3">
+            <input type="text" class="comment-input" placeholder="说点什么...">
+            <button class="text-blue-500">发送</button>
+        </div>
+    </div>
+</body>
+</html> 

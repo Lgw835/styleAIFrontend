@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户画像</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background: #F7F7F7;
+            color: #333;
+        }
+        .status-bar {
+            height: 44px;
+            background: black;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 50;
+        }
+        .tag {
+            @apply px-3 py-1 rounded-full text-sm;
+            background: rgba(64, 150, 255, 0.1);
+            color: #4096FF;
+        }
+    </style>
+</head>
+<body>
+    <!-- 状态栏 -->
+    <div class="status-bar"></div>
+
+    <!-- 标题栏 -->
+    <div class="fixed top-11 left-0 right-0 z-40 bg-white flex items-center justify-between px-4 py-3">
+        <div class="flex items-center">
+            <a href="profile.html" class="text-[#666]">
+                <i class="fas fa-arrow-left text-xl"></i>
+            </a>
+            <h1 class="ml-4 text-lg font-medium">用户画像</h1>
+        </div>
+        <button class="text-[#4096FF] font-normal">编辑</button>
+    </div>
+
+    <!-- 画像内容 -->
+    <div class="pt-24 pb-6">
+        <!-- 身材数据 -->
+        <div class="bg-white px-6 py-4 mb-3">
+            <h3 class="text-[#333] font-medium mb-4">身材数据</h3>
+            <div class="grid grid-cols-3 gap-4">
+                <div class="text-center">
+                    <div class="text-[#333] text-lg">165cm</div>
+                    <div class="text-sm text-[#999] mt-1">身高</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-[#333] text-lg">50kg</div>
+                    <div class="text-sm text-[#999] mt-1">体重</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-[#333] text-lg">S码</div>
+                    <div class="text-sm text-[#999] mt-1">尺码</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 风格偏好 -->
+        <div class="bg-white px-6 py-4 mb-3">
+            <h3 class="text-[#333] font-medium mb-4">风格偏好</h3>
+            <div class="flex flex-wrap gap-2">
+                <span class="tag">简约知性</span>
+                <span class="tag">优雅气质</span>
+                <span class="tag">职场精英</span>
+                <span class="tag">轻奢时尚</span>
+            </div>
+        </div>
+
+        <!-- 场景偏好 -->
+        <div class="bg-white px-6 py-4 mb-3">
+            <h3 class="text-[#333] font-medium mb-4">场景偏好</h3>
+            <div class="flex flex-wrap gap-2">
+                <span class="tag">职场通勤</span>
+                <span class="tag">商务会议</span>
+                <span class="tag">约会</span>
+                <span class="tag">休闲度假</span>
+            </div>
+        </div>
+
+        <!-- 颜色偏好 -->
+        <div class="bg-white px-6 py-4 mb-3">
+            <h3 class="text-[#333] font-medium mb-4">颜色偏好</h3>
+            <div class="flex flex-wrap gap-2">
+                <span class="tag">黑色</span>
+                <span class="tag">白色</span>
+                <span class="tag">米色</span>
+                <span class="tag">藏青色</span>
+            </div>
+        </div>
+
+        <!-- 肤色 -->
+        <div class="bg-white px-6 py-4">
+            <h3 class="text-[#333] font-medium mb-4">肤色</h3>
+            <div class="flex flex-wrap gap-2">
+                <span class="tag">自然白皙</span>
+            </div>
+        </div>
+    </div>
+</body>
+</html> 

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>衣物详情 - 智慧穿搭助手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body class="bg-gray-50">
+    <!-- 顶部导航栏 -->
+    <nav class="bg-white h-12 flex items-center px-4 border-b fixed w-full top-0 z-10">
+        <button onclick="history.back()" class="text-gray-600">
+            <i class="fas fa-arrow-left"></i>
+        </button>
+        <h1 class="text-lg font-medium text-center flex-1">衣物详情</h1>
+        <div class="w-6"></div>
+    </nav>
+
+    <!-- 主要内容区 -->
+    <div class="pt-12 pb-16">
+        <!-- 图片展示 -->
+        <div class="bg-white">
+            <div class="relative pb-[100%]">
+                <img src="https://images.unsplash.com/photo-1434389677669-e08b4cac3105?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80" 
+                     alt="白色衬衫"
+                     class="absolute inset-0 w-full h-full object-cover">
+            </div>
+        </div>
+
+        <!-- 基本信息 -->
+        <div class="bg-white mt-2 p-4">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-xl font-medium">白色棉质衬衫</h2>
+                <span class="px-2 py-1 bg-blue-50 text-blue-500 rounded text-sm">商务风格</span>
+            </div>
+        </div>
+
+        <!-- 详细信息 -->
+        <div class="bg-white mt-2 p-4">
+            <h3 class="text-lg font-medium mb-4">详细信息</h3>
+            <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-500">衣物类型</span>
+                    <span class="text-gray-900">上半身</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-500">衣物类别</span>
+                    <span class="text-gray-900">衬衫</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-500">颜色</span>
+                    <div class="flex items-center">
+                        <span class="w-4 h-4 rounded-full bg-white border mr-2"></span>
+                        <span class="text-gray-900">白色</span>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-500">适用季节</span>
+                    <span class="text-gray-900">春秋</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-500">风格</span>
+                    <span class="text-gray-900">商务</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 描述信息 -->
+        <div class="bg-white mt-2 p-4">
+            <h3 class="text-lg font-medium mb-2">描述</h3>
+            <p class="text-gray-600 text-sm leading-relaxed">
+                这是一件经典的白色商务衬衫，采用100%优质棉质面料，手感柔软，透气性好。衣身采用修身剪裁，既不会太过宽松，也不会太过紧身，穿着舒适。
+                领型为经典尖领设计，适合搭配各种领带。袖口采用双层设计，可根据需要调整长度。
+                这件衬衫非常适合商务场合穿着，可以搭配西装、西裤，打造正式的商务造型。同时也可以单穿或搭配休闲裤，适合日常通勤或者商务休闲场合。
+            </p>
+        </div>
+
+        <!-- 搭配建议 -->
+        <div class="bg-white mt-2 p-4">
+            <h3 class="text-lg font-medium mb-2">搭配建议</h3>
+            <div class="space-y-2 text-sm text-gray-600">
+                <p>• 正装搭配：搭配深色西装、西裤和皮鞋，适合正式场合</p>
+                <p>• 商务休闲：搭配卡其色休闲裤、棕色皮鞋，适合日常办公</p>
+                <p>• 休闲风格：搭配牛仔裤、白色运动鞋，适合周末休闲</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 底部操作栏 -->
+    <div class="fixed bottom-0 left-0 right-0 bg-white border-t p-4">
+        <div class="flex space-x-4">
+            <button class="flex-1 bg-blue-500 text-white py-3 rounded-lg font-medium">
+                编辑信息
+            </button>
+            <button class="flex-1 border border-red-500 text-red-500 py-3 rounded-lg font-medium">
+                删除衣物
+            </button>
+        </div>
+    </div>
+</body>
+</html> 
