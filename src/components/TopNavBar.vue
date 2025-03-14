@@ -1,47 +1,86 @@
 <template>
-  <nav class="top-nav">
-    <div class="nav-container">
-      <h1 class="nav-title">{{ title }}</h1>
+  <div class="top-nav-bar">
+    <div class="nav-left">
+      <slot name="left">
+        <!-- 默认左侧内容 -->
+        <i class="fas fa-arrow-left" v-if="showBack" @click="goBack"></i>
+      </slot>
     </div>
-  </nav>
+    <div class="nav-title">{{ title }}</div>
+    <div class="nav-right">
+      <slot name="right">
+        <!-- 默认右侧为空 -->
+      </slot>
+    </div>
+  </div>
 </template>
 
 <script>
+import { useRouter } from 'vue-router'
+
 export default {
   name: 'TopNavBar',
   props: {
     title: {
       type: String,
-      required: true
+      default: ''
+    },
+    showBack: {
+      type: Boolean,
+      default: false
+    }
+  },
+  setup(props) {
+    const router = useRouter()
+
+    const goBack = () => {
+      router.back()
+    }
+
+    return {
+      goBack
     }
   }
 }
 </script>
 
 <style scoped>
-.top-nav {
+.top-nav-bar {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  background-color: white;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-  z-index: 20;
-}
-
-.nav-container {
+  height: 56px;
+  background-color: #fff;
   display: flex;
   align-items: center;
-  height: 56px;
   padding: 0 16px;
-  max-width: 640px;
-  margin: 0 auto;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  z-index: 100;
+}
+
+.nav-left {
+  width: 40px;
+  display: flex;
+  align-items: center;
 }
 
 .nav-title {
-  font-size: 1.5rem;
+  flex: 1;
+  text-align: center;
   font-weight: 600;
-  color: #111827;
-  text-align: left;
+  font-size: 1.1rem;
+}
+
+.nav-right {
+  width: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.nav-left i, .nav-right i {
+  font-size: 1.2rem;
+  color: #333;
 }
 </style> 

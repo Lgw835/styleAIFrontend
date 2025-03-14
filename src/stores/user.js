@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 
 export const useUserStore = defineStore('user', () => {
   // 用户信息
@@ -37,13 +37,51 @@ export const useUserStore = defineStore('user', () => {
     return savedData.code === inputCode
   }
 
+  // 从 sessionStorage 恢复数据
+  function restoreFromSession() {
+    const savedData = sessionStorage.getItem('userData')
+    if (savedData) {
+      const data = JSON.parse(savedData)
+      userInfo.value = data.userInfo
+      userProfile.value = data.userProfile
+      isLoggedIn.value = data.isLoggedIn
+      isNewUser.value = data.isNewUser
+      verificationCodes.value = data.verificationCodes
+    }
+  }
+
+  // 保存数据到 sessionStorage
+  function saveToSession() {
+    const data = {
+      userInfo: userInfo.value,
+      userProfile: userProfile.value,
+      isLoggedIn: isLoggedIn.value,
+      isNewUser: isNewUser.value,
+      verificationCodes: verificationCodes.value
+    }
+    sessionStorage.setItem('userData', JSON.stringify(data))
+  }
+
+  // 监听数据变化并保存
+  watch(
+    [userInfo, userProfile, isLoggedIn, isNewUser, verificationCodes],
+    () => {
+      saveToSession()
+    },
+    { deep: true }
+  )
+
   // 登出
   function logout() {
     userInfo.value = null
     userProfile.value = null
     isLoggedIn.value = false
     isNewUser.value = false
+    sessionStorage.removeItem('userData')
   }
+
+  // 初始化时恢复数据
+  restoreFromSession()
 
   return {
     userInfo,
@@ -55,6 +93,8 @@ export const useUserStore = defineStore('user', () => {
     setUserProfile,
     saveVerificationCode,
     validateSmsCode,
-    logout
+    logout,
+    restoreFromSession,
+    saveToSession
   }
 }) 
