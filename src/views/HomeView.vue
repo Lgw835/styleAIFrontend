@@ -34,8 +34,8 @@
           </div>
         </div>
         
-        <!-- 今日幸运色 - 简化版 -->
-        <div class="lucky-color-card">
+        <!-- 今日幸运色 - 带背景色的原始布局 -->
+        <div class="lucky-color-card" :style="getLuckyColorStyle">
           <div class="lucky-color-simple">
             <div class="color-circle" :style="{ backgroundColor: dailyLuckyColor.hex }"></div>
             <div class="lucky-color-text">
@@ -382,6 +382,9 @@ export default {
     function viewScheduleDetails() {
       showNotificationDialog.value = false
       scheduleStore.markNotificationAsViewed()
+      
+      // 简单导航到日程页面
+      router.push('/schedule')
       console.log('查看日程详情按钮点击')
     }
     
@@ -390,6 +393,16 @@ export default {
       showNotificationDialog.value = false
       scheduleStore.markNotificationAsViewed()
     }
+
+    // 计算幸运色卡片的样式
+    const getLuckyColorStyle = computed(() => {
+      const color = dailyLuckyColor.value.hex || '#FFFFFF';
+      return {
+        background: `linear-gradient(135deg, ${color}10, ${color}20)`,
+        borderLeft: `3px solid ${color}`,
+        color: '#333'
+      };
+    })
 
     return {
       weatherData,
@@ -410,7 +423,8 @@ export default {
       showScheduleNotification,
       viewScheduleDetails,
       closeNotification,
-      showScheduleDetailDialog
+      showScheduleDetailDialog,
+      getLuckyColorStyle
     }
   }
 }
@@ -453,12 +467,12 @@ export default {
   flex: 1;
   min-width: 180px;
   padding: 16px;
-  background: white;
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
 }
 
-/* 简化的幸运色样式 */
+/* 恢复原有布局样式 */
 .lucky-color-simple {
   display: flex;
   align-items: center;

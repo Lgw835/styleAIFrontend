@@ -11,6 +11,9 @@ export * from './outfit'
 // 导出所有衣物相关API
 export * from './wardrobe'
 
+// 导出所有虚拟试穿相关API
+export * from './virtualTry'
+
 // 导出所有API URLs配置
 export * from './config'
 

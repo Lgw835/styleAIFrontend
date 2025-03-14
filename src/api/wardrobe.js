@@ -15,6 +15,18 @@ export function getClothingList(params) {
 }
 
 /**
+ * 获取用户全部衣物
+ * @param {number} userId - 用户ID
+ * @returns {Promise}
+ */
+export function getAllUserClothes(userId) {
+  return request({
+    url: WARDROBE_API.ALL_CLOTHES + userId,
+    method: 'get'
+  })
+}
+
+/**
  * 获取衣物详情
  * @param {string|number} id - 衣物ID
  * @returns {Promise}
@@ -41,13 +53,12 @@ export function addClothing(data) {
 
 /**
  * 更新衣物
- * @param {string|number} id - 衣物ID
  * @param {Object} data - 衣物信息
  * @returns {Promise}
  */
-export function updateClothing(id, data) {
+export function updateClothing(data) {
   return request({
-    url: WARDROBE_API.UPDATE + id,
+    url: WARDROBE_API.UPDATE,
     method: 'put',
     data
   })
