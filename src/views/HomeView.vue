@@ -67,16 +67,64 @@
         </div>
       </div>
     </div>
+
+    <!-- 用户画像构建询问弹窗 -->
+    <van-dialog
+      v-model:show="showProfileBuildDialog"
+      title="完善您的个人信息"
+      confirm-button-text="立即构建"
+      cancel-button-text="稍后再说"
+      @confirm="handleBuildProfile"
+      @cancel="handleSkipProfileBuild"
+    >
+      <div class="p-4">
+        <p>为了给您提供更精准的穿搭推荐，我们需要了解您的身材特征和穿搭偏好。</p>
+        <p class="mt-2 text-sm text-gray-500">这将帮助我们为您提供更个性化的服务。</p>
+      </div>
+    </van-dialog>
   </div>
 </template>
 
 <script>
 import TopNavBar from '@/components/TopNavBar.vue'
+import { onMounted, ref } from 'vue'
+import { useUserStore } from '@/stores/user'
+import { useRouter } from 'vue-router'
 
 export default {
   name: 'HomeView',
   components: {
     TopNavBar
+  },
+  setup() {
+    const userStore = useUserStore()
+    const router = useRouter()
+    const showProfileBuildDialog = ref(false)
+
+    onMounted(() => {
+      // 如果是新注册用户，显示用户画像构建询问
+      if (userStore.isNewUser) {
+        showProfileBuildDialog.value = true
+      }
+    })
+
+    // 处理用户选择构建用户画像
+    const handleBuildProfile = () => {
+      // 导航到用户画像构建页面
+      router.push('/build-profile')
+    }
+
+    // 用户选择稍后再说
+    const handleSkipProfileBuild = () => {
+      showProfileBuildDialog.value = false
+      // 可能需要在这里设置一个标志，避免重复提示
+    }
+
+    return {
+      showProfileBuildDialog,
+      handleBuildProfile,
+      handleSkipProfileBuild
+    }
   }
 }
 </script>

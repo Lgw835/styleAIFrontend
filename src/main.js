@@ -9,10 +9,36 @@ import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
 
-const app = createApp(App)
+import { 
+  showToast, 
+  Notify,
+  Field, 
+  Form, 
+  NavBar, 
+  Icon, 
+  CellGroup,
+  Tabbar,
+  TabbarItem,
+  Dialog
+} from 'vant'
 
-app.use(createPinia())
+const app = createApp(App)
+const pinia = createPinia()
+
+app.use(pinia)
 app.use(router)
-app.use(Button).use(Cell)
+app.use(Button)
+app.use(Field)
+app.use(Form)
+app.use(NavBar)
+app.use(Icon)
+app.use(Cell)
+app.use(CellGroup)
+app.use(Tabbar)
+app.use(TabbarItem)
+app.use(Dialog)
+
+app.config.globalProperties.$toast = showToast
+app.config.globalProperties.$notify = Notify
 
 app.mount('#app')

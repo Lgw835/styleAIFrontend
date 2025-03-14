@@ -1,0 +1,1388 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "OpenAPI definition",
+    "version": "v0"
+  },
+  "servers": [
+    {
+      "url": "http://192.168.199.1:9010",
+      "description": "Generated server url"
+    }
+  ],
+  "paths": {
+    "/userApi/sms/code": {
+      "post": {
+        "tags": [
+          "login-register-controller"
+        ],
+        "summary": "获取短信验证码",
+        "description": "获取短信验证码",
+        "operationId": "getSmsCode",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SmsCodeVO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/SmsResultVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/userApi/register": {
+      "post": {
+        "tags": [
+          "login-register-controller"
+        ],
+        "summary": "用户注册",
+        "description": "用户注册,注意是互联网用户注册",
+        "operationId": "register",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterVO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserInfoVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/userApi/profile": {
+      "post": {
+        "tags": [
+          "login-register-controller"
+        ],
+        "summary": "提交用户信息",
+        "description": "传入需要用户id，修改要带上id属性",
+        "operationId": "saveProfile",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserProfileDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserInfoVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/userApi/password/update": {
+      "post": {
+        "tags": [
+          "login-register-controller"
+        ],
+        "summary": "修改密码",
+        "description": "修改密码，注意安全",
+        "operationId": "updatePassword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePasswordVO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/userApi/login": {
+      "post": {
+        "tags": [
+          "login-register-controller"
+        ],
+        "summary": "登录",
+        "description": "登录",
+        "operationId": "login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginVO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserInfoVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/userApi/login/sms": {
+      "post": {
+        "tags": [
+          "login-register-controller"
+        ],
+        "summary": "短信登录",
+        "description": "实际是手机验证登录，有时不需要短信验证码",
+        "operationId": "loginBySms",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SmsLoginVO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserInfoVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/userApi/info/update": {
+      "post": {
+        "tags": [
+          "login-register-controller"
+        ],
+        "summary": "修改用户信息",
+        "description": "修改用户信息,注意安全",
+        "operationId": "updateUserInfo",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUserInfoVO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/squareApi/unlike": {
+      "post": {
+        "tags": [
+          "square-controller"
+        ],
+        "summary": "取消点赞",
+        "description": "取消点赞",
+        "operationId": "unlikePost",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostActionVO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/squareApi/posts": {
+      "post": {
+        "tags": [
+          "square-controller"
+        ],
+        "summary": "获取帖子列表",
+        "description": "推荐关注感兴趣的帖子",
+        "operationId": "getPosts",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostQueryVO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostsResponseVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/squareApi/post/view/{postId}": {
+      "post": {
+        "tags": [
+          "square-controller"
+        ],
+        "summary": "添加访问记录",
+        "description": "添加访问记录",
+        "operationId": "addVisitView",
+        "parameters": [
+          {
+            "name": "postId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/squareApi/post/create": {
+      "post": {
+        "tags": [
+          "square-controller"
+        ],
+        "summary": "发布帖子",
+        "description": "发布帖子",
+        "operationId": "createPost",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostCreateVO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/squareApi/like": {
+      "post": {
+        "tags": [
+          "square-controller"
+        ],
+        "summary": "点赞帖子",
+        "description": "点赞帖子,注意安全，是否成功",
+        "operationId": "likePost",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PostActionVO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/squareApi/comment/create": {
+      "post": {
+        "tags": [
+          "square-controller"
+        ],
+        "summary": "发布评论",
+        "description": "发布评论,注意安全，是否成功",
+        "operationId": "createComment",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommentVO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scheduleApi/update": {
+      "post": {
+        "tags": [
+          "schedule-controller"
+        ],
+        "operationId": "updateSchedule",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleVO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutCommonCUDDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scheduleApi/recordWeather": {
+      "post": {
+        "tags": [
+          "schedule-controller"
+        ],
+        "summary": "记录天气信息",
+        "description": "记录用户记录时天气信息，注意是否成功",
+        "operationId": "recordWeather",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WeatherRecordVO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scheduleApi/create": {
+      "post": {
+        "tags": [
+          "schedule-controller"
+        ],
+        "operationId": "createSchedule",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleVO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutCommonCUDDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/fileApi/upload": {
+      "post": {
+        "tags": [
+          "file-controller"
+        ],
+        "summary": "上传文件",
+        "description": "只上传图片视频，10mb以内",
+        "operationId": "uploadFile",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "required": [
+                  "file"
+                ],
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileUploadResponseVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/squareApi/post/getComments/{articleId}": {
+      "get": {
+        "tags": [
+          "square-controller"
+        ],
+        "summary": "获取评论列表",
+        "description": "获取页面评论列表,注意用户信息和评论信息",
+        "operationId": "getPostComments",
+        "parameters": [
+          {
+            "name": "articleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "commentPage",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommentsResponseVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/squareApi/myPosts/{userId}": {
+      "get": {
+        "tags": [
+          "square-controller"
+        ],
+        "summary": "获取用户帖子列表",
+        "description": "获取用户帖子列表",
+        "operationId": "getMyPosts",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/PostsResponseVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scheduleApi/today": {
+      "get": {
+        "tags": [
+          "schedule-controller"
+        ],
+        "operationId": "getTodaySchedules",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleListVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scheduleApi/date": {
+      "get": {
+        "tags": [
+          "schedule-controller"
+        ],
+        "operationId": "getSchedulesByDate",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScheduleListVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/squareApi/post/{postId}": {
+      "delete": {
+        "tags": [
+          "square-controller"
+        ],
+        "summary": "删除帖子",
+        "description": "删除帖子",
+        "operationId": "deletePost",
+        "parameters": [
+          {
+            "name": "postId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/squareApi/comment/{commentId}": {
+      "delete": {
+        "tags": [
+          "square-controller"
+        ],
+        "summary": "删除评论",
+        "description": "删除评论",
+        "operationId": "deleteComment",
+        "parameters": [
+          {
+            "name": "commentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/scheduleApi/delete/{scheduleId}": {
+      "delete": {
+        "tags": [
+          "schedule-controller"
+        ],
+        "operationId": "deleteSchedule",
+        "parameters": [
+          {
+            "name": "scheduleId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutCommonCUDDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "SmsCodeVO": {
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string"
+          }
+        }
+      },
+      "SmsResultVO": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "success": {
+            "type": "boolean"
+          }
+        }
+      },
+      "RegisterVO": {
+        "required": [
+          "code",
+          "password",
+          "phone",
+          "username"
+        ],
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "imagePath": {
+            "type": "string"
+          }
+        }
+      },
+      "UserDTO": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "imagePath": {
+            "type": "string"
+          },
+          "ifAutoRecommend": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date"
+          }
+        }
+      },
+      "UserInfoVO": {
+        "type": "object",
+        "properties": {
+          "userInfo": {
+            "$ref": "#/components/schemas/UserDTO"
+          },
+          "userProfile": {
+            "$ref": "#/components/schemas/UserProfileDTO"
+          }
+        }
+      },
+      "UserProfileDTO": {
+        "type": "object",
+        "properties": {
+          "profileId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "gender": {
+            "type": "string"
+          },
+          "age": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "height": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "weight": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "bodyShape": {
+            "type": "string"
+          },
+          "stylePreference": {
+            "type": "string"
+          },
+          "skinTone": {
+            "type": "string"
+          },
+          "hairColor": {
+            "type": "string"
+          },
+          "hairLength": {
+            "type": "string"
+          },
+          "hairStyle": {
+            "type": "string"
+          },
+          "eyeColor": {
+            "type": "string"
+          },
+          "faceShape": {
+            "type": "string"
+          },
+          "bodyType": {
+            "type": "string"
+          },
+          "tattooDescription": {
+            "type": "string"
+          },
+          "piercingDescription": {
+            "type": "string"
+          },
+          "otherFeatures": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdatePasswordVO": {
+        "required": [
+          "code",
+          "newPassword",
+          "phone",
+          "userId"
+        ],
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "newPassword": {
+            "type": "string"
+          }
+        }
+      },
+      "LoginVO": {
+        "required": [
+          "password",
+          "phone"
+        ],
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          }
+        }
+      },
+      "SmsLoginVO": {
+        "required": [
+          "code",
+          "phone"
+        ],
+        "type": "object",
+        "properties": {
+          "phone": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdateUserInfoVO": {
+        "required": [
+          "userId"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "imagePath": {
+            "type": "string"
+          }
+        }
+      },
+      "PostActionVO": {
+        "required": [
+          "postId",
+          "userId"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "postId": {
+            "type": "string"
+          }
+        }
+      },
+      "PostQueryVO": {
+        "required": [
+          "userId"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "mode": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "keyword": {
+            "type": "string"
+          },
+          "tag": {
+            "type": "string"
+          },
+          "page": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "size": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PostDetailVO": {
+        "type": "object",
+        "properties": {
+          "post": {
+            "$ref": "#/components/schemas/SquareDetailDTO"
+          },
+          "author": {
+            "$ref": "#/components/schemas/UserBasicDTO"
+          },
+          "isLiked": {
+            "type": "boolean"
+          },
+          "isFollowed": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PostsResponseVO": {
+        "type": "object",
+        "properties": {
+          "posts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PostDetailVO"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "currentPage": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "SquareDetailDTO": {
+        "type": "object",
+        "properties": {
+          "ifLikeStatus": {
+            "type": "boolean"
+          },
+          "postId": {
+            "type": "string"
+          },
+          "softLabel": {
+            "type": "string"
+          },
+          "hardLabel": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "ipAddress": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "likes": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "comments": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "views": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "resourceUrls": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "UserBasicDTO": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "username": {
+            "type": "string"
+          },
+          "imagePath": {
+            "type": "string"
+          }
+        }
+      },
+      "PostCreateVO": {
+        "required": [
+          "content",
+          "tag",
+          "userId"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "tag": {
+            "type": "string"
+          },
+          "softLabel": {
+            "type": "string"
+          },
+          "imageUrls": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "videoUrl": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          }
+        }
+      },
+      "CommentVO": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "postId": {
+            "type": "string"
+          },
+          "parentId": {
+            "type": "string"
+          },
+          "comment": {
+            "type": "string"
+          }
+        }
+      },
+      "ScheduleVO": {
+        "required": [
+          "eventDescribe",
+          "userId"
+        ],
+        "type": "object",
+        "properties": {
+          "scheduleId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "eventDescribe": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "string"
+          },
+          "reminder": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "OutCommonCUDDto": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "WeatherRecordVO": {
+        "required": [
+          "location",
+          "temperature",
+          "userId",
+          "weatherType"
+        ],
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "location": {
+            "type": "string"
+          },
+          "temperature": {
+            "type": "string"
+          },
+          "weatherType": {
+            "type": "string"
+          },
+          "date": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "FileUploadResponseVO": {
+        "type": "object",
+        "properties": {
+          "fileUrl": {
+            "type": "string"
+          },
+          "fileType": {
+            "type": "string"
+          }
+        }
+      },
+      "CommentDetailDTO": {
+        "type": "object",
+        "properties": {
+          "commentId": {
+            "type": "string"
+          },
+          "postId": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "parentCommentId": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CommentDetailWithUserVO": {
+        "type": "object",
+        "properties": {
+          "comment": {
+            "$ref": "#/components/schemas/CommentDetailDTO"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserBasicDTO"
+          },
+          "parentUser": {
+            "$ref": "#/components/schemas/UserBasicDTO"
+          }
+        }
+      },
+      "CommentsResponseVO": {
+        "type": "object",
+        "properties": {
+          "comments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CommentDetailWithUserVO"
+            }
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "currentPage": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "totalPages": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ScheduleListVO": {
+        "type": "object",
+        "properties": {
+          "scheduleList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScheduleVO"
+            }
+          },
+          "importantCount": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      }
+    }
+  }
+}
+
+
+

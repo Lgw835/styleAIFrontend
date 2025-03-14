@@ -6,6 +6,9 @@ import DressRecommendView from '../views/DressRecommendView.vue'
 import AIReviewView from '../views/AIReviewView.vue'
 import OutfitRecordView from '../views/OutfitRecordView.vue'
 import UploadOutfitView from '../views/UploadOutfitView.vue'
+import LoginView from '../views/LoginView.vue'
+import PhoneLoginView from '../views/PhoneLoginView.vue'
+import RegisterView from '../views/RegisterView.vue'
 
 const router = createRouter({
   history: createWebHashHistory(import.meta.env.BASE_URL),
@@ -14,6 +17,21 @@ const router = createRouter({
       path: '/',
       name: 'home',
       component: HomeView
+    },
+    {
+      path: '/login',
+      name: 'login',
+      component: LoginView
+    },
+    {
+      path: '/phone-login',
+      name: 'phone-login',
+      component: PhoneLoginView
+    },
+    {
+      path: '/register',
+      name: 'register',
+      component: RegisterView
     },
     {
       path: '/wardrobe',
