@@ -32,6 +32,9 @@ export const useExternalDataStore = defineStore('externalData', () => {
     ipInfo: false,
     location: false
   })
+  
+  // 控制是否使用浏览器地理定位API
+  const useBrowserGeolocation = ref(false) // 默认关闭浏览器地理定位
 
   // 高德地图 API 密钥
   const AMAP_KEY = '4717aefef70bc2e4cfabfdfa0ad66010' // 替换为您的高德地图 Web API 密钥
@@ -76,8 +79,8 @@ export const useExternalDataStore = defineStore('externalData', () => {
     try {
       loading.value.location = true
       
-      // 尝试使用浏览器的地理位置 API
-      if (navigator.geolocation) {
+      // 仅当开启浏览器地理定位时才尝试使用
+      if (useBrowserGeolocation.value && navigator.geolocation) {
         try {
           const position = await new Promise((resolve, reject) => {
             navigator.geolocation.getCurrentPosition(resolve, reject, {
@@ -113,7 +116,7 @@ export const useExternalDataStore = defineStore('externalData', () => {
         }
       }
       
-      // 如果浏览器定位失败或不支持，使用IP定位
+      // 如果浏览器定位未启用或失败，使用IP定位
       if (!ipInfo.value) {
         await fetchIpInfo()
       }
@@ -143,6 +146,16 @@ export const useExternalDataStore = defineStore('externalData', () => {
       return null
     } finally {
       loading.value.location = false
+    }
+  }
+
+  // 开启或关闭浏览器地理定位
+  function setBrowserGeolocation(enabled) {
+    useBrowserGeolocation.value = enabled
+    // 清除已有的位置数据，以便下次重新获取
+    if (!enabled) {
+      locationData.value.latitude = null
+      locationData.value.longitude = null
     }
   }
 
@@ -303,10 +316,12 @@ export const useExternalDataStore = defineStore('externalData', () => {
     weatherData,
     locationData,
     loading,
+    useBrowserGeolocation,
     fetchIpInfo,
     getLocationData,
     fetchWeatherData,
     setLocation,
+    setBrowserGeolocation,
     restoreFromSession,
     saveToSession
   }
