@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, watch } from 'vue'
 import axios from 'axios'
+import bridge from '../utils/bridge'
 
 export const useExternalDataStore = defineStore('externalData', () => {
   // IP 地址信息
@@ -38,6 +39,10 @@ export const useExternalDataStore = defineStore('externalData', () => {
 
   // 高德地图 API 密钥
   const AMAP_KEY = '4717aefef70bc2e4cfabfdfa0ad66010' // 替换为您的高德地图 Web API 密钥
+
+  // 检测当前环境
+  const isInApp = ref(false)
+  const platform = ref('web') // 'web', 'android', 'ios'
 
   // 获取 IP 信息
   async function fetchIpInfo() {
@@ -311,6 +316,49 @@ export const useExternalDataStore = defineStore('externalData', () => {
   // 初始化时恢复数据
   restoreFromSession()
 
+  // 检测当前环境
+  function detectEnvironment() {
+    const ua = navigator.userAgent.toLowerCase();
+    
+    if (window.webkit && window.webkit.messageHandlers) {
+      isInApp.value = true;
+      platform.value = 'ios';
+    } else if (window.appInterface || ua.indexOf('android') > -1) {
+      isInApp.value = true;
+      platform.value = 'android';
+    } else {
+      isInApp.value = false;
+      platform.value = 'web';
+    }
+  }
+
+  // 基于当前环境选择打开图片的方法
+  async function openImage(imgSrc) {
+    if (isInApp.value) {
+      // 使用桥接方法在App内打开
+      return bridge.callNative('openImage', { src: imgSrc });
+    } else {
+      // 网页环境下的处理方式
+      window.open(imgSrc, '_blank');
+    }
+  }
+
+  // 基于当前环境选择打开文件的方法
+  async function openFile(filePath, fileType) {
+    if (isInApp.value) {
+      return bridge.callNative('openFile', { 
+        path: filePath,
+        type: fileType 
+      });
+    } else {
+      // 网页环境下的处理
+      const a = document.createElement('a');
+      a.href = filePath;
+      a.download = filePath.split('/').pop();
+      a.click();
+    }
+  }
+
   return {
     ipInfo,
     weatherData,
@@ -323,6 +371,9 @@ export const useExternalDataStore = defineStore('externalData', () => {
     setLocation,
     setBrowserGeolocation,
     restoreFromSession,
-    saveToSession
+    saveToSession,
+    detectEnvironment,
+    openImage,
+    openFile
   }
 }) 

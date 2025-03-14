@@ -12,18 +12,30 @@
       <div v-if="!showResult" class="upload-container">
         <!-- 上传区域框 - 仅在没有预览图片时显示 -->
         <div v-if="!previewImage" class="upload-area rounded-lg p-8 mb-6 bg-white text-center">
-          <input type="file" id="image-upload" class="hidden" accept="image/*" @change="handleFileChange">
-          <label for="image-upload" class="cursor-pointer">
+          <!-- 原始file input只在非App环境显示 -->
+          <input v-if="!isInApp" type="file" id="image-upload" class="hidden" accept="image/*" @change="handleFileChange">
+          
+          <!-- 点击上传按钮 - 根据环境调用不同方法 -->
+          <div class="cursor-pointer" @click="selectImage">
             <div class="space-y-4">
               <i class="fas fa-cloud-upload-alt text-4xl text-gray-400"></i>
               <div class="text-gray-600">
-                点击或拖拽上传穿搭照片
+                点击{{ isInApp ? '选择' : '或拖拽' }}上传穿搭照片
               </div>
               <div class="text-sm text-gray-400">
                 支持 JPG、PNG 格式，大小不超过 10MB
               </div>
+              <!-- 在App环境中额外显示拍照选项 -->
+              <div v-if="isInApp" class="flex justify-center gap-4 mt-4">
+                <button @click.stop="takePhoto" class="px-4 py-2 bg-blue-100 text-blue-600 rounded-md">
+                  <i class="fas fa-camera mr-1"></i> 拍照
+                </button>
+                <button @click.stop="selectFromGallery" class="px-4 py-2 bg-blue-100 text-blue-600 rounded-md">
+                  <i class="fas fa-images mr-1"></i> 从相册选择
+                </button>
+              </div>
             </div>
-          </label>
+          </div>
         </div>
 
         <!-- 图片预览区域 -->
@@ -155,6 +167,7 @@
 import SubPageNavBar from '@/components/SubPageNavBar.vue'
 // TODO: 取消注释使用真实API
 // import { uploadOutfitImage, evaluateOutfit } from '@/api/outfit'
+import { useExternalDataStore } from '@/stores/externalData'
 
 export default {
   name: 'UploadOutfitView',
@@ -187,13 +200,22 @@ export default {
       uploadCompleted: false,
       evaluationCompleted: false,
       minAnimationTime: 2500, // 最小动画时间（毫秒）
-      animationStartTime: 0
+      animationStartTime: 0,
+      // 新增环境判断变量
+      isInApp: false,
+      platform: 'web'
     }
   },
   computed: {
     analysisStatusText() {
       return this.analysisStatusTexts[this.analysisStatus % this.analysisStatusTexts.length]
     }
+  },
+  created() {
+    // 获取环境信息
+    const externalDataStore = useExternalDataStore()
+    this.isInApp = externalDataStore.isInApp
+    this.platform = externalDataStore.platform
   },
   mounted() {
     // 检查URL参数是否包含ID和图片，如果有则直接加载评价结果
@@ -205,7 +227,86 @@ export default {
   },
   methods: {
     /**
-     * 处理文件选择变更
+     * 根据当前环境选择图片
+     */
+    selectImage() {
+      if (this.isInApp) {
+        this.selectFromGallery()
+      } else {
+        // 非App环境下，触发原生file input点击
+        document.getElementById('image-upload').click()
+      }
+    },
+    
+    /**
+     * 使用JSBridge调用相机
+     */
+    async takePhoto() {
+      if (!this.isInApp) return
+      
+      try {
+        const externalDataStore = useExternalDataStore()
+        const result = await externalDataStore.bridge.openCamera()
+        
+        if (result && result.path) {
+          // 设置预览图片
+          this.previewImage = result.path
+          // 创建File对象供上传
+          this.createFileFromPath(result.path, result.name || 'camera_image.jpg')
+        }
+      } catch (error) {
+        console.error('相机拍照失败:', error)
+        alert('无法使用相机，请尝试其他方式')
+      }
+    },
+    
+    /**
+     * 使用JSBridge调用相册
+     */
+    async selectFromGallery() {
+      if (!this.isInApp) return
+      
+      try {
+        const externalDataStore = useExternalDataStore()
+        const result = await externalDataStore.bridge.openGallery()
+        
+        if (result) {
+          let imagePath
+          // 处理可能的多种返回格式
+          if (result.paths && result.paths.length > 0) {
+            imagePath = result.paths[0]
+          } else if (result.path) {
+            imagePath = result.path
+          }
+          
+          if (imagePath) {
+            // 设置预览图片
+            this.previewImage = imagePath
+            // 创建File对象供上传
+            this.createFileFromPath(imagePath, result.name || 'gallery_image.jpg')
+          }
+        }
+      } catch (error) {
+        console.error('相册选择失败:', error)
+        alert('无法访问相册，请尝试其他方式')
+      }
+    },
+    
+    /**
+     * 从路径创建File对象
+     */
+    createFileFromPath(path, fileName) {
+      // 移动端返回的图片路径，可能是file://或https://开头
+      // 这里我们只保存路径，实际上传时再处理
+      this.file = {
+        path: path,
+        name: fileName,
+        isFromBridge: true
+      }
+    },
+    
+    /**
+     * 处理文件选择变更 (Web环境)
      */
     handleFileChange(event) {
       const files = event.target.files
@@ -224,6 +325,9 @@ export default {
      * 验证文件
      */
     validateFile(file) {
+      // 如果是从Bridge获取的文件，假定已经过验证
+      if (file.isFromBridge) return true
+      
       // 验证文件类型
       if (!file.type.match('image/jpeg') && !file.type.match('image/png')) {
         alert('请上传JPG或PNG格式的图片')
@@ -243,6 +347,9 @@ export default {
      * 创建图片预览
      */
     createPreview(file) {
+      // 如果是从Bridge获取的文件，预览图已经设置好了
+      if (file.isFromBridge) return
+      
       const reader = new FileReader()
       reader.onload = e => {
         this.previewImage = e.target.result
@@ -318,12 +425,23 @@ export default {
     },
     
     /**
-     * 上传图片到服务器
+     * 上传图片到服务器 - 优化支持JSBridge返回的图片
      */
     async uploadImage() {
       // TODO: 取消注释使用真实API
       // const formData = new FormData()
-      // formData.append('file', this.file)
+      // 
+      // // 根据文件来源不同处理上传
+      // if (this.file.isFromBridge) {
+      //   // 如果是JSBridge返回的图片，直接传递路径给后端处理
+      //   formData.append('filePath', this.file.path)
+      //   formData.append('fileName', this.file.name)
+      //   formData.append('fromApp', 'true')
+      // } else {
+      //   // 正常的File对象
+      //   formData.append('file', this.file)
+      // }
+      // 
       // const response = await uploadOutfitImage(formData)
       // this.uploadedImageUrl = response.imageUrl
       
@@ -331,10 +449,12 @@ export default {
       return new Promise(resolve => {
         const uploadTime = Math.random() * 2000 + 500 // 随机500-2500ms，更真实地模拟变化的网络条件
         
-        console.log(`模拟图片上传，需要${uploadTime}ms`)
+        console.log(`模拟图片上传，需要${uploadTime}ms`, this.file)
         setTimeout(() => {
           // 模拟上传成功后返回的URL
-          this.uploadedImageUrl = `https://api.example.com/uploads/${Date.now()}.jpg`
+          this.uploadedImageUrl = this.file.isFromBridge 
+            ? this.file.path // 使用原始路径作为上传后的URL
+            : `https://api.example.com/uploads/${Date.now()}.jpg`
           resolve()
         }, uploadTime)
       })

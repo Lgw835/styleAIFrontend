@@ -1,5 +1,7 @@
 <script setup>
 import { RouterView, useRoute } from 'vue-router'
+import { onMounted } from 'vue'
+import { useExternalDataStore } from './stores/externalData'
 
 // 获取当前路由
 const route = useRoute()
@@ -10,6 +12,13 @@ const showBottomNav = () => {
   const mainRoutes = ['/', '/wardrobe', '/plaza', '/profile']
   return mainRoutes.includes(route.path)
 }
+
+const externalDataStore = useExternalDataStore()
+
+onMounted(() => {
+  // 检测当前运行环境
+  externalDataStore.detectEnvironment()
+})
 </script>
 
 <template>
