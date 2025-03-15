@@ -136,18 +136,14 @@ const getVerificationCode = async () => {
   }
   
   try {
-    // TODO: 取消注释使用真实API
-    // const res = await getSmsCode({ phone: phone.value })
+    // 使用真实API
+    const res = await getSmsCode({ phone: phone.value })
     
-    // TODO: 移除模拟验证码
-    const mockCode = Math.floor(1000 + Math.random() * 9000).toString()
-    const mockSmsId = 'sms_' + Date.now()
+    // 修改：直接从响应中获取code，而不是从res.data.code
+    // 根据返回的 {"code":"427302","success":true} 结构
+    smsId.value = res.code
     
-    // 存储验证码
-    userStore.saveVerificationCode(phone.value, mockCode, mockSmsId)
-    smsId.value = mockSmsId
-    
-    showToast(`验证码已发送: ${mockCode}`) // 实际应用中不应显示验证码
+    showToast('验证码已发送至您的手机')
     
     // 开始倒计时
     countDown.value = 60
@@ -159,12 +155,11 @@ const getVerificationCode = async () => {
     }, 1000)
   } catch (error) {
     console.error('获取验证码失败:', error)
-    showToast('获取验证码失败: ' + (error.message || '未知错误'))
+    showToast('获取验证码失败，请稍后再试')
   }
 }
 
 const handleRegister = async () => {
-  // console.log('handleRegister')
   // 验证表单
   if (!phone.value || !/^1[3-9]\d{9}$/.test(phone.value)) {
     showToast('请输入正确的手机号')
@@ -173,12 +168,6 @@ const handleRegister = async () => {
   
   if (!verificationCode.value) {
     showToast('请输入验证码')
-    return
-  }
-  
-  // 前端验证验证码
-  if (!userStore.validateSmsCode(phone.value, verificationCode.value)) {
-    showToast('验证码错误')
     return
   }
   
@@ -203,58 +192,32 @@ const handleRegister = async () => {
   }
   
   try {
-    // TODO: 取消注释使用真实API
-    // const res = await register({
-    //   phone: phone.value,
-    //   smsCode: verificationCode.value,
-    //   smsId: smsId.value,
-    //   username: username.value,
-    //   password: password.value
-    // })
+    // 注册API调用
+    const res = await register({
+      phone: phone.value,
+      code: verificationCode.value,
+      username: username.value,
+      password: password.value
+    })
     
-    // TODO: 移除模拟注册成功响应
-    const mockResponse = {
-      userInfo: {
-        userId: 'user_' + Date.now(),
-        username: username.value,
-        password: '********', // 密码不会返回
-        phone: phone.value,
-        imagePath: '',
-        ifAutoRecommend: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      },
-      userProfile: {
-        profileId: 'prof_' + Date.now(),
-        userId: 'user_' + Date.now(),
-        gender: '',
-        age: 0,
-        height: 0,
-        weight: 0,
-        bodyShape: '',
-        stylePreference: '',
-        skinTone: '',
-        hairColor: '',
-        hairLength: '',
-        hairStyle: '',
-        eyeColor: '',
-        faceShape: '',
-        bodyType: '',
-        tattooDescription: '',
-        piercingDescription: '',
-        otherFeatures: ''
-      }
+    // 确保 res.userInfo 存在
+    if (res && res.userInfo) {
+      // 保存用户信息
+      userStore.setUserInfo(res.userInfo, false)
+      
+      // 设置新登录标记
+      localStorage.setItem('newLogin', 'true')
+      
+      // 注册成功提示
+      showToast('注册成功')
+      
+      // 跳转到首页
+      router.push('/')
+    } else {
+      // 处理响应中没有用户信息的情况
+      showToast('注册成功，但获取用户信息失败')
+      console.error('注册响应中缺少用户信息', res)
     }
-    
-    // 保存用户信息到Pinia
-    userStore.setUserInfo(mockResponse.userInfo, true)
-    userStore.setUserProfile(mockResponse.userProfile)
-    
-    // 注册成功提示
-    showToast('注册成功')
-    
-    // 跳转到首页
-    router.push('/')
   } catch (error) {
     console.error('注册失败:', error)
     showToast('注册失败: ' + (error.message || '未知错误'))

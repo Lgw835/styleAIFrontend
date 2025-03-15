@@ -96,18 +96,13 @@ const getVerificationCode = async () => {
   }
   
   try {
-    // TODO: 取消注释使用真实API
-    // const res = await getSmsCode({ phone: phone.value })
+    // 使用真实API
+    const res = await getSmsCode({ phone: phone.value })
     
-    // TODO: 移除模拟验证码
-    const mockCode = Math.floor(1000 + Math.random() * 9000).toString()
-    const mockSmsId = 'sms_' + Date.now()
+    // 存储验证码ID
+    smsId.value = res.data.code
     
-    // 存储验证码 (仅用于模拟)
-    userStore.saveVerificationCode(phone.value, mockCode, mockSmsId)
-    smsId.value = mockSmsId
-    
-    showToast(`验证码已发送: ${mockCode}`) // 实际应用中不应显示验证码
+    showToast('验证码已发送至您的手机')
     
     // 开始倒计时
     countDown.value = 60
@@ -136,59 +131,18 @@ const handleLogin = async () => {
   }
   
   try {
-    // 在前端验证验证码
-    if (!userStore.validateSmsCode(phone.value, verificationCode.value)) {
-      showToast('验证码错误')
-      return
-    }
-    
-    // TODO: 取消注释使用真实API
-    // const res = await phoneLogin({
-    //   phone: phone.value,
-    //   smsCode: verificationCode.value,
-    //   smsId: smsId.value
-    // })
-    
-    // TODO: 移除模拟登录成功响应
-    const mockResponse = {
-      userInfo: {
-        userId: 'user_' + Date.now(),
-        username: '',
-        password: '',
-        phone: phone.value,
-        imagePath: '',
-        ifAutoRecommend: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      },
-      userProfile: {
-        profileId: 'prof_' + Date.now(),
-        userId: 'user_' + Date.now(),
-        gender: '',
-        age: 0,
-        height: 0,
-        weight: 0,
-        bodyShape: '',
-        stylePreference: '',
-        skinTone: '',
-        hairColor: '',
-        hairLength: '',
-        hairStyle: '',
-        eyeColor: '',
-        faceShape: '',
-        bodyType: '',
-        tattooDescription: '',
-        piercingDescription: '',
-        otherFeatures: ''
-      }
-    }
+    // 使用真实API
+    const res = await phoneLogin({
+      phone: phone.value,
+      code: verificationCode.value
+    })
     
     // 保存用户信息到Pinia
-    userStore.setUserInfo(mockResponse.userInfo, false)
-    userStore.setUserProfile(mockResponse.userProfile)
+    userStore.setUserInfo(res.data.userInfo, false)
+    userStore.setUserProfile(res.data.userProfile)
     
     // 登录成功后，获取穿搭记录
-    outfitRecordStore.fetchOutfitRecords(mockResponse.userInfo.userId, true).catch(err => {
+    outfitRecordStore.fetchOutfitRecords(res.data.userInfo.userId, true).catch(err => {
       console.error('获取穿搭记录失败:', err)
     })
     

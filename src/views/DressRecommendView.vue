@@ -230,47 +230,18 @@ export default {
       this.gender = gender
     },
     async handleNext() {
-      // 表单验证
-      if (!this.selectedScene) {
-        alert('请选择穿搭场景')
-        return
-      }
-      
-      if (this.selectedTags.length === 0) {
-        alert('请至少选择一个形象标签')
-        return
-      }
-      
-      if (!this.gender) {
-        alert('请选择性别')
-        return
-      }
-
-      // 集成性别信息到提示词
-      let enhancedAdditionalInfo = this.additionalInfo || ''
-      if (this.gender === 'male') {
-        enhancedAdditionalInfo += '，针对男性穿搭'
-      } else {
-        enhancedAdditionalInfo += '，针对女性穿搭'
-      }
-
       this.loading = true
-
+      
       try {
-        // 获取用户ID
-        const userStore = useUserStore()
-        const userId = userStore.userInfo ? userStore.userInfo.id : ''
-        
-        // 准备请求参数 - 严格按照API文档 OutfitRecommendRequestVO 结构
+        // 准备API请求参数
         const requestData = {
-          userId: userId,
-          ipAddress: this.externalDataStore.locationData.city || '未知位置',
-          scene: this.selectedScene,
-          features: this.selectedTags.join(','),
-          additionalInfo: enhancedAdditionalInfo,
-          weather: '', // 可选参数
-          luckyColor: '', // 可选参数
-          schedule: '' // 可选参数
+          userId: this.userStore.userInfo?.userId,
+          gender: this.gender,
+          age: this.userStore.userProfile?.age || 0,
+          occasion: this.selectedScene,
+          weather: '', // 可选参数，下面会设置
+          preferences: this.selectedTags.join(','),
+          additionalInfo: this.additionalInfo
         }
         
         // 如果有天气信息，按照API文档格式添加
@@ -278,30 +249,18 @@ export default {
           requestData.weather = `${this.externalDataStore.weatherData.text} ${this.externalDataStore.weatherData.temp}°C`
         }
         
-        // TODO: 取消注释使用真实API
-        // const response = await getOutfitRecommend(requestData)
-        
-        // TODO: 移除模拟API延迟
-        await new Promise(resolve => setTimeout(resolve, 2000))
-        
-        // TODO: 移除模拟API响应 - 符合 OutfitRecommendResponseVO 结构
-        let mockResponse = {
-          readablePlan: `## 穿搭方案\n\n### 上装\n简约白色T恤，搭配浅蓝色休闲衬衫作为外层。\n\n### 下装\n直筒深蓝色牛仔裤，裤长合适，略微修身。\n\n### 鞋子配饰\n灰色低帮帆布鞋，搭配简约棕色皮带和银色手表。\n\n### 搭配要点\n- 整体色调协调，蓝白灰色系清爽自然\n- 宽松但不松垮，保持整洁有型的整体感\n- 适合休闲场合，同时兼具简约时尚气质`,
-          imagePrompt: `young ${this.gender === 'male' ? 'man' : 'woman'} wearing simple white t-shirt, light blue casual shirt, dark blue straight jeans, grey canvas shoes, minimal accessories, casual everyday style, clean modern background, natural lighting, 4k quality, professional fashion photography`,
-          summary: '简约日常风格穿搭，以蓝白灰为主色调，舒适自然又不失型格'
-        }
+        // 使用真实API
+        const response = await getOutfitRecommend(requestData)
         
         // 初始化 outfitResult store
         const outfitStore = useOutfitResultStore()
-        outfitStore.setInitialRecommendation(mockResponse)
+        outfitStore.setInitialRecommendation(response)
         
-        // 导航到结果页面 - 不再传递参数
-        this.$router.push({
-          name: 'outfit-result'
-        })
+        // 导航到结果页面
+        this.$router.push('/outfit-result')
       } catch (error) {
-        console.error('获取穿搭推荐失败', error)
-        alert('获取穿搭推荐失败，请稍后再试')
+        console.error('穿搭推荐请求失败:', error)
+        this.$toast('获取穿搭推荐失败，请稍后再试')
       } finally {
         this.loading = false
       }

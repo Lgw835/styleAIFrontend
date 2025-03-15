@@ -304,6 +304,7 @@ const deleteOutfit = async (outfitId) => {
     activeMenu.value = null
     
     try {
+      // 调用真实API删除记录
       const success = await outfitRecordStore.deleteOutfit(outfitId)
       
       // 如果正在查看这条记录，关闭详情
@@ -346,37 +347,37 @@ const submitEvaluationForm = async () => {
     return
   }
   
-  // 评论可以为空，但评分必须大于0
-  if (newEvaluation.value.comment && !newEvaluation.value.comment.trim()) {
-    showToast('请填写评价内容')
-    return
-  }
+  submittingEvaluation.value = true
   
   try {
-    submittingEvaluation.value = true
-    
-    // 准备评价数据 - 确保与后端结构一致
-    const evaluationData = {
+    const requestData = {
+      userId: userStore.userInfo?.id || '',
+      ipAddress: externalDataStore.locationData.city || '未知位置',
       outfitId: currentOutfit.value.id,
-      userId: userStore.userInfo?.id || 'anonymous_user',
       score: newEvaluation.value.score,
-      comment: newEvaluation.value.comment.trim()
+      comment: newEvaluation.value.comment || ''
     }
     
-    // 提交评价
-    const success = await outfitRecordStore.submitEvaluation(evaluationData)
+    // 调用真实API保存评价
+    await outfitRecordStore.saveOutfitEvaluation(requestData)
     
-    if (success) {
-      // 清空表单
-      newEvaluation.value = { score: 0, comment: '' }
-      
-      showToast('评价提交成功')
-    } else {
-      showToast('评价提交失败，请稍后再试')
+    // 更新本地数据（通过Store的方法）
+    const updatedOutfit = {
+      ...currentOutfit.value,
+      score: newEvaluation.value.score,
+      comment: newEvaluation.value.comment
     }
+    
+    // 更新当前穿搭
+    outfitRecordStore.setCurrentOutfit(updatedOutfit)
+    
+    // 清除表单并关闭
+    showEvaluationForm.value = false
+    showToast('评价已提交')
+    
   } catch (error) {
     console.error('提交评价失败', error)
-    showToast('评价提交失败，请稍后再试')
+    showToast('提交失败，请稍后再试')
   } finally {
     submittingEvaluation.value = false
   }
@@ -425,8 +426,15 @@ const setupRefreshTimer = () => {
 onMounted(async () => {
   console.log('初始化穿搭记录数据')
   
-  // 加载穿搭记录
-  await fetchRecords()
+  // 先尝试从本地存储恢复数据
+  const restored = outfitRecordStore.restoreFromStorage()
+  
+  // 如果本地没有数据或数据为空，从API获取
+  if (!restored || outfitRecordStore.records.length === 0) {
+    if (userStore.isLoggedIn) {
+      await outfitRecordStore.fetchRecords()
+    }
+  }
 })
 
 // 监听穿搭记录变化，保持数据实时更新

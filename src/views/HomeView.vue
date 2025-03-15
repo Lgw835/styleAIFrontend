@@ -97,20 +97,13 @@
       </div>
     </div>
 
-    <!-- 用户画像构建询问弹窗 -->
-    <van-dialog
-      v-model:show="showProfileBuildDialog"
-      title="完善您的个人信息"
-      confirm-button-text="立即构建"
-      cancel-button-text="稍后再说"
-      @confirm="handleBuildProfile"
-      @cancel="handleSkipProfileBuild"
-    >
-      <div class="p-4">
-        <p>为了给您提供更精准的穿搭推荐，我们需要了解您的身材特征和穿搭偏好。</p>
-        <p class="mt-2 text-sm text-gray-500">这将帮助我们为您提供更个性化的服务。</p>
-      </div>
-    </van-dialog>
+    <!-- 用户画像填写蒙版 -->
+    <UserProfileOverlay
+      :show="showProfileOverlay"
+      @close="closeProfileOverlay"
+      @save="handleProfileSaved"
+      @skip="skipProfileSetup"
+    />
 
     <!-- 修改为轻量级提示框 -->
     <van-dialog
@@ -133,6 +126,26 @@
       </div>
     </van-dialog>
 
+    <!-- 添加用户画像提醒，仅当用户已登录但没有画像时显示 -->
+    <div v-if="needsProfileSetup" 
+         class="fixed bottom-5 right-5 bg-white rounded-lg shadow-lg p-3 z-50 w-64 border border-blue-200">
+      <div class="flex items-center mb-2">
+        <i class="fas fa-user-circle text-blue-500 text-xl mr-2"></i>
+        <h3 class="font-medium text-gray-800">完善个人信息</h3>
+      </div>
+      <p class="text-sm text-gray-600 mb-3">完善您的个人信息，获取更精准的穿搭推荐！</p>
+      <div class="flex justify-between">
+        <button @click="showProfileOverlay = true" 
+                class="bg-blue-500 text-white px-3 py-1 rounded-md text-sm">
+          立即填写
+        </button>
+        <button @click="dismissProfileReminder" 
+                class="text-gray-500 text-sm underline">
+          稍后再说
+        </button>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -144,17 +157,19 @@ import { useExternalDataStore } from '@/stores/externalData'
 import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useScheduleStore } from '@/stores/schedule'
+import UserProfileOverlay from '@/components/UserProfileOverlay.vue'
 
 export default {
   name: 'HomeView',
   components: {
-    TopNavBar
+    TopNavBar,
+    UserProfileOverlay
   },
   setup() {
     const userStore = useUserStore()
     const externalDataStore = useExternalDataStore()
     const router = useRouter()
-    const showProfileBuildDialog = ref(false)
+    const showProfileOverlay = ref(false)
     const scheduleStore = useScheduleStore()
     
     // 使用 storeToRefs 确保响应式
@@ -279,11 +294,6 @@ export default {
     });
 
     onMounted(async () => {
-      // 如果是新注册用户，显示用户画像构建询问
-      if (userStore.isNewUser) {
-        showProfileBuildDialog.value = true
-      }
-      
       // 检查天气数据是否存在且未过期（30分钟内）
       const now = new Date()
       const lastUpdate = weatherData.value.lastUpdated ? new Date(weatherData.value.lastUpdated) : null
@@ -305,12 +315,12 @@ export default {
         const needUpdate = !lastUpdate || (now - lastUpdate) > 60 * 60 * 1000 // 一小时更新一次
 
         if (needUpdate) {
-          // TODO: 取消注释使用真实API，目前使用模拟数据
+          // 使用真实API
           await scheduleStore.fetchTodaySchedules(userStore.userInfo.userId)
           
           // 记录当前天气
           if (weatherData.value && weatherData.value.city !== '正在定位...') {
-            // TODO: 取消注释使用真实API，目前只打印记录
+            // 使用真实API记录天气
             await scheduleStore.recordWeather({
               userId: userStore.userInfo.userId,
               location: weatherData.value.city,
@@ -321,23 +331,38 @@ export default {
           }
         }
       }
+
+      // 检查是否需要显示用户画像填写蒙版
+      checkProfileNeeded()
     })
 
-    // 处理用户选择构建用户画像
-    const handleBuildProfile = () => {
-      // 导航到用户画像构建页面
-      router.push('/build-profile')
+    // 检查是否需要显示用户画像填写蒙版
+    const checkProfileNeeded = () => {
+      if (userStore && userStore.isLoggedIn && !userStore.userProfile) {
+        const isNewLogin = localStorage.getItem('newLogin') === 'true'
+        if (isNewLogin) {
+          showProfileOverlay.value = true
+          localStorage.removeItem('newLogin')
+        }
+      }
     }
-
-    // 用户选择稍后再说
-    const handleSkipProfileBuild = () => {
-      showProfileBuildDialog.value = false
-      // 可能需要在这里设置一个标志，避免重复提示
+    
+    // 关闭蒙版
+    const closeProfileOverlay = () => {
+      showProfileOverlay.value = false
     }
-
-    // 手动刷新天气数据
-    const refreshWeather = async () => {
-      await externalDataStore.fetchWeatherData()
+    
+    // 处理保存成功
+    const handleProfileSaved = (data) => {
+      showProfileOverlay.value = false
+      // 可以添加其他逻辑，比如显示祝贺信息等
+    }
+    
+    // 跳过用户画像设置
+    const skipProfileSetup = () => {
+      showProfileOverlay.value = false
+      // 设置一个标记，24小时内不再显示
+      localStorage.setItem('profileReminderDismissed', Date.now().toString())
     }
 
     const showNotificationDialog = ref(false)
@@ -404,6 +429,36 @@ export default {
       };
     })
 
+    // 是否显示用户画像提醒
+    const showProfileReminder = ref(true)
+
+    // 关闭提醒
+    const dismissProfileReminder = () => {
+      showProfileReminder.value = false
+      // 可以设置一个临时的状态，避免频繁提醒用户
+      localStorage.setItem('profileReminderDismissed', Date.now().toString())
+    }
+
+    // 检查是否应该显示提醒
+    const shouldShowProfileReminder = () => {
+      if (userStore && userStore.isLoggedIn && !userStore.userProfile) {
+        // 检查是否之前关闭过提醒
+        const dismissedTime = localStorage.getItem('profileReminderDismissed')
+        if (dismissedTime) {
+          // 如果24小时内关闭过，则不再显示
+          const hoursPassed = (Date.now() - Number(dismissedTime)) / (1000 * 60 * 60)
+          return hoursPassed > 24
+        }
+        return true
+      }
+      return false
+    }
+
+    // 添加一个计算属性安全访问 userStore
+    const needsProfileSetup = computed(() => {
+      return userStore && userStore.isLoggedIn && !userStore.userProfile
+    })
+
     return {
       weatherData,
       loading,
@@ -411,10 +466,10 @@ export default {
       weatherClass,
       clothingSuggestion,
       dailyLuckyColor,
-      showProfileBuildDialog,
-      handleBuildProfile,
-      handleSkipProfileBuild,
-      refreshWeather,
+      showProfileOverlay,
+      closeProfileOverlay,
+      handleProfileSaved,
+      skipProfileSetup,
       showNotificationDialog,
       shouldShowNotificationDot,
       scheduleStore,
@@ -424,7 +479,13 @@ export default {
       viewScheduleDetails,
       closeNotification,
       showScheduleDetailDialog,
-      getLuckyColorStyle
+      getLuckyColorStyle,
+      showProfileReminder,
+      dismissProfileReminder,
+      shouldShowProfileReminder,
+      needsProfileSetup,
+      userStore,
+      router
     }
   }
 }

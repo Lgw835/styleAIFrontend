@@ -76,54 +76,26 @@ const handleLogin = async () => {
       return
     }
     
-    // TODO: 取消注释使用真实API
-    // const res = await login({
-    //   username: username.value,
-    //   password: password.value
-    // })
-    
-    // TODO: 移除模拟登录成功的响应数据
-    const mockResponse = {
-      userInfo: {
-        userId: 'user_' + Date.now(),
-        username: username.value,
-        password: '********', // 密码不会返回
-        phone: username.value.length === 11 ? username.value : '13800138000',
-        imagePath: '',
-        ifAutoRecommend: 0,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      },
-      userProfile: {
-        profileId: 'prof_' + Date.now(),
-        userId: 'user_' + Date.now(),
-        gender: '',
-        age: 0,
-        height: 0,
-        weight: 0,
-        bodyShape: '',
-        stylePreference: '',
-        skinTone: '',
-        hairColor: '',
-        hairLength: '',
-        hairStyle: '',
-        eyeColor: '',
-        faceShape: '',
-        bodyType: '',
-        tattooDescription: '',
-        piercingDescription: '',
-        otherFeatures: ''
-      }
-    }
+    // 使用真实API
+    const res = await login({
+      phone: username.value,
+      password: password.value
+    })
     
     // 存储用户信息到Pinia
-    userStore.setUserInfo(mockResponse.userInfo, false)
-    userStore.setUserProfile(mockResponse.userProfile)
+    userStore.setUserInfo(res.userInfo, false)
     
-    // 登录成功后，获取穿搭记录
-    outfitRecordStore.fetchOutfitRecords(mockResponse.userInfo.userId, true).catch(err => {
-      console.error('获取穿搭记录失败:', err)
-    })
+    // 如果没有用户画像，设置新登录标记
+    if (!res.userProfile) {
+      localStorage.setItem('newLogin', 'true')
+    } else {
+      userStore.setUserProfile(res.userProfile)
+      
+      // 登录成功后，获取穿搭记录
+      outfitRecordStore.fetchOutfitRecords(res.userInfo.userId, true).catch(err => {
+        console.error('获取穿搭记录失败:', err)
+      })
+    }
     
     // 登录成功提示
     showToast('登录成功')

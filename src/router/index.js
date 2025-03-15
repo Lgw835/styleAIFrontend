@@ -116,7 +116,11 @@ const router = createRouter({
     {
       path: '/outfit-result',
       name: 'outfit-result',
-      component: () => import('@/views/OutfitResultView.vue')
+      component: () => import('@/views/OutfitResultView.vue'),
+      meta: {
+        title: '穿搭详情',
+        requiresAuth: true
+      }
     },
     {
       path: '/upload-outfit',
@@ -152,6 +156,11 @@ const router = createRouter({
       path: '/contact-service',
       name: 'contact-service',
       component: () => import('@/views/ContactServiceView.vue')
+    },
+    {
+      path: '/user-profile',
+      name: 'user-profile',
+      redirect: '/profile'
     }
   ]
 })

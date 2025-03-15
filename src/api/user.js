@@ -8,7 +8,7 @@ import { USER_API } from './config'
  */
 export function getSmsCode(data) {
   return request({
-    url: USER_API.SMS_CODE,
+    url: '/style-ai-user-aggregation-service/userApi/sms/code',
     method: 'post',
     data
   })
@@ -21,7 +21,7 @@ export function getSmsCode(data) {
  */
 export function register(data) {
   return request({
-    url: USER_API.REGISTER,
+    url: '/style-ai-user-aggregation-service/userApi/register',
     method: 'post',
     data
   })
@@ -34,7 +34,7 @@ export function register(data) {
  */
 export function login(data) {
   return request({
-    url: USER_API.LOGIN,
+    url: '/style-ai-user-aggregation-service/userApi/login',
     method: 'post',
     data
   })
@@ -47,12 +47,9 @@ export function login(data) {
  */
 export function phoneLogin(data) {
   return request({
-    url: USER_API.LOGIN,
+    url: '/style-ai-user-aggregation-service/userApi/login/phone',
     method: 'post',
-    data: {
-      ...data,
-      loginType: 'SMS'
-    }
+    data
   })
 }
 

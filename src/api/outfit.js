@@ -8,7 +8,7 @@ import { OUTFIT_API } from './config'
  */
 export function getOutfitRecommend(data) {
   return request({
-    url: OUTFIT_API.RECOMMEND,
+    url: '/style-ai-dress-aggregation-service/outfitApi/recommend',
     method: 'post',
     data
   })
@@ -29,12 +29,16 @@ export function getDailyMatch(params) {
 
 /**
  * 上传穿搭照片
- * @param {FormData} formData - 包含图片的表单数据
+ * @param {Object} params - 包含图片的参数
  * @returns {Promise}
  */
-export function uploadOutfitImage(formData) {
+export async function uploadOutfitImage(params) {
+  const formData = new FormData()
+  formData.append('file', params.image)
+  formData.append('userId', params.userId)
+  
   return request({
-    url: OUTFIT_API.UPLOAD,
+    url: '/style-ai-user-aggregation-service/fileApi/upload',
     method: 'post',
     data: formData,
     headers: {
@@ -122,14 +126,18 @@ export function followUpOutfit(data) {
 
 /**
  * AI评论穿搭
- * @param {Object} data - 评价参数
+ * @param {Object} params - 评价参数
  * @returns {Promise}
  */
-export function evaluateOutfit(data) {
+export async function evaluateOutfit(params) {
   return request({
-    url: OUTFIT_API.EVALUATE,
+    url: '/style-ai-dress-aggregation-service/outfitApi/evaluateOutfit',
     method: 'post',
-    data
+    data: {
+      userId: params.userId,
+      ipAddress: params.ipAddress,
+      url: params.url
+    }
   })
 }
 

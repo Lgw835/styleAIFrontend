@@ -8,105 +8,208 @@
 
     <!-- 内容区域 -->
     <div class="content-container">
-      <!-- 加载状态 -->
-      <div v-if="loading" class="loading-container">
-        <div class="flex flex-col items-center justify-center h-full px-4 py-12">
-          <i class="fas fa-spinner fa-spin text-4xl text-gray-400 mb-4"></i>
-          <p class="text-sm text-gray-400">正在加载评价记录...</p>
-        </div>
-      </div>
-      
-      <!-- 错误提示 -->
-      <div v-else-if="error" class="error-container">
-        <div class="flex flex-col items-center justify-center h-full px-4 py-12">
-          <i class="fas fa-exclamation-circle text-4xl text-red-400 mb-4"></i>
-          <p class="text-sm text-red-400">{{ error }}</p>
-          <button @click="fetchEvaluations" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded">
-            重新加载
+      <!-- 如果是详情模式，显示详情内容 -->
+      <div v-if="showDetail" class="detail-view">
+        <div class="detail-container">
+          <!-- 评价图片 -->
+          <div class="detail-image-container">
+            <img :src="currentReview.imagePath || currentReview.url || currentReview.fileUrl" 
+                 class="detail-image" alt="穿搭图片">
+          </div>
+          
+          <!-- 总体评分 -->
+          <div class="score-section">
+            <h3 class="section-title">总体评分</h3>
+            <div class="score-circle">
+              <span class="score-number">{{ currentReview.score || 0 }}</span>
+            </div>
+          </div>
+          
+          <!-- 图片描述 -->
+          <div class="description-section">
+            <h3 class="section-title">
+              <i class="fas fa-image mr-2"></i>图片描述
+            </h3>
+            <p class="description-text">{{ currentReview.description || '暂无描述' }}</p>
+          </div>
+          
+          <!-- 穿搭优点 -->
+          <div class="advantages-section" v-if="currentReview.advantages || currentReview.pros">
+            <h3 class="section-title">
+              <i class="fas fa-thumbs-up mr-2"></i>穿搭优点
+            </h3>
+            <p class="advantages-text">{{ currentReview.advantages || currentReview.pros || '暂无优点分析' }}</p>
+          </div>
+          
+          <!-- 穿搭缺点 -->
+          <div class="disadvantages-section" v-if="currentReview.disadvantages || currentReview.cons">
+            <h3 class="section-title">
+              <i class="fas fa-thumbs-down mr-2"></i>穿搭缺点
+            </h3>
+            <p class="disadvantages-text">{{ currentReview.disadvantages || currentReview.cons || '暂无缺点分析' }}</p>
+          </div>
+          
+          <!-- 穿搭建议 -->
+          <div class="suggestions-section" v-if="currentReview.suggestions || currentReview.recommendations">
+            <h3 class="section-title">
+              <i class="fas fa-lightbulb mr-2"></i>穿搭建议
+            </h3>
+            <p class="suggestions-text">{{ currentReview.suggestions || currentReview.recommendations || '暂无穿搭建议' }}</p>
+          </div>
+          
+          <!-- 风格分析 -->
+          <div class="style-section" v-if="currentReview.styleAnalysis || currentReview.styleType">
+            <h3 class="section-title">
+              <i class="fas fa-tshirt mr-2"></i>风格分析
+            </h3>
+            <p class="style-text">{{ currentReview.styleAnalysis || currentReview.styleType || '暂无风格分析' }}</p>
+          </div>
+          
+          <!-- 整体评价 -->
+          <div class="overall-section" v-if="currentReview.overallEvaluation || currentReview.conclusion">
+            <h3 class="section-title">
+              <i class="fas fa-star mr-2"></i>整体评价
+            </h3>
+            <p class="overall-text">{{ currentReview.overallEvaluation || currentReview.conclusion || '暂无整体评价' }}</p>
+          </div>
+          
+          <!-- 评价时间 -->
+          <div class="time-section">
+            <p class="time-text">评价时间: {{ formatDate(currentReview.createdTime) }}</p>
+          </div>
+          
+          <!-- 返回按钮 -->
+          <button @click="closeDetail" class="back-button">
+            <i class="fas fa-arrow-left mr-2"></i>返回列表
           </button>
         </div>
       </div>
       
-      <!-- 空状态提示 -->
-      <div v-else-if="reviews.length === 0" class="empty-state">
-        <div class="flex flex-col items-center justify-center h-full px-4 py-12">
-          <i class="fas fa-tshirt text-6xl text-gray-300 mb-4"></i>
-          <h3 class="text-lg font-medium text-gray-500 mb-2">暂无穿搭评价</h3>
-          <p class="text-sm text-gray-400 text-center mb-6">上传一张穿搭照片，获取AI专业点评</p>
-          <router-link to="/upload-outfit" class="btn-primary py-2 px-6 rounded-lg">
-            上传第一张穿搭
-          </router-link>
-        </div>
-      </div>
-      
-      <!-- 评价记录列表 - 水平布局 -->
-      <div v-else class="reviews-list px-4 py-3">
-        <div 
-          v-for="review in reviews" 
-          :key="review.userId + review.imagePath"
-          @click="viewEvaluation(review)" 
-          class="review-card"
-        >
-          <!-- 左侧：图片和日期 -->
-          <div class="review-left">
-            <div class="review-image-wrapper">
-              <img :src="review.imagePath" class="review-image" alt="穿搭图片">
-            </div>
-            <div class="review-date">
-              <i class="far fa-calendar-alt mr-1"></i>
-              {{ formatDate(review.createdTime) }}
-            </div>
+      <!-- 列表视图 - 和原来的内容相同，但增加v-else -->
+      <div v-else>
+        <!-- 加载状态 -->
+        <div v-if="loading" class="loading-container">
+          <div class="flex flex-col items-center justify-center h-full px-4 py-12">
+            <i class="fas fa-spinner fa-spin text-4xl text-gray-400 mb-4"></i>
+            <p class="text-sm text-gray-400">正在加载评价记录...</p>
           </div>
-          
-          <!-- 右侧：评分和AI评价 -->
-          <div class="review-right">
-            <div class="review-score">{{ review.score }}</div>
-            <div class="ai-comment">
-              <div class="ai-label">
-                <i class="fas fa-robot mr-1"></i> AI点评
+        </div>
+        
+        <!-- 错误提示 -->
+        <div v-else-if="error" class="error-container">
+          <div class="flex flex-col items-center justify-center h-full px-4 py-12">
+            <i class="fas fa-exclamation-circle text-4xl text-red-400 mb-4"></i>
+            <p class="text-sm text-red-400">{{ error }}</p>
+            <button @click="fetchEvaluations" class="mt-4 px-4 py-2 bg-blue-500 text-white rounded">
+              重新加载
+            </button>
+          </div>
+        </div>
+        
+        <!-- 空状态提示 -->
+        <div v-else-if="evaluations.length === 0" class="empty-state">
+          <div class="flex flex-col items-center justify-center h-full px-4 py-12">
+            <i class="fas fa-tshirt text-6xl text-gray-300 mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-500 mb-2">暂无穿搭评价</h3>
+            <p class="text-sm text-gray-400 text-center mb-6">上传一张穿搭照片，获取AI专业点评</p>
+            <button @click="uploadNewOutfit" class="btn-primary py-2 px-6 rounded-lg">
+              上传第一张穿搭
+            </button>
+          </div>
+        </div>
+        
+        <!-- 评价记录列表 - 水平布局 -->
+        <div v-else class="reviews-list px-4 py-3">
+          <div 
+            v-for="review in evaluations" 
+            :key="review.userId + review.imagePath"
+            @click="viewEvaluation(review)" 
+            class="review-card"
+          >
+            <!-- 左侧：图片和日期 -->
+            <div class="review-left">
+              <div class="review-image-wrapper">
+                <img :src="review.imagePath || review.url || review.fileUrl" class="review-image" alt="穿搭图片">
               </div>
-              <p class="ai-comment-text">{{ review.description }}</p>
+              <div class="review-date">
+                <i class="far fa-calendar-alt mr-1"></i>
+                {{ formatDate(review.createdTime) }}
+              </div>
+            </div>
+            
+            <!-- 右侧：评分和AI评价 -->
+            <div class="review-right">
+              <div class="review-score">{{ review.score }}</div>
+              <div class="ai-comment">
+                <div class="ai-label">
+                  <i class="fas fa-robot mr-1"></i> AI点评
+                </div>
+                <p class="ai-comment-text">{{ review.description }}</p>
+              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 悬浮添加按钮 -->
-    <router-link to="/upload-outfit" class="floating-button">
+    <!-- 悬浮添加按钮 - 仅在非详情模式显示 -->
+    <div v-if="!showDetail" class="floating-button" @click="uploadNewOutfit">
       <i class="fas fa-plus"></i>
-    </router-link>
+    </div>
   </div>
 </template>
 
 <script>
 import SubPageNavBar from '@/components/SubPageNavBar.vue'
 import { useOutfitStore } from '@/stores/outfitStore'
-// TODO: 取消注释以使用真实API
-// import { getFashionEvaluations } from '@/api/outfit'
+import { useUserStore } from '@/stores/user'
+import { onMounted } from 'vue'
 
 export default {
   name: 'AIReviewView',
   components: {
     SubPageNavBar
   },
-  data() {
+  setup() {
+    const outfitStore = useOutfitStore()
+    const userStore = useUserStore()
+    
+    // 立即加载评价记录
+    onMounted(async () => {
+      // 确保用户已登录
+      if (userStore.isLoggedIn) {
+        await outfitStore.fetchEvaluations()
+      }
+    })
+    
+    // 返回需要在模板中使用的内容
     return {
-      // 不再在组件内存储reviews数据
+      outfitStore,
+      userStore
     }
   },
-  created() {
-    // 使用store的方法获取评价列表，优先使用sessionStorage中的数据
-    this.outfitStore.fetchEvaluations()
+  data() {
+    return {
+      // 初始化数据
+      activeTab: 0,
+      // 添加详情视图状态
+      showDetail: false,
+      // 当前查看的评价
+      currentReview: null
+    }
   },
   computed: {
-    // 从store中获取数据
-    outfitStore() {
-      return useOutfitStore()
+    // 获取有效的评价记录
+    evaluations() {
+      return this.outfitStore.evaluations || []
     },
-    reviews() {
-      return this.outfitStore.evaluations
+    
+    // 判断是否有数据
+    hasEvaluations() {
+      return this.evaluations.length > 0
     },
+    
+    // 格式化日期方法保持不变
     loading() {
       return this.outfitStore.loading
     },
@@ -115,18 +218,57 @@ export default {
     }
   },
   methods: {
+    // 查看评价详情 - 修改为在当前页面显示详情
+    viewEvaluation(review) {
+      // 设置当前评价并显示详情视图
+      this.currentReview = {
+        ...review,
+        imagePath: review.imagePath || review.url || review.fileUrl,
+        
+        // 确保所有可能的评价字段都被考虑
+        // 图片描述可能的字段
+        description: review.description || review.imageDescription || review.content || '',
+        
+        // 优点可能的字段
+        advantages: review.advantages || review.pros || review.positivePoints || '',
+        
+        // 缺点可能的字段
+        disadvantages: review.disadvantages || review.cons || review.negativePoints || '',
+        
+        // 建议可能的字段
+        suggestions: review.suggestions || review.recommendations || review.advice || '',
+        
+        // 风格分析可能的字段
+        styleAnalysis: review.styleAnalysis || review.styleType || review.fashionStyle || '',
+        
+        // 整体评价可能的字段
+        overallEvaluation: review.overallEvaluation || review.conclusion || review.summary || ''
+      }
+      
+      // 打印评价详情，方便调试
+      console.log('当前查看的评价详情:', this.currentReview)
+      
+      this.showDetail = true
+      
+      // 滚动到顶部
+      window.scrollTo(0, 0)
+    },
+    
+    // 关闭详情视图
+    closeDetail() {
+      this.showDetail = false
+      this.currentReview = null
+    },
+    
+    // 上传新穿搭按钮
+    uploadNewOutfit() {
+      console.log('跳转到上传穿搭页面')
+      this.$router.push('/upload-outfit')
+    },
+    
     async fetchEvaluations() {
       // 调用store的方法刷新数据
       await this.outfitStore.fetchEvaluations()
-    },
-    
-    // 点击评价记录时设置当前评价并导航
-    viewEvaluation(review) {
-      // 设置当前选中的评价
-      this.outfitStore.setCurrentEvaluation(review)
-      
-      // 导航到上传页面，仍然带上id和image参数作为备用
-      this.$router.push(`/upload-outfit?id=${review.userId}&image=${review.imagePath}`)
     },
     
     // 格式化日期
@@ -244,10 +386,10 @@ export default {
 
 .floating-button {
   position: fixed;
-  bottom: 30px;
+  bottom: 20px;
   right: 20px;
-  width: 56px;
-  height: 56px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   background-color: #4096FF;
   color: white;
@@ -255,8 +397,15 @@ export default {
   align-items: center;
   justify-content: center;
   font-size: 24px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
   z-index: 100;
+  cursor: pointer;
+  transition: transform 0.2s, background-color 0.2s;
+}
+
+.floating-button:active {
+  transform: scale(0.95);
+  background-color: #3086EE;
 }
 
 .btn-primary {
@@ -273,5 +422,99 @@ export default {
   justify-content: center;
   align-items: center;
   color: #888;
+}
+
+/* 添加详情视图样式 */
+.detail-view {
+  padding: 20px;
+}
+
+.detail-container {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.detail-image-container {
+  width: 100%;
+  margin-bottom: 20px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.detail-image {
+  width: 100%;
+  object-fit: cover;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 12px;
+}
+
+.score-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.score-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: #4096FF;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  font-size: 30px;
+  font-weight: bold;
+  margin: 10px 0;
+}
+
+/* 各评价部分通用样式 */
+.description-section, .advantages-section, .disadvantages-section, 
+.suggestions-section, .style-section, .overall-section {
+  margin-bottom: 20px;
+  padding: 12px;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+}
+
+.advantages-section {
+  background-color: #f0f8f0;
+}
+
+.disadvantages-section {
+  background-color: #fff0f0;
+}
+
+.suggestions-section {
+  background-color: #f0f0ff;
+}
+
+.time-section {
+  margin-top: 16px;
+  text-align: right;
+}
+
+.time-text {
+  font-size: 12px;
+  color: #888;
+}
+
+.back-button {
+  width: 100%;
+  padding: 12px;
+  background: #f0f0f0;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  color: #333;
+  margin-top: 20px;
 }
 </style> 

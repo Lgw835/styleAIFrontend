@@ -142,9 +142,10 @@ import { useOutfitStore } from '@/stores/outfitStore'
 import { useExternalDataStore } from '@/stores/externalData'
 import { useUserStore } from '@/stores/user'
 import { showToast } from 'vant'
-// TODO: 取消注释使用真实API
-// import { uploadOutfitImage, evaluateOutfit } from '@/api/outfit'
-import { mockOutfitAPI } from '@/api/mockAPI'
+// 启用真实API
+import { uploadOutfitImage, evaluateOutfit } from '@/api/outfit'
+// 删除模拟API
+// import { mockOutfitAPI } from '@/api/mockAPI'
 
 export default {
   name: 'UploadOutfitView',
@@ -330,58 +331,72 @@ export default {
       if (!this.previewImage || this.isLoading) return
       
       this.isLoading = true
-      this.showResult = false
-      this.animationStartTime = Date.now()
-      this.analysisStatus = 0
+      this.analysisStatusText = '正在分析服装元素...'
       
       try {
-        // 第一步：模拟上传图片
-        const uploadResponse = await mockOutfitAPI.uploadImage(this.file, {
-          userId: this.userId,
-          ipAddress: this.locationForTracking
+        // 确保有用户ID
+        const userId = this.userStore?.userInfo?.userId || ''
+        
+        // 在submitImage方法中添加文件检查
+        if (!this.file) {
+          throw new Error('请选择要上传的图片文件')
+        }
+        
+        // 打印调试信息
+        console.log('准备上传文件:', this.file.name, this.file.type, this.file.size)
+        
+        // 上传图片
+        const uploadResponse = await uploadOutfitImage({
+          image: this.file,
+          userId: userId
         })
         
-        this.uploadedImageUrl = uploadResponse.imageUrl || this.previewImage
-        this.uploadCompleted = true
+        console.log('图片上传响应:', uploadResponse)
         
-        // 第二步：模拟评价分析
-        const evaluationResponse = await mockOutfitAPI.evaluateOutfit({
-          userId: this.userId,
-          url: this.uploadedImageUrl,
-          ipAddress: this.locationForTracking
+        // 检查返回的图片URL - 使用fileUrl字段
+        if (!uploadResponse || !uploadResponse.fileUrl) {
+          throw new Error('图片上传失败，没有获取到URL')
+        }
+        
+        this.analysisStatusText = '正在进行穿搭评价...'
+        
+        // 获取定位信息
+        const ipAddress = this.externalDataStore?.locationData?.city || ''
+        
+        // 使用fileUrl字段
+        console.log('评价参数:', {
+          userId: userId,
+          ipAddress: ipAddress,
+          url: uploadResponse.fileUrl
         })
         
-        // 更新评价数据
+        // 使用fileUrl字段传递给评价API
+        const evaluationResponse = await evaluateOutfit({
+          userId: userId,
+          ipAddress: ipAddress,
+          url: uploadResponse.fileUrl
+        })
+        
+        console.log('评价响应:', evaluationResponse)
+        
+        // 保存评价结果 - 使用fileUrl作为imagePath
         this.reviewData = evaluationResponse
+        this.reviewData.imagePath = uploadResponse.fileUrl
         
-        // 将结果保存到Pinia
+        // 添加到评价记录
         this.outfitStore.addEvaluation({
-          userId: this.userStore.userInfo?.id || 'anonymous_user',
-          imagePath: this.previewImage,
-          description: this.reviewData.description,
-          advantages: this.reviewData.advantages,
-          disadvantages: this.reviewData.disadvantages,
-          suggestions: this.reviewData.suggestions,
-          score: this.reviewData.score,
-          summary: this.reviewData.summary,
+          ...this.reviewData,
+          userId: userId,
           createdTime: new Date().toISOString()
         })
         
-        // 确保动画有足够时间显示
-        const elapsedTime = Date.now() - this.animationStartTime
-        if (elapsedTime < this.minAnimationTime) {
-          await new Promise(resolve => setTimeout(resolve, this.minAnimationTime - elapsedTime))
-        }
-        
-        // 显示评价结果
-        this.uploadCompleted = true
+        // 显示结果
         this.showResult = true
       } catch (error) {
-        console.error('上传或分析失败', error)
-        showToast('上传或分析失败，请重试')
+        console.error('AI评价失败:', error)
+        showToast('评价失败: ' + (error.message || '服务器错误'))
       } finally {
         this.isLoading = false
-        clearInterval(this.analysisInterval)
       }
     },
     

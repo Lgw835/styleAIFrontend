@@ -4,8 +4,8 @@ import { Notify } from 'vant'
 
 // 创建axios实例
 const service = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
-  timeout: 15000, // 请求超时时间
+  baseURL: 'http://localhost:7001', // 使用网关地址
+  timeout: 30000, // 请求超时时间
   headers: {
     'Content-Type': 'application/json;charset=utf-8'
   }
@@ -14,6 +14,9 @@ const service = axios.create({
 // 请求拦截器
 service.interceptors.request.use(
   config => {
+    // 在请求头中设置语言偏好
+    config.headers['Accept-Language'] = 'zh-CN'
+    
     // 从localStorage获取token
     const token = localStorage.getItem('token')
     
@@ -21,6 +24,12 @@ service.interceptors.request.use(
     if (token) {
       config.headers['Authorization'] = `Bearer ${token}`
     }
+    
+    // 添加请求日志
+    console.log(`🚀 Request: ${config.method.toUpperCase()} ${config.url}`, config.data || config.params || {})
+    
+    // 打印请求URL
+    console.log('发送请求到:', config.url)
     
     return config
   },
@@ -33,27 +42,21 @@ service.interceptors.request.use(
 // 响应拦截器
 service.interceptors.response.use(
   response => {
-    const res = response.data
-    
-    // 如果接口返回的状态码不是200，说明接口有问题
-    if (response.status !== 200) {
-      Notify({
-        type: 'danger', 
-        message: res.message || '服务器响应错误' 
-      })
-      
-      // 判断是否是401未授权，如果是则跳转到登录页
-      if (response.status === 401) {
-        localStorage.removeItem('token')
-        router.push('/login')
-      }
-      
-      return Promise.reject(new Error(res.message || '服务器响应错误'))
-    } else {
-      return res
-    }
+    // 不再解构到data属性，直接返回响应数据
+    return response.data
   },
   error => {
+    // 增强错误日志
+    if (error.response) {
+      console.error(`❌ Response Error [${error.response.status}] from ${error.config?.url}:`, 
+                   error.response.data || error.message)
+    } else if (error.request) {
+      console.error(`❌ No Response Error from ${error.config?.url}:`, 
+                   'The request was made but no response was received')
+    } else {
+      console.error(`❌ Request Setup Error:`, error.message)
+    }
+    
     // 处理网络错误
     let message = '网络请求错误'
     if (error.response) {
@@ -73,12 +76,15 @@ service.interceptors.response.use(
         case 500:
           message = '服务器内部错误'
           break
+        case 503:
+          message = '服务暂时不可用，请稍后再试'
+          break
         default:
           message = `请求错误: ${error.response.status}`
       }
     } else if (error.request) {
       // 请求发出但没有收到响应
-      message = '服务器未响应'
+      message = '服务器未响应，请检查网络'
     }
     
     Notify({

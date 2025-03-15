@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { getUserOutfitRecords, getOutfitDetail, deleteOutfitRecord, getOutfitEvaluation, submitOutfitEvaluation } from '@/api/outfitApi'
 import mitt from 'mitt'
+import { useUserStore } from '@/stores/user'
 
 // 创建一个简单的事件发射器
 const emitter = mitt()
@@ -51,45 +52,71 @@ export const useOutfitRecordStore = defineStore('outfitRecord', () => {
     }
   }
 
-  // 获取穿搭记录列表
-  const fetchOutfitRecords = async (userId, forceRefresh = false) => {
-    // 检查用户ID
-    const actualUserId = userId || 'dev_user_001' // 开发环境下的默认ID
-    
-    if (!actualUserId) {
-      console.error('用户ID不能为空')
-      return []
-    }
-    
-    // 如果不是强制刷新且数据不需要刷新，直接返回缓存数据
-    if (!forceRefresh && !needRefresh.value && outfits.value.length > 0) {
-      return outfits.value
-    }
-    
-    loading.value = true
+  // 本地存储键名
+  const STORAGE_KEY = 'outfit_records'
+
+  // 保存到本地存储
+  const saveToStorage = () => {
     try {
-      // TODO: 当API可用时，取消注释下面的代码
-      // const response = await getUserOutfitRecords(actualUserId)
-      // outfits.value = response.data.items || []
-      
-      // 模拟API调用
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
-      // 生成模拟数据
-      outfits.value = generateMockOutfits(actualUserId)
-      
-      // 更新最后获取时间
-      lastFetchTime.value = new Date().getTime()
-      
-      // 保存到Session Storage
-      saveToSession()
-      
-      return outfits.value
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        records: outfits.value,
+        lastUpdated: new Date().toISOString()
+      }))
+      return true
     } catch (error) {
-      console.error('获取穿搭记录失败', error)
-      throw error
+      console.error('保存穿搭记录到本地存储失败:', error)
+      return false
+    }
+  }
+
+  // 从本地存储恢复
+  const restoreFromStorage = () => {
+    try {
+      const data = localStorage.getItem(STORAGE_KEY)
+      if (data) {
+        const parsed = JSON.parse(data)
+        outfits.value = parsed.records || []
+        return true
+      }
+    } catch (error) {
+      console.error('从本地存储恢复穿搭记录失败:', error)
+    }
+    return false
+  }
+
+  // 重写fetchRecords方法
+  const fetchOutfitRecords = async (userId, forceRefresh = false) => {
+    // 如果不强制刷新且有本地数据，使用本地数据
+    if (!forceRefresh && outfits.value.length > 0) {
+      return outfits.value
+    }
+    
+    this.loading = true
+    
+    try {
+      const userStore = useUserStore()
+      const actualUserId = userId || userStore.userInfo?.userId
+      
+      if (!actualUserId) {
+        throw new Error('用户未登录')
+      }
+      
+      const response = await getUserOutfitRecords(actualUserId)
+      
+      if (response && Array.isArray(response)) {
+        outfits.value = response
+        // 保存到本地存储
+        saveToStorage()
+        return outfits.value
+      } else {
+        throw new Error('获取数据格式错误')
+      }
+    } catch (error) {
+      console.error('获取穿搭记录失败:', error)
+      this.error = error.message || '获取穿搭记录失败'
+      return []
     } finally {
-      loading.value = false
+      this.loading = false
     }
   }
 
@@ -214,7 +241,7 @@ export const useOutfitRecordStore = defineStore('outfitRecord', () => {
         
         // 保存到Session Storage和本地存储
         saveToSession()
-        persistOutfits()
+        saveToStorage()
       }
       
       // 通知数据变更
@@ -249,7 +276,7 @@ export const useOutfitRecordStore = defineStore('outfitRecord', () => {
       saveToSession()
       
       // 更新本地持久化存储
-      persistOutfits()
+      saveToStorage()
       
       // 通知数据变更
       notifyDataChange('delete', { id: outfitId })
@@ -348,7 +375,7 @@ export const useOutfitRecordStore = defineStore('outfitRecord', () => {
       outfits.value.unshift(outfit)
       
       // 将数据持久化到本地存储
-      persistOutfits()
+      saveToStorage()
       
       // 通知数据变更
       notifyDataChange('add', outfit)
@@ -357,15 +384,6 @@ export const useOutfitRecordStore = defineStore('outfitRecord', () => {
     } catch (error) {
       console.error('添加穿搭记录失败', error)
       return false
-    }
-  }
-
-  // 持久化穿搭记录到本地存储
-  const persistOutfits = () => {
-    try {
-      localStorage.setItem('outfit_records', JSON.stringify(outfits.value))
-    } catch (error) {
-      console.error('保存穿搭记录到本地存储失败', error)
     }
   }
 
@@ -386,9 +404,10 @@ export const useOutfitRecordStore = defineStore('outfitRecord', () => {
   // 添加初始化方法
   const initStore = () => {
     try {
-      const storedOutfits = localStorage.getItem('outfit_records')
-      if (storedOutfits) {
-        outfits.value = JSON.parse(storedOutfits)
+      const restored = restoreFromStorage()
+      if (!restored) {
+        // 如果本地没有数据或数据为空，从API获取
+        fetchOutfitRecords()
       }
     } catch (error) {
       console.error('从本地存储加载穿搭记录失败', error)
@@ -452,7 +471,8 @@ export const useOutfitRecordStore = defineStore('outfitRecord', () => {
     notifyDataChange,
     // 订阅变更的方法
     onDataChange,
-    persistOutfits,
+    saveToStorage,
+    restoreFromStorage,
     // 添加初始化方法
     initStore,
     standardizeOutfitData

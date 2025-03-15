@@ -100,7 +100,7 @@
 
           <!-- 图片展示 -->
           <div v-if="outfitImage" class="aspect-w-1 aspect-h-1 bg-gray-100 rounded-lg overflow-hidden">
-            <img :src="outfitImage" alt="穿搭效果图" class="w-full h-auto object-cover">
+            <img :src="outfitResult ? getImagePath(outfitResult) : outfitImage" alt="穿搭效果图" class="w-full h-auto object-cover">
           </div>
         </div>
 
@@ -114,6 +114,17 @@
                   @click="openSaveModal">
             保存到记录
           </button>
+        </div>
+
+        <!-- 在模板中添加v-if检查 -->
+        <div v-if="outfitResult && outfitResult.score" class="evaluation-score">
+          <span class="score-value">{{ outfitResult.score }}</span>
+          <span class="score-label">评分</span>
+        </div>
+
+        <div v-if="outfitResult && outfitResult.description" class="evaluation-description">
+          <h3 class="section-title">穿搭描述</h3>
+          <p>{{ outfitResult.description }}</p>
         </div>
       </div>
     </div>
@@ -155,7 +166,7 @@
 </template>
 
 <script>
-import { ref, computed, onMounted, reactive } from 'vue'
+import { ref, computed, onMounted, reactive, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import SubPageNavBar from '@/components/SubPageNavBar.vue'
 import PromptModal from '@/components/modals/PromptModal.vue'
@@ -230,7 +241,7 @@ export default {
     const canSave = computed(() => outfitResultStore.canSave)
 
     // 当前穿搭数据
-    const outfitResult = ref(null)
+    const outfitResult = ref({})
     // 保存状态
     const isSaved = ref(false)
 
@@ -280,13 +291,9 @@ export default {
           highlightImageUrl: '' // 暂无高亮图
         }
         
-        // TODO: 当API可用时，使用真实的API调用
-        // const response = await saveOutfitToAPI(outfitData)
-        // const outfitId = response.data.id
-        
-        // 模拟API调用
-        await new Promise(resolve => setTimeout(resolve, 800))
-        const outfitId = `outfit_${Date.now()}`
+        // 调用实际的API
+        const response = await saveOutfit(outfitData)
+        const outfitId = response.data.id
         
         // 将数据添加到本地 store - 转换为 store 需要的格式
         const storeOutfitData = {
@@ -310,26 +317,12 @@ export default {
         // 显示成功提示
         showToast('穿搭方案已保存')
         
-        // 提交评价 - 严格按照 OutfitCommentSaveRequestVO 结构
-        if (saveData.rating > 0 && saveData.comment?.trim()) {
-          const commentData = {
-            userId: userStore.userInfo?.id || '',
-            ipAddress: externalDataStore.locationData?.city || '未知位置',
-            outfitId: outfitId,
-            score: saveData.rating,
-            comment: saveData.comment
-          }
-          
-          await submitEvaluation(commentData)
-        }
-
-        router.push('/')
+        // 保存成功后，重置状态
+        isSaved.value = true
         
-        return true
       } catch (error) {
         console.error('保存穿搭方案失败', error)
-        showToast('保存失败，请重试')
-        return false
+        showToast('保存失败，请稍后再试')
       } finally {
         loading.value = false
       }
@@ -354,28 +347,8 @@ export default {
           highlightImageUrl: '' // 暂无高亮图
         }
         
-        // TODO: 当API可用时，使用真实的API调用
-        // const response = await saveOutfitToAPI(outfitData)
-        
-        // 模拟API调用
-        await new Promise(resolve => setTimeout(resolve, 800))
-        const outfitId = `outfit_${Date.now()}`
-        
-        // 将数据添加到本地 store - 转换为 store 需要的格式
-        const storeOutfitData = {
-          id: outfitId,
-          userId: userStore.userInfo?.id || '',
-          imageUrl: outfitResultStore.outfitImage || '',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          outfitDescription: JSON.stringify(outfitResultStore.outfitPlan || {}),
-          aiPromptDescription: outfitResultStore.aiPrompt || '',
-          sceneId: route.query.scene || '',
-          // 无评分和评论
-        }
-        
-        // 添加到本地store
-        await outfitRecordStore.addOutfit(storeOutfitData)
+        // 调用实际的API
+        const response = await saveOutfit(outfitData)
         
         // 关闭模态框
         showSaveModal.value = false
@@ -423,9 +396,6 @@ export default {
       try {
         // TODO: 当API可用时，使用真实的API调用
         // const response = await submitOutfitEvaluation(commentData)
-        
-        // 模拟API调用
-        await new Promise(resolve => setTimeout(resolve, 500))
         
         // 实际上在评价时，outfitRecordStore.submitEvaluation 方法会自动更新对应的穿搭评分
         await outfitRecordStore.submitEvaluation(commentData)
@@ -522,79 +492,30 @@ export default {
       outfitResultStore.addToVersionHistory('初始方案', '默认推荐方案')
     }
     
-    // 生成图片函数 - 使用模拟URL实现前端效果
+    // 生成图片方法
     const generateImage = async () => {
-      if (isGenerating.value) return
+      if (loading.value) return
       
+      loading.value = true
       try {
-        isGenerating.value = true
-        generatingProgress.value = 0
-        generatingStatus.value = '准备生成效果图...'
+        // 使用真实API生成图片
+        const response = await generateOutfitImage({
+          prompt: aiPrompt.value,
+          userId: userStore.userInfo?.userId,
+          outfitId: outfitResult.value?.id || '',
+          version: currentVersion.value
+        })
         
-        // 模拟进度条动画
-        const progressInterval = setInterval(() => {
-          if (generatingProgress.value < 95) {
-            generatingProgress.value += Math.floor(Math.random() * 5) + 1
-            
-            // 根据进度设置状态文本
-            if (generatingProgress.value < 30) {
-              generatingStatus.value = '分析穿搭风格...'
-            } else if (generatingProgress.value < 60) {
-              generatingStatus.value = '生成服装细节...'
-            } else if (generatingProgress.value < 90) {
-              generatingStatus.value = '优化图片效果...'
-            }
-          }
-        }, 300)
+        // 更新图片URL
+        outfitResultStore.setOutfitImage(response.imageUrl)
         
-        // 构建请求参数
-        const userId = userStore.userInfo?.id || 'anonymous_user'
-        
-        // TODO: 调用后端generateImage接口获取图片
-        // API文档: /outfitApi/generateImage
-        const requestData = {
-          userId: userId,
-          ipAddress: externalDataStore.locationData?.city || '未知位置',
-          aiPromptDescription: outfitResultStore.aiPrompt
-        }
-        
-        // const response = await generateOutfitImage(requestData)
-        // if (response && response.data && response.data.imageUrl) {
-        //   const imageUrl = response.data.imageUrl
-        //   outfitResultStore.outfitImage = imageUrl
-        //   outfitResultStore.addToVersionHistory('生成图片', '为当前穿搭方案生成效果图')
-        //   return
-        // }
-        
-        // 模拟API调用延迟
-        await new Promise(resolve => setTimeout(resolve, 3000))
-        
-        // 模拟返回图片URL - 使用随机图片
-        const imageIndex = Math.floor(Math.random() * 5) + 1
-        const imageUrl = `https://source.unsplash.com/400x600/?fashion,outfit,${imageIndex}`
-        
-        // 设置完成进度
-        generatingProgress.value = 100
-        generatingStatus.value = '生成完成！'
-        
-        // 等待进度条到达100%的动画完成
-        await new Promise(resolve => setTimeout(resolve, 500))
-        
-        // 直接修改store中的值
-        outfitResultStore.outfitImage = imageUrl
-        
-        // 更新当前版本历史中的图片
-        outfitResultStore.addToVersionHistory('生成图片', '为当前穿搭方案生成效果图')
-        
-        // 等待进度条动画完成
-        await new Promise(resolve => setTimeout(resolve, 300))
-        
+        // 成功提示
+        showToast('图片生成成功')
       } catch (error) {
-        console.error('生成穿搭效果图失败', error)
-        showToast('生成效果图失败，请重试')
+        console.error('图片生成失败:', error)
+        showToast('图片生成失败，请稍后再试')
       } finally {
-        isGenerating.value = false
-        generatingProgress.value = 0
+        loading.value = false
       }
     }
 
@@ -639,24 +560,20 @@ export default {
         loading.value = true
         loadingMessage.value = "正在修改穿搭方案..."
         
-        // TODO: 调用后端followup接口获取修改后的方案和新的提示词
-        // const requestData = {
-        //   userId: userStore.userInfo?.id || '',
-        //   ipAddress: externalDataStore.locationData?.city || '未知位置',
-        //   editedPlan: modifiedPlan,
-        //   previousPlan: outfitResultStore.outfitPlan || '',
-        //   additionalInfo: ''
-        // }
-        // const response = await followUpOutfit(requestData)
-        // const updatedPlan = response.data.readablePlan
-        // const updatedPrompt = response.data.imagePrompt
+        // 调用后端followup接口获取修改后的方案和新的提示词
+        const requestData = {
+          userId: userStore.userInfo?.id || '',
+          ipAddress: externalDataStore.locationData?.city || '未知位置',
+          editedPlan: modifiedPlan,
+          previousPlan: outfitResultStore.outfitPlan || '',
+          additionalInfo: ''
+        }
+        const response = await followUpOutfit(requestData)
+        const updatedPlan = response.data.readablePlan
+        const updatedPrompt = response.data.imagePrompt
         
-        // 模拟后端followup接口响应
-        await new Promise(resolve => setTimeout(resolve, 1500))
-        const updatedPrompt = `fashionable outfit based on ${modifiedPlan.substring(0, 30)}...`
-        
-        // 直接设置计划内容
-        outfitResultStore.outfitPlan = modifiedPlan
+        // 更新方案内容
+        outfitResultStore.outfitPlan = updatedPlan
         
         // 更新提示词
         outfitResultStore.aiPrompt = updatedPrompt
@@ -764,9 +681,44 @@ export default {
     
     // 生命周期钩子 - 组件挂载后初始化数据
     onMounted(() => {
-      initData()
-      // 初始化保存模态框数据
-      initSaveModalData()
+      console.log('OutfitResultView挂载，检查数据来源')
+      
+      // 初始化数据
+      if (!outfitResult.value) {
+        outfitResult.value = {}
+      }
+      
+      // 检查是否从评价记录跳转过来
+      if (outfitResultStore.currentEvaluation) {
+        console.log('检测到来自评价记录的数据:', outfitResultStore.currentEvaluation)
+        
+        // 使用评价数据初始化当前视图
+        outfitResult.value = outfitResultStore.currentEvaluation
+        
+        // 如果有图片URL，确保正确显示
+        if (outfitResult.value.imagePath || outfitResult.value.url || outfitResult.value.fileUrl) {
+          outfitResultStore.outfitImage = getImagePath(outfitResult.value)
+        }
+        
+        // 保存到会话存储，确保刷新后不丢失
+        sessionStorage.setItem('currentOutfitResult', JSON.stringify(outfitResult.value))
+      } else {
+        // 尝试从sessionStorage恢复数据
+        const savedData = sessionStorage.getItem('currentOutfitResult')
+        if (savedData) {
+          try {
+            const parsedData = JSON.parse(savedData)
+            outfitResult.value = parsedData
+            
+            // 如果有图片，确保显示
+            if (parsedData.imagePath || parsedData.url || parsedData.fileUrl) {
+              outfitResultStore.outfitImage = getImagePath(parsedData)
+            }
+          } catch (e) {
+            console.error('恢复保存的穿搭数据失败:', e)
+          }
+        }
+      }
     })
 
     // 监听路由变化，在离开页面时清除数据
@@ -916,6 +868,18 @@ export default {
       openSaveModal()
     }
 
+    // 在计算属性或方法中添加
+    const getImagePath = (outfit) => {
+      // 增加防御性检查，确保outfit存在
+      if (!outfit) {
+        console.warn('尝试获取图片路径时outfit对象为undefined')
+        return ''
+      }
+      
+      // 优先使用imagePath，然后是url，最后是fileUrl
+      return outfit.imagePath || outfit.url || outfit.fileUrl || ''
+    }
+
     return {
       // 使用computed引用store的状态
       outfitPlan,
@@ -957,7 +921,8 @@ export default {
       
       // 新增或修改的状态和方法
       saveModalData,
-      saveToRecord
+      saveToRecord,
+      getImagePath
     }
   }
 }
