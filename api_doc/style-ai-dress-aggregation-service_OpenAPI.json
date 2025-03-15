@@ -1,0 +1,894 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "OpenAPI definition",
+    "version": "v0"
+  },
+  "servers": [
+    {
+      "url": "http://192.168.199.1:9011",
+      "description": "Generated server url"
+    }
+  ],
+  "tags": [
+    {
+      "name": "衣柜管理",
+      "description": "衣物管理相关API"
+    },
+    {
+      "name": "虚拟试衣",
+      "description": "虚拟试衣相关API"
+    },
+    {
+      "name": "穿搭推荐",
+      "description": "智能穿搭推荐相关API"
+    }
+  ],
+  "paths": {
+    "/wardrobeApi/clothes": {
+      "put": {
+        "tags": [
+          "衣柜管理"
+        ],
+        "summary": "修改衣物信息",
+        "description": "更新已有衣物的信息",
+        "operationId": "updateClothes",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WardrobeClothesVO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/WardrobeClothesVO"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "衣柜管理"
+        ],
+        "summary": "新增衣物",
+        "description": "添加新衣物到用户衣柜，包含衣物基本信息和图片URL",
+        "operationId": "addClothes",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WardrobeClothesVO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/WardrobeClothesVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/virtualTryApi/try-on": {
+      "post": {
+        "tags": [
+          "虚拟试衣"
+        ],
+        "summary": "虚拟试衣",
+        "description": "用户上传人物图片和选择衣物进行虚拟试衣",
+        "operationId": "tryOn",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VirtualTryOnVO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/VirtualTryOnVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/outfitApi/save": {
+      "post": {
+        "tags": [
+          "穿搭推荐"
+        ],
+        "summary": "保存穿搭方案",
+        "description": "将生成的穿搭方案保存到用户记录",
+        "operationId": "saveOutfit",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OutfitSaveRequestVO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutfitSaveResponseVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/outfitApi/saveOutfitComment": {
+      "post": {
+        "tags": [
+          "穿搭推荐"
+        ],
+        "summary": "保存穿搭方案评论",
+        "description": "将用户对生成的穿搭方案的评论保存下来",
+        "operationId": "saveOutfitComment",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OutfitCommentSaveRequestVO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/outfitApi/recommend": {
+      "post": {
+        "tags": [
+          "穿搭推荐"
+        ],
+        "summary": "智能穿搭推荐生成",
+        "description": "用户选择穿搭场景、形象目标等，获取智能穿搭建议",
+        "operationId": "recommendOutfit",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OutfitRecommendRequestVO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutfitRecommendResponseVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/outfitApi/generateImage": {
+      "post": {
+        "tags": [
+          "穿搭推荐"
+        ],
+        "summary": "穿搭图片生成",
+        "description": "根据AI提示词生成穿搭预览图片，注意返回值类型",
+        "operationId": "generateOutfitImage",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OutfitImageGenerateRequestVO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/outfitApi/followUp": {
+      "post": {
+        "tags": [
+          "穿搭推荐"
+        ],
+        "summary": "穿搭建议续问修改",
+        "description": "对已生成的穿搭方案进行对话式修改",
+        "operationId": "followupOutfit",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OutfitFollowupRequestVO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutfitRecommendResponseVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/outfitApi/evaluateOutfit": {
+      "post": {
+        "tags": [
+          "穿搭推荐"
+        ],
+        "summary": "AI评价穿搭",
+        "description": "用户上传一张人物穿搭图片，AI对穿搭进行评价",
+        "operationId": "evaluateOutfit",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OutfitEvaluationRequestVO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutfitEvaluationResponseVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/outfitApi/dayRecommend": {
+      "post": {
+        "tags": [
+          "穿搭推荐"
+        ],
+        "summary": "每日一搭",
+        "description": "被动获取每日一搭",
+        "operationId": "dayRecommendOutfit",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OutfitRecommendRequestVO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/OutfitRecommendResponseVO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/wardrobeApi/clothes/{userId}": {
+      "get": {
+        "tags": [
+          "衣柜管理"
+        ],
+        "summary": "获取全部衣物信息",
+        "description": "根据用户ID获取该用户所有衣物信息",
+        "operationId": "getAllClothes",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/WardrobeClothesVO"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/virtualTryApi/records/{userId}": {
+      "get": {
+        "tags": [
+          "虚拟试衣"
+        ],
+        "summary": "获取试衣记录",
+        "description": "分页获取用户的虚拟试衣记录",
+        "operationId": "getTryOnRecords",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 1
+            }
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 10
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/VirtualTryOnVO"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/outfitApi/getOutfitRecommends": {
+      "get": {
+        "tags": [
+          "穿搭推荐"
+        ],
+        "summary": "查看用户的穿搭推荐记录",
+        "description": "根据用户ID查看该用户所有的穿搭推荐记录",
+        "operationId": "getOutfitRecommends",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/OutfitRecommendVO"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/outfitApi/getFashionEvaluations": {
+      "get": {
+        "tags": [
+          "穿搭推荐"
+        ],
+        "summary": "获取AI评价",
+        "description": "获取AI评价，目前是全部返回",
+        "operationId": "getFashionEvaluations",
+        "parameters": [
+          {
+            "name": "userId",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/FashionReviewDTO"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/wardrobeApi/clothes/{id}": {
+      "delete": {
+        "tags": [
+          "衣柜管理"
+        ],
+        "summary": "删除衣物",
+        "description": "根据衣物ID删除特定衣物",
+        "operationId": "deleteClothes",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/virtualTryApi/records/{id}": {
+      "delete": {
+        "tags": [
+          "虚拟试衣"
+        ],
+        "summary": "删除试衣记录",
+        "description": "根据记录ID删除特定试衣记录",
+        "operationId": "deleteTryOnRecord",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "WardrobeClothesVO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "userId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "imageUrl": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string"
+          },
+          "season": {
+            "type": "string"
+          },
+          "brand": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "createTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updateTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "VirtualTryOnVO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "userId": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "userIp": {
+            "type": "string"
+          },
+          "userImageUrl": {
+            "type": "string"
+          },
+          "clothesImageUrl": {
+            "type": "string"
+          },
+          "resultImageUrl": {
+            "type": "string"
+          },
+          "tryOnType": {
+            "type": "string"
+          },
+          "createTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updateTime": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "OutfitSaveRequestVO": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "ipAddress": {
+            "type": "string"
+          },
+          "outfitDescription": {
+            "type": "string"
+          },
+          "aiPromptDescription": {
+            "type": "string"
+          },
+          "outfitImageUrl": {
+            "type": "string"
+          },
+          "requirementText": {
+            "type": "string"
+          },
+          "sceneId": {
+            "type": "string"
+          },
+          "highlightImageUrl": {
+            "type": "string"
+          }
+        }
+      },
+      "OutfitSaveResponseVO": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "OutfitCommentSaveRequestVO": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "ipAddress": {
+            "type": "string"
+          },
+          "outfitId": {
+            "type": "string"
+          },
+          "score": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "comment": {
+            "type": "string"
+          }
+        }
+      },
+      "OutfitRecommendRequestVO": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "refType": null
+          },
+          "ipAddress": {
+            "type": "string",
+            "refType": null
+          },
+          "weather": {
+            "type": "string",
+            "refType": null
+          },
+          "luckyColor": {
+            "type": "string",
+            "refType": null
+          },
+          "schedule": {
+            "type": "string",
+            "refType": null
+          },
+          "scene": {
+            "type": "string",
+            "refType": null
+          },
+          "features": {
+            "type": "string",
+            "refType": null
+          },
+          "additionalInfo": {
+            "type": "string",
+            "refType": null
+          }
+        }
+      },
+      "OutfitRecommendResponseVO": {
+        "type": "object",
+        "properties": {
+          "readablePlan": {
+            "type": "string"
+          },
+          "imagePrompt": {
+            "type": "string"
+          },
+          "summary": {
+            "type": "string"
+          }
+        }
+      },
+      "OutfitImageGenerateRequestVO": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "ipAddress": {
+            "type": "string"
+          },
+          "aiPromptDescription": {
+            "type": "string"
+          }
+        }
+      },
+      "OutfitFollowupRequestVO": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "ipAddress": {
+            "type": "string"
+          },
+          "editedPlan": {
+            "type": "string"
+          },
+          "previousPlan": {
+            "type": "string"
+          },
+          "additionalInfo": {
+            "type": "string"
+          }
+        }
+      },
+      "OutfitEvaluationRequestVO": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string",
+            "refType": null
+          },
+          "ipAddress": {
+            "type": "string",
+            "refType": null
+          },
+          "url": {
+            "type": "string",
+            "refType": null
+          }
+        }
+      },
+      "OutfitEvaluationResponseVO": {
+        "type": "object",
+        "properties": {
+          "evaluationId": {
+            "type": "string"
+          },
+          "advantages": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "disadvantages": {
+            "type": "string"
+          },
+          "suggestions": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "OutfitRecommendVO": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "outfitDescription": {
+            "type": "string"
+          },
+          "aiPromptDescription": {
+            "type": "string"
+          },
+          "outfitImageUrl": {
+            "type": "string"
+          },
+          "requirementText": {
+            "type": "string"
+          },
+          "sceneId": {
+            "type": "string"
+          },
+          "highlightImageUrl": {
+            "type": "string"
+          },
+          "createTime": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "score": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "comment": {
+            "type": "string"
+          }
+        }
+      },
+      "FashionReviewDTO": {
+        "type": "object",
+        "properties": {
+          "userId": {
+            "type": "string"
+          },
+          "imagePath": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "advantages": {
+            "type": "string"
+          },
+          "disadvantages": {
+            "type": "string"
+          },
+          "suggestions": {
+            "type": "string"
+          },
+          "score": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      }
+    }
+  }
+}
