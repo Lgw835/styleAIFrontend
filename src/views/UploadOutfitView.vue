@@ -83,16 +83,13 @@
         <!-- AI评价结果区域 -->
         <div class="grid grid-cols-1 gap-6">
           <!-- 总体评分 -->
-          <div class="bg-white rounded-lg p-6 shadow-sm evaluation-card">
-            <div class="flex items-center justify-between">
+          <div class="bg-white rounded-lg p-6 shadow-sm evaluation-card flex flex-col items-center">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">总体评分</h3>
+            <div class="flex items-center justify-center">
               <div class="score-ring" :style="`--score: ${reviewData.score * 10}`">
                 <div class="absolute inset-0 flex items-center justify-center">
                   <span class="text-3xl font-bold text-indigo-600">{{ reviewData.score }}</span>
                 </div>
-              </div>
-              <div class="ml-6 flex-1">
-                <h3 class="text-lg font-semibold text-gray-900">总体评分</h3>
-                <p class="text-gray-600 mt-2">{{ reviewData.summary }}</p>
               </div>
             </div>
           </div>
@@ -102,7 +99,7 @@
             <h3 class="text-lg font-semibold text-gray-900 mb-4">
               <i class="fas fa-image text-indigo-600 mr-2"></i>图片描述
             </h3>
-            <p class="text-gray-600">{{ reviewData.description }}</p>
+            <p class="text-gray-600 whitespace-pre-line">{{ reviewData.description }}</p>
           </div>
 
           <!-- 优点分析 -->
@@ -110,11 +107,7 @@
             <h3 class="text-lg font-semibold text-gray-900 mb-4">
               <i class="fas fa-thumbs-up text-green-600 mr-2"></i>优点分析
             </h3>
-            <ul class="space-y-2 text-gray-600">
-              <li v-for="(point, index) in reviewData.advantages" :key="index">
-                <i class="fas fa-check text-green-500 mr-2"></i>{{ point }}
-              </li>
-            </ul>
+            <p class="text-gray-600">{{ reviewData.advantages }}</p>
           </div>
 
           <!-- 不足之处 -->
@@ -122,11 +115,7 @@
             <h3 class="text-lg font-semibold text-gray-900 mb-4">
               <i class="fas fa-exclamation-circle text-yellow-600 mr-2"></i>不足之处
             </h3>
-            <ul class="space-y-2 text-gray-600">
-              <li v-for="(point, index) in reviewData.disadvantages" :key="index">
-                <i class="fas fa-minus text-yellow-500 mr-2"></i>{{ point }}
-              </li>
-            </ul>
+            <p class="text-gray-600">{{ reviewData.disadvantages }}</p>
           </div>
 
           <!-- 改进建议 -->
@@ -134,11 +123,7 @@
             <h3 class="text-lg font-semibold text-gray-900 mb-4">
               <i class="fas fa-lightbulb text-blue-600 mr-2"></i>改进建议
             </h3>
-            <div class="space-y-4">
-              <p v-for="(suggestion, index) in reviewData.suggestions" :key="index" class="text-gray-600">
-                {{ index + 1 }}. {{ suggestion }}
-              </p>
-            </div>
+            <p class="text-gray-600">{{ reviewData.suggestions }}</p>
           </div>
         </div>
 
@@ -156,8 +141,10 @@ import SubPageNavBar from '@/components/SubPageNavBar.vue'
 import { useOutfitStore } from '@/stores/outfitStore'
 import { useExternalDataStore } from '@/stores/externalData'
 import { useUserStore } from '@/stores/user'
+import { showToast } from 'vant'
 // TODO: 取消注释使用真实API
 // import { uploadOutfitImage, evaluateOutfit } from '@/api/outfit'
+import { mockOutfitAPI } from '@/api/mockAPI'
 
 export default {
   name: 'UploadOutfitView',
@@ -208,9 +195,9 @@ export default {
         score: 0,
         summary: '',
         description: '',
-        advantages: [],
-        disadvantages: [],
-        suggestions: []
+        advantages: '',
+        disadvantages: '',
+        suggestions: ''
       },
       uploadCompleted: false,
       evaluationCompleted: false,
@@ -335,7 +322,7 @@ export default {
       this.file = null
       this.uploadedImageUrl = ''
       
-      const fileInput = document.getElementById('image-upload')
+      const fileInput = document.getElementById('image-image-upload')
       if (fileInput) fileInput.value = ''
     },
     
@@ -347,67 +334,51 @@ export default {
       this.animationStartTime = Date.now()
       this.analysisStatus = 0
       
-      this.analysisInterval = setInterval(() => {
-        this.analysisStatus = (this.analysisStatus + 1) % this.analysisStatusTexts.length
-      }, 3000)
-      
       try {
-        const formData = new FormData()
-        formData.append('file', this.file)
+        // 第一步：模拟上传图片
+        const uploadResponse = await mockOutfitAPI.uploadImage(this.file, {
+          userId: this.userId,
+          ipAddress: this.locationForTracking
+        })
         
-        formData.append('ipAddress', this.locationForTracking)
-        
-        formData.append('userId', this.userId)
-        
-        // TODO: 移除模拟API延迟
-        await new Promise(resolve => setTimeout(resolve, 1500))
-        
-        this.uploadedImageUrl = this.previewImage
+        this.uploadedImageUrl = uploadResponse.imageUrl || this.previewImage
         this.uploadCompleted = true
         
-        const evaluateParams = {
+        // 第二步：模拟评价分析
+        const evaluationResponse = await mockOutfitAPI.evaluateOutfit({
           userId: this.userId,
-          url: this.uploadedImageUrl, 
+          url: this.uploadedImageUrl,
           ipAddress: this.locationForTracking
-        }
+        })
         
-        // TODO: 取消注释使用真实API
-        // const evaluationResponse = await evaluateOutfit(evaluateParams)
+        // 更新评价数据
+        this.reviewData = evaluationResponse
         
-        // TODO: 移除模拟API延迟
-        await new Promise(resolve => setTimeout(resolve, 3000))
+        // 将结果保存到Pinia
+        this.outfitStore.addEvaluation({
+          userId: this.userStore.userInfo?.id || 'anonymous_user',
+          imagePath: this.previewImage,
+          description: this.reviewData.description,
+          advantages: this.reviewData.advantages,
+          disadvantages: this.reviewData.disadvantages,
+          suggestions: this.reviewData.suggestions,
+          score: this.reviewData.score,
+          summary: this.reviewData.summary,
+          createdTime: new Date().toISOString()
+        })
         
-        // TODO: 移除模拟评价数据
-        this.reviewData = this.getMockReviewData()
-        this.evaluationCompleted = true
-        
-        if (this.evaluationCompleted) {
-          const evaluationRecord = {
-            userId: this.userId,
-            imagePath: this.uploadedImageUrl,
-            description: this.reviewData.description,
-            advantages: this.reviewData.advantages,
-            disadvantages: this.reviewData.disadvantages,
-            suggestions: this.reviewData.suggestions,
-            score: this.reviewData.score,
-            summary: this.reviewData.summary,
-            createdTime: new Date().toISOString()
-          }
-          
-          this.outfitStore.addEvaluation(evaluationRecord)
-          this.outfitStore.setCurrentEvaluation(evaluationRecord)
-        }
-        
+        // 确保动画有足够时间显示
         const elapsedTime = Date.now() - this.animationStartTime
         if (elapsedTime < this.minAnimationTime) {
           await new Promise(resolve => setTimeout(resolve, this.minAnimationTime - elapsedTime))
         }
         
-        clearInterval(this.analysisInterval)
+        // 显示评价结果
+        this.uploadCompleted = true
         this.showResult = true
       } catch (error) {
-        console.error('图片分析失败', error)
-        alert('图片分析失败，请稍后再试')
+        console.error('上传或分析失败', error)
+        showToast('上传或分析失败，请重试')
       } finally {
         this.isLoading = false
         clearInterval(this.analysisInterval)
@@ -424,9 +395,9 @@ export default {
         score: 0,
         summary: '',
         description: '',
-        advantages: [],
-        disadvantages: [],
-        suggestions: []
+        advantages: '',
+        disadvantages: '',
+        suggestions: ''
       }
       
       const fileInput = document.getElementById('image-upload')
@@ -439,22 +410,12 @@ export default {
         score: 8.7,
         summary: '整体搭配时尚有型，色彩搭配和谐，但细节处理可以更精致',
         description: '这套穿搭整体风格统一，色彩搭配得当，展现了不错的时尚感。上衣选择恰当，与下装形成良好的比例，鞋履选择也与整体风格协调。不过在配饰和细节处理上还有提升空间。',
-        advantages: [
-          '整体风格统一，展现个人风格',
-          '色彩搭配和谐，视觉效果良好',
-          '单品选择得当，比例协调'
-        ],
-        disadvantages: [
-          '配饰略显单调，缺乏亮点',
-          '细节处理可以更加精致'
-        ],
-        suggestions: [
-          '可以考虑添加一些亮色配饰，如领带、口袋巾或胸针',
-          '关注衣物的细节质感，如面料选择和纹理搭配',
-          '尝试通过配饰增加层次感，提升整体档次'
-        ]
+        advantages: '整体风格统一，展现个人风格',
+        disadvantages: '配饰略显单调，缺乏亮点',
+        suggestions: '可以考虑添加一些亮色配饰，如领带、口袋巾或胸针',
+        summary: '整体搭配时尚有型，色彩搭配和谐，但细节处理可以更精致'
       }
-    }
+    },
   },
   beforeUnmount() {
     this.outfitStore.setCurrentEvaluation(null)
@@ -524,6 +485,8 @@ export default {
   border-radius: 50%;
   background: conic-gradient(#4096FF calc(var(--score) * 3.6deg), #E5E7EB 0deg);
   position: relative;
+  margin: 0 auto;
+  box-shadow: 0 0 15px rgba(64, 150, 255, 0.2);
 }
 
 .score-ring::before {
@@ -704,5 +667,22 @@ export default {
   50% {
     text-shadow: 0 0 10px rgba(79, 70, 229, 1);
   }
+}
+
+/* 添加动画效果 */
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(64, 150, 255, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(64, 150, 255, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(64, 150, 255, 0);
+  }
+}
+
+.score-ring {
+  animation: pulse-ring 2s infinite;
 }
 </style> 

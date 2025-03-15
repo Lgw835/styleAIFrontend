@@ -187,7 +187,7 @@ export default {
     const router = useRouter()
     const externalDataStore = useExternalDataStore()
     const userStore = useUserStore()
-    const outfitStore = useOutfitResultStore()
+    const outfitResultStore = useOutfitResultStore()
     const outfitRecordStore = useOutfitRecordStore()
     
     // 加载状态
@@ -222,12 +222,12 @@ export default {
     const showHistoryModal = ref(false)
 
     // 从Pinia store引用computed值以确保响应式
-    const outfitPlan = computed(() => outfitStore.outfitPlan)
-    const aiPrompt = computed(() => outfitStore.aiPrompt)
-    const outfitImage = computed(() => outfitStore.outfitImage)
-    const currentVersion = computed(() => outfitStore.currentVersion)
-    const versionHistory = computed(() => outfitStore.versionHistory)
-    const canSave = computed(() => outfitStore.canSave)
+    const outfitPlan = computed(() => outfitResultStore.outfitPlan)
+    const aiPrompt = computed(() => outfitResultStore.aiPrompt)
+    const outfitImage = computed(() => outfitResultStore.outfitImage)
+    const currentVersion = computed(() => outfitResultStore.currentVersion)
+    const versionHistory = computed(() => outfitResultStore.versionHistory)
+    const canSave = computed(() => outfitResultStore.canSave)
 
     // 当前穿搭数据
     const outfitResult = ref(null)
@@ -249,7 +249,7 @@ export default {
     // 打开保存模态框
     const openSaveModal = () => {
       // 检查是否有可保存的内容
-      if (!outfitStore.outfitPlan || !outfitStore.outfitImage) {
+      if (!outfitResultStore.outfitPlan || !outfitResultStore.outfitImage) {
         showToast('请先生成穿搭方案和效果图')
         return
       }
@@ -272,9 +272,9 @@ export default {
         const outfitData = {
           userId: userStore.userInfo?.id || '',
           ipAddress: externalDataStore.locationData?.city || '未知位置',
-          outfitDescription: JSON.stringify(outfitStore.outfitPlan || {}),
-          aiPromptDescription: outfitStore.aiPrompt || '',
-          outfitImageUrl: outfitStore.outfitImage || '',
+          outfitDescription: JSON.stringify(outfitResultStore.outfitPlan || {}),
+          aiPromptDescription: outfitResultStore.aiPrompt || '',
+          outfitImageUrl: outfitResultStore.outfitImage || '',
           requirementText: '', // 可以使用场景信息
           sceneId: route.query.scene || '',
           highlightImageUrl: '' // 暂无高亮图
@@ -292,11 +292,11 @@ export default {
         const storeOutfitData = {
           id: outfitId,
           userId: userStore.userInfo?.id || '',
-          imageUrl: outfitStore.outfitImage || '',
+          imageUrl: outfitResultStore.outfitImage || '',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-          outfitDescription: JSON.stringify(outfitStore.outfitPlan || {}),
-          aiPromptDescription: outfitStore.aiPrompt || '',
+          outfitDescription: JSON.stringify(outfitResultStore.outfitPlan || {}),
+          aiPromptDescription: outfitResultStore.aiPrompt || '',
           sceneId: route.query.scene || '',
           // 评分和评论单独存储，不在这里设置
         }
@@ -346,9 +346,9 @@ export default {
         const outfitData = {
           userId: userStore.userInfo?.id || '',
           ipAddress: externalDataStore.locationData?.city || '未知位置',
-          outfitDescription: JSON.stringify(outfitStore.outfitPlan || {}),
-          aiPromptDescription: outfitStore.aiPrompt || '',
-          outfitImageUrl: outfitStore.outfitImage || '',
+          outfitDescription: JSON.stringify(outfitResultStore.outfitPlan || {}),
+          aiPromptDescription: outfitResultStore.aiPrompt || '',
+          outfitImageUrl: outfitResultStore.outfitImage || '',
           requirementText: '', // 可以使用场景信息
           sceneId: route.query.scene || '',
           highlightImageUrl: '' // 暂无高亮图
@@ -365,11 +365,11 @@ export default {
         const storeOutfitData = {
           id: outfitId,
           userId: userStore.userInfo?.id || '',
-          imageUrl: outfitStore.outfitImage || '',
+          imageUrl: outfitResultStore.outfitImage || '',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-          outfitDescription: JSON.stringify(outfitStore.outfitPlan || {}),
-          aiPromptDescription: outfitStore.aiPrompt || '',
+          outfitDescription: JSON.stringify(outfitResultStore.outfitPlan || {}),
+          aiPromptDescription: outfitResultStore.aiPrompt || '',
           sceneId: route.query.scene || '',
           // 无评分和评论
         }
@@ -407,14 +407,14 @@ export default {
         userId: userStore.userInfo?.id || 'temp_user',
         title: saveData.title,
         description: saveData.description,
-        outfitImageUrl: outfitStore.outfitImage || '',
+        outfitImageUrl: outfitResultStore.outfitImage || '',
         createdAt: now,
         updatedAt: now,
         tags: saveData.tags || [],
         score: null,
         comment: '',
-        aiPromptDescription: outfitStore.aiPrompt || '',
-        outfitDescription: outfitStore.outfitPlan || ''
+        aiPromptDescription: outfitResultStore.aiPrompt || '',
+        outfitDescription: outfitResultStore.outfitPlan || ''
       }
     }
     
@@ -472,10 +472,10 @@ export default {
       try {
         // 从 Pinia store 获取数据
         // 尝试从会话存储恢复数据（处理刷新情况）
-        outfitStore.restoreFromSession()
+        outfitResultStore.restoreFromSession()
         
         // 检查是否有数据
-        if (outfitStore.versionHistory.length === 0) {
+        if (outfitResultStore.versionHistory.length === 0) {
           // 如果没有数据，使用默认数据
           await useDefaultData()
         }
@@ -498,9 +498,9 @@ export default {
         summary: '简约日常风格穿搭，以蓝白灰为主色调，舒适自然又不失型格'
       }
       
-      outfitStore.parseOutfitPlan(mockData.readablePlan)
-      outfitStore.aiPrompt = mockData.imagePrompt
-      outfitStore.addToVersionHistory('初始方案', mockData.summary)
+      outfitResultStore.parseOutfitPlan(mockData.readablePlan)
+      outfitResultStore.aiPrompt = mockData.imagePrompt
+      outfitResultStore.addToVersionHistory('初始方案', mockData.summary)
     }
     
     // 使用默认数据
@@ -516,94 +516,85 @@ export default {
         ]
       }
       
-      outfitStore.outfitPlan = plan
-      outfitStore.aiPrompt = `young ${gender === 'male' ? 'man' : 'woman'} wearing simple white t-shirt, light blue casual shirt, dark blue straight jeans, grey canvas shoes, minimal accessories, casual everyday style, clean modern background, natural lighting, 4k quality, professional fashion photography`
+      outfitResultStore.outfitPlan = plan
+      outfitResultStore.aiPrompt = `young ${gender === 'male' ? 'man' : 'woman'} wearing simple white t-shirt, light blue casual shirt, dark blue straight jeans, grey canvas shoes, minimal accessories, casual everyday style, clean modern background, natural lighting, 4k quality, professional fashion photography`
       
-      outfitStore.addToVersionHistory('初始方案', '默认推荐方案')
+      outfitResultStore.addToVersionHistory('初始方案', '默认推荐方案')
     }
     
     // 生成图片函数 - 使用模拟URL实现前端效果
     const generateImage = async () => {
       if (isGenerating.value) return
       
-      isGenerating.value = true
-      generatingProgress.value = 0
-      generatingStatus.value = '正在准备图片生成...'
-      
-      // 设置进度条更新
-      const interval = setInterval(() => {
-        if (generatingProgress.value < 95) {
-          generatingProgress.value += Math.floor(Math.random() * 10)
-          updateGeneratingStatus()
-        }
-      }, 800)
-      
       try {
-        // 获取用户ID
-        const userId = userStore.userInfo ? userStore.userInfo.id : ''
+        isGenerating.value = true
+        generatingProgress.value = 0
+        generatingStatus.value = '准备生成效果图...'
         
-        // 准备请求参数 - 严格按照 OutfitImageGenerateRequestVO 结构
+        // 模拟进度条动画
+        const progressInterval = setInterval(() => {
+          if (generatingProgress.value < 95) {
+            generatingProgress.value += Math.floor(Math.random() * 5) + 1
+            
+            // 根据进度设置状态文本
+            if (generatingProgress.value < 30) {
+              generatingStatus.value = '分析穿搭风格...'
+            } else if (generatingProgress.value < 60) {
+              generatingStatus.value = '生成服装细节...'
+            } else if (generatingProgress.value < 90) {
+              generatingStatus.value = '优化图片效果...'
+            }
+          }
+        }, 300)
+        
+        // 构建请求参数
+        const userId = userStore.userInfo?.id || 'anonymous_user'
+        
+        // TODO: 调用后端generateImage接口获取图片
+        // API文档: /outfitApi/generateImage
         const requestData = {
           userId: userId,
           ipAddress: externalDataStore.locationData?.city || '未知位置',
-          aiPromptDescription: outfitStore.aiPrompt
+          aiPromptDescription: outfitResultStore.aiPrompt
         }
         
-        // TODO: 接入后端API进行图片生成
         // const response = await generateOutfitImage(requestData)
-        // const imageUrl = response.imageUrl
+        // if (response && response.data && response.data.imageUrl) {
+        //   const imageUrl = response.data.imageUrl
+        //   outfitResultStore.outfitImage = imageUrl
+        //   outfitResultStore.addToVersionHistory('生成图片', '为当前穿搭方案生成效果图')
+        //   return
+        // }
         
-        // 模拟API延迟
+        // 模拟API调用延迟
         await new Promise(resolve => setTimeout(resolve, 3000))
         
-        // 模拟不同的穿搭图片URL - 使用随机选择增加变化感
-        const demoImageUrls = [
-          'https://img.freepik.com/free-photo/stylish-man-studio_144627-28228.jpg',
-          'https://img.freepik.com/premium-photo/full-length-portrait-handsome-serious-man-black-clothes-posing-studio-isolated-dark-background_171337-93127.jpg',
-          'https://img.freepik.com/premium-photo/young-handsome-man-casual-clothes_85574-6400.jpg',
-          'https://img.freepik.com/free-photo/portrait-handsome-smiling-stylish-young-man-model-dressed-red-checkered-shirt-fashion-man-posing_158538-4909.jpg',
-          'https://img.freepik.com/premium-photo/modern-business-man-formal-clothes-standing-against-white-background-office_37714-804.jpg'
-        ]
+        // 模拟返回图片URL - 使用随机图片
+        const imageIndex = Math.floor(Math.random() * 5) + 1
+        const imageUrl = `https://source.unsplash.com/400x600/?fashion,outfit,${imageIndex}`
         
-        // 随机选择一个图片URL
-        const randomIndex = Math.floor(Math.random() * demoImageUrls.length)
-        const imageUrl = demoImageUrls[randomIndex]
-        
+        // 设置完成进度
         generatingProgress.value = 100
-        generatingStatus.value = '图片生成完成！'
+        generatingStatus.value = '生成完成！'
+        
+        // 等待进度条到达100%的动画完成
+        await new Promise(resolve => setTimeout(resolve, 500))
         
         // 直接修改store中的值
-        outfitStore.outfitImage = imageUrl
+        outfitResultStore.outfitImage = imageUrl
         
         // 更新当前版本历史中的图片
-        outfitStore.addToVersionHistory('生成图片', '为当前穿搭方案生成效果图')
+        outfitResultStore.addToVersionHistory('生成图片', '为当前穿搭方案生成效果图')
         
         // 等待进度条动画完成
-        setTimeout(() => {
-          isGenerating.value = false
-        }, 500)
+        await new Promise(resolve => setTimeout(resolve, 300))
+        
       } catch (error) {
-        console.error('生成图片失败', error)
-        generatingStatus.value = '生成失败，请重试'
-        setTimeout(() => {
-          isGenerating.value = false
-        }, 1500)
+        console.error('生成穿搭效果图失败', error)
+        showToast('生成效果图失败，请重试')
       } finally {
-        clearInterval(interval)
-      }
-    }
-
-    // 更新生成状态的辅助函数
-    const updateGeneratingStatus = () => {
-      const progress = generatingProgress.value
-      if (progress < 30) {
-        generatingStatus.value = '正在分析穿搭方案...'
-      } else if (progress < 60) {
-        generatingStatus.value = '正在生成穿搭效果图...'
-      } else if (progress < 90) {
-        generatingStatus.value = '正在优化图片细节...'
-      } else {
-        generatingStatus.value = '即将完成...'
+        isGenerating.value = false
+        generatingProgress.value = 0
       }
     }
 
@@ -638,15 +629,57 @@ export default {
 
     // 更新提示词
     const updatePrompt = (newPrompt) => {
-      outfitStore.setAiPrompt(newPrompt)
+      outfitResultStore.setAiPrompt(newPrompt)
       showPromptModal.value = false
     }
 
-    // 修改穿搭方案 - 对接 /outfitApi/followup 接口
-    const modifyOutfit = (modifications) => {
-      // 更新穿搭方案
-      outfitStore.updateOutfitPlan(modifications)
-      showModifyModal.value = false
+    // 修改穿搭方案
+    const modifyOutfit = async (modifiedPlan) => {
+      try {
+        loading.value = true
+        loadingMessage.value = "正在修改穿搭方案..."
+        
+        // TODO: 调用后端followup接口获取修改后的方案和新的提示词
+        // const requestData = {
+        //   userId: userStore.userInfo?.id || '',
+        //   ipAddress: externalDataStore.locationData?.city || '未知位置',
+        //   editedPlan: modifiedPlan,
+        //   previousPlan: outfitResultStore.outfitPlan || '',
+        //   additionalInfo: ''
+        // }
+        // const response = await followUpOutfit(requestData)
+        // const updatedPlan = response.data.readablePlan
+        // const updatedPrompt = response.data.imagePrompt
+        
+        // 模拟后端followup接口响应
+        await new Promise(resolve => setTimeout(resolve, 1500))
+        const updatedPrompt = `fashionable outfit based on ${modifiedPlan.substring(0, 30)}...`
+        
+        // 直接设置计划内容
+        outfitResultStore.outfitPlan = modifiedPlan
+        
+        // 更新提示词
+        outfitResultStore.aiPrompt = updatedPrompt
+        
+        // 清除旧的效果图，需要用户重新生成
+        outfitResultStore.outfitImage = null
+        
+        // 创建新版本
+        outfitResultStore.createNewVersion() // 先创建新版本号
+        outfitResultStore.addToVersionHistory('手动修改', '用户修改了穿搭方案')
+        
+        // 关闭修改模态框
+        showModifyModal.value = false
+        
+        // 显示成功提示
+        showToast('方案已修改，请重新生成穿搭效果图', 'success')
+        
+      } catch (error) {
+        console.error('修改穿搭方案失败', error)
+        showToast('修改失败，请重试')
+      } finally {
+        loading.value = false
+      }
     }
 
     // 恢复历史版本 - 简化逻辑，确保版本切换正确
@@ -661,7 +694,7 @@ export default {
       }
       
       // 直接恢复版本
-      outfitStore.restoreVersion(version)
+      outfitResultStore.restoreVersion(version)
       
       // 恢复内容区域显示
       if (contentArea) {
@@ -740,7 +773,7 @@ export default {
     onBeforeRouteLeave((to, from, next) => {
       // 如果不是返回到DressRecommendView，则清除数据
       if (to.name !== 'dress-recommend') {
-        outfitStore.resetAll()
+        outfitResultStore.resetAll()
       }
       next()
     })
