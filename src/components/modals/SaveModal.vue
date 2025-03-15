@@ -1,69 +1,64 @@
 <template>
   <div v-if="show" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-    <div class="bg-white rounded-xl w-11/12 max-w-lg p-4">
-      <div class="flex justify-between items-center mb-4">
-        <h3 class="text-lg font-medium">保存并评价</h3>
-        <button class="text-gray-500" @click="close">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-      
-      <div class="mb-4">
-        <p class="text-sm text-gray-600 mb-2">请为此次穿搭推荐评分：</p>
-        <div class="rating mb-4">
-          <template v-for="n in 5" :key="n">
-            <input 
-              :id="'star' + n" 
-              type="radio" 
-              name="rating" 
-              :value="n"
-              v-model="rating"
-            >
-            <label 
-              :for="'star' + n" 
-              class="fas fa-star"
-              :class="{ 'text-yellow-400': rating >= n }"
-            ></label>
-          </template>
+    <div class="bg-white rounded-lg w-11/12 max-w-md max-h-[90vh] overflow-y-auto shadow-xl">
+      <div class="p-4 border-b">
+        <div class="flex justify-between items-center">
+          <h3 class="text-xl font-semibold text-gray-800">保存穿搭方案</h3>
+          <button @click="$emit('cancel')" class="text-gray-400 hover:text-gray-600">
+            <i class="fas fa-times"></i>
+          </button>
         </div>
       </div>
       
-      <div class="mb-4">
-        <label class="block text-sm text-gray-600 mb-2">您的评价或建议：</label>
-        <textarea 
-          v-model="comment"
-          rows="3" 
-          class="w-full border border-gray-300 rounded-lg p-3 text-sm" 
-          placeholder="分享您对这套穿搭的看法..."
-        ></textarea>
+      <div class="p-6">
+        <!-- 评分 -->
+        <div class="mb-6">
+          <label class="block text-sm font-medium text-gray-700 mb-3">您的评分</label>
+          <div class="flex justify-center">
+            <div class="rating">
+              <div 
+                v-for="n in 5" 
+                :key="n" 
+                class="star-container"
+                @click="updateRating(n)"
+              >
+                <i class="fas fa-star text-2xl" :class="rating >= n ? 'text-yellow-400' : 'text-gray-300'"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 评价内容 -->
+        <div class="mt-6">
+          <label class="block text-sm font-medium text-gray-700 mb-2">评价内容</label>
+          <textarea 
+            v-model="commentText" 
+            class="w-full border border-gray-300 rounded-md p-3 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition duration-150"
+            placeholder="分享您对这套穿搭的看法..."
+            rows="4"
+          ></textarea>
+        </div>
       </div>
       
-      <div class="bg-blue-50 rounded-lg p-3 mb-4">
-        <p class="text-xs text-blue-600 flex items-start">
-          <i class="fas fa-info-circle mr-2 mt-0.5"></i>
-          保存后将不能再修改此推荐方案。您可以在"推荐记录"中查看所有已保存的方案。
-        </p>
-      </div>
-      
-      <div class="flex space-x-3">
+      <div class="p-4 border-t flex justify-end space-x-3">
         <button 
-          class="flex-1 py-2 border border-gray-300 rounded-lg text-gray-600"
-          @click="close"
+          @click="$emit('cancel')" 
+          class="px-5 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition duration-150 text-sm font-medium"
         >
           取消
         </button>
         <button 
-          class="flex-1 py-2 border border-gray-300 rounded-lg text-gray-600"
-          @click="saveForLater"
+          @click="handleLater()" 
+          class="px-5 py-2 border border-blue-500 text-blue-500 rounded-md hover:bg-blue-50 transition duration-150 text-sm font-medium"
         >
           稍后评价
         </button>
+        
         <button 
-          class="flex-1 py-2 bg-blue-500 text-white rounded-lg"
-          @click="save"
-          :disabled="!rating"
+          @click="handleSave()" 
+          class="px-5 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition duration-150 text-sm font-medium"
         >
-          保存并完成
+          保存并评价
         </button>
       </div>
     </div>
@@ -71,7 +66,7 @@
 </template>
 
 <script>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 
 export default {
   name: 'SaveModal',
@@ -79,38 +74,58 @@ export default {
   props: {
     show: {
       type: Boolean,
-      required: true
+      default: false
+    },
+    initialRating: {
+      type: Number,
+      default: 0
+    },
+    initialComment: {
+      type: String,
+      default: ''
     }
   },
   
-  emits: ['update:show', 'save', 'later'],
+  emits: ['update:show', 'save', 'later', 'cancel'],
   
   setup(props, { emit }) {
-    const rating = ref(0)
-    const comment = ref('')
+    // 评分和评论
+    const rating = ref(props.initialRating)
+    const commentText = ref(props.initialComment)
     
-    const close = () => {
-      rating.value = 0
-      comment.value = ''
-      emit('update:show', false)
+    // 更新评分
+    const updateRating = (value) => {
+      rating.value = value
     }
     
-    const save = () => {
-      emit('save', rating.value, comment.value)
-      close()
+    // 保存并提交评价
+    const handleSave = () => {
+      emit('save', {
+        rating: rating.value,
+        comment: commentText.value
+      })
     }
     
-    const saveForLater = () => {
+    // 稍后评价
+    const handleLater = () => {
       emit('later')
-      close()
     }
+    
+    // 当props变化时更新本地状态
+    watch(() => props.initialRating, (newVal) => {
+      rating.value = newVal
+    })
+    
+    watch(() => props.initialComment, (newVal) => {
+      commentText.value = newVal
+    })
     
     return {
       rating,
-      comment,
-      close,
-      save,
-      saveForLater
+      commentText,
+      updateRating,
+      handleSave,
+      handleLater
     }
   }
 }
@@ -119,27 +134,26 @@ export default {
 <style scoped>
 .rating {
   display: flex;
-  flex-direction: row-reverse;
   justify-content: center;
+  align-items: center;
+  gap: 8px;
 }
 
-.rating input {
-  display: none;
-}
-
-.rating label {
-  color: #ddd;
-  font-size: 28px;
-  padding: 0 2px;
+.star-container {
   cursor: pointer;
+  padding: 4px;
+  transition: transform 0.15s ease-in-out;
 }
 
-.rating label:hover,
-.rating label:hover ~ label,
-.rating input:checked ~ label {
-  color: #FFD700;
+.star-container:hover {
+  transform: scale(1.15);
 }
 
+.star-container i {
+  transition: color 0.15s ease;
+}
+
+/* 添加过渡动画效果 */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.3s ease;

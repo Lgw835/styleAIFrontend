@@ -136,10 +136,10 @@ const getVerificationCode = async () => {
   }
   
   try {
-    // TODO: 后续接入真实API，目前使用模拟数据
+    // TODO: 取消注释使用真实API
     // const res = await getSmsCode({ phone: phone.value })
     
-    // 模拟验证码
+    // TODO: 移除模拟验证码
     const mockCode = Math.floor(1000 + Math.random() * 9000).toString()
     const mockSmsId = 'sms_' + Date.now()
     
@@ -203,7 +203,7 @@ const handleRegister = async () => {
   }
   
   try {
-    // TODO: 后续接入真实API，目前使用模拟数据
+    // TODO: 取消注释使用真实API
     // const res = await register({
     //   phone: phone.value,
     //   smsCode: verificationCode.value,
@@ -212,7 +212,7 @@ const handleRegister = async () => {
     //   password: password.value
     // })
     
-    // 模拟注册成功响应
+    // TODO: 移除模拟注册成功响应
     const mockResponse = {
       userInfo: {
         userId: 'user_' + Date.now(),

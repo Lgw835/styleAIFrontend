@@ -105,8 +105,13 @@ const router = createRouter({
     },
     {
       path: '/outfit-record',
-      name: 'outfit-record',
-      component: OutfitRecordView
+      redirect: '/outfit-records'
+    },
+    {
+      path: '/outfit-records',
+      name: 'OutfitRecords',
+      component: OutfitRecordView,
+      meta: { requiresAuth: true }
     },
     {
       path: '/outfit-result',

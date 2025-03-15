@@ -12,45 +12,37 @@
           <div 
             v-for="version in displayVersions" 
             :key="version.version"
-            class="border rounded-lg p-3 hover:bg-gray-50 cursor-pointer"
-            :class="{ 'bg-gray-50 border-blue-500': selectedVersion === version.version }"
-            @click="selectVersion(version.version)"
+            class="border rounded-lg p-3 mb-3 last:mb-0"
+            :class="{ 'border-blue-500 bg-blue-50': version.version === currentVersion }"
           >
-            <div class="flex justify-between items-center mb-2">
-              <span class="font-medium">
-                版本 {{ version.version }}
-                <span v-if="version.version === currentVersion" class="text-gray-500 text-sm">（当前）</span>
-              </span>
-              <span class="text-xs text-gray-500">{{ version.timestamp }}</span>
+            <div class="flex justify-between mb-2">
+              <div class="font-medium">
+                版本 {{ version.version }} 
+                <span v-if="version.version === currentVersion" class="text-xs bg-blue-600 text-white px-2 py-0.5 rounded ml-2">
+                  当前版本
+                </span>
+              </div>
+              <div class="text-gray-500 text-sm">{{ version.timestamp }}</div>
             </div>
-            <p class="text-sm text-gray-600">{{ version.description }}</p>
+            
+            <div class="text-gray-700 mb-2">{{ version.description }}</div>
+            
+            <button 
+              v-if="version.version !== currentVersion"
+              @click="$emit('restore', version)" 
+              class="w-full py-2 bg-blue-500 hover:bg-blue-600 text-white rounded mt-2 transition-colors">
+              切换到此版本
+            </button>
           </div>
-          
-          <!-- 查看更多按钮 -->
-          <button 
-            v-if="hasMoreVersions"
-            class="w-full py-2 text-blue-500 text-sm text-center hover:bg-gray-100 rounded-lg"
-            @click="showAllVersions"
-          >
-            查看更多历史版本 ({{ versions.length - maxDisplayVersions }} 个)
-          </button>
         </div>
         
-        <div class="mt-4 pt-4 border-t">
-          <button 
-            class="w-full py-2 bg-blue-500 text-white rounded-lg"
-            :disabled="!selectedVersion"
-            @click="restore"
-          >
-            恢复选中版本
-          </button>
-        </div>
+        <slot name="confirm-message"></slot>
       </div>
     </div>
   </template>
   
   <script>
-  import { ref, computed } from 'vue'
+  import { computed } from 'vue'
   
   export default {
     name: 'HistoryModal',
@@ -73,51 +65,18 @@
     emits: ['update:show', 'restore'],
     
     setup(props, { emit }) {
-      const maxDisplayVersions = 10
-      const selectedVersion = ref(null)
-      const showingAllVersions = ref(false)
-      
       // 计算显示的版本列表
       const displayVersions = computed(() => {
-        const sortedVersions = [...props.versions].sort((a, b) => b.version - a.version)
-        return showingAllVersions.value ? sortedVersions : sortedVersions.slice(0, maxDisplayVersions)
+        return [...props.versions].sort((a, b) => b.version - a.version)
       })
-      
-      // 是否还有更多版本
-      const hasMoreVersions = computed(() => {
-        return props.versions.length > maxDisplayVersions && !showingAllVersions.value
-      })
-      
-      const selectVersion = (version) => {
-        selectedVersion.value = version
-      }
-      
-      const showAllVersions = () => {
-        showingAllVersions.value = true
-      }
       
       const close = () => {
-        selectedVersion.value = null
-        showingAllVersions.value = false
         emit('update:show', false)
       }
       
-      const restore = () => {
-        if (selectedVersion.value) {
-          emit('restore', selectedVersion.value)
-          close()
-        }
-      }
-      
       return {
-        selectedVersion,
         displayVersions,
-        hasMoreVersions,
-        maxDisplayVersions,
-        selectVersion,
-        showAllVersions,
-        close,
-        restore
+        close
       }
     }
   }

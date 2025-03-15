@@ -154,6 +154,8 @@
 <script>
 import SubPageNavBar from '@/components/SubPageNavBar.vue'
 import { useOutfitStore } from '@/stores/outfitStore'
+import { useExternalDataStore } from '@/stores/externalData'
+import { useUserStore } from '@/stores/user'
 // TODO: 取消注释使用真实API
 // import { uploadOutfitImage, evaluateOutfit } from '@/api/outfit'
 
@@ -162,12 +164,38 @@ export default {
   components: {
     SubPageNavBar
   },
+  setup() {
+    // 获取位置数据
+    const externalDataStore = useExternalDataStore()
+    // 位置加载状态
+    const isLocationLoading = ref(false)
+    
+    // 初始化位置数据
+    onMounted(async () => {
+      if (!externalDataStore.locationData.city) {
+        isLocationLoading.value = true
+        try {
+          await externalDataStore.getLocationData()
+        } catch (error) {
+          console.error('获取位置信息失败', error)
+        } finally {
+          isLocationLoading.value = false
+        }
+      }
+    })
+    
+    return { externalDataStore, isLocationLoading }
+  },
   data() {
+    const externalDataStore = useExternalDataStore()
+    const userStore = useUserStore()
+    const outfitStore = useOutfitStore()
+    
     return {
       previewImage: '',
       isLoading: false,
       file: null,
-      uploadedImageUrl: '', // 存储上传成功后的URL
+      uploadedImageUrl: '',
       showResult: false,
       analysisStatus: 0,
       analysisStatusTexts: [
@@ -184,30 +212,45 @@ export default {
         disadvantages: [],
         suggestions: []
       },
-      // 新增状态变量
       uploadCompleted: false,
       evaluationCompleted: false,
-      minAnimationTime: 2500, // 最小动画时间（毫秒）
-      animationStartTime: 0
+      minAnimationTime: 2500,
+      animationStartTime: 0,
+      externalDataStore,
+      userStore,
+      outfitStore
     }
   },
   computed: {
     analysisStatusText() {
       return this.analysisStatusTexts[this.analysisStatus % this.analysisStatusTexts.length]
     },
-    outfitStore() {
-      return useOutfitStore()
+    userId() {
+      if (this.userStore && this.userStore.userInfo && this.userStore.userInfo.id) {
+        return this.userStore.userInfo.id
+      }
+      return localStorage.getItem('userId') || ''
+    },
+    locationForTracking() {
+      if (!this.externalDataStore || !this.externalDataStore.locationData) {
+        return '未知位置'
+      }
+      
+      const locationData = this.externalDataStore.locationData
+      
+      if (locationData.city) {
+        return locationData.city
+      }
+      
+      return '未知位置'
     }
   },
   mounted() {
-    // 首先检查store中是否有当前选中的评价
     const currentEval = this.outfitStore.currentEvaluation
     
     if (currentEval) {
-      // 如果store中有数据，直接使用
       this.loadReviewFromStore(currentEval)
     } else {
-      // 如果store中没有数据，尝试从URL参数获取
       const id = this.$route.query.id
       const image = this.$route.query.image
       if (id && image) {
@@ -216,9 +259,6 @@ export default {
     }
   },
   methods: {
-    /**
-     * 从store中加载评价数据
-     */
     loadReviewFromStore(evaluation) {
       this.previewImage = evaluation.imagePath
       this.reviewData = {
@@ -232,28 +272,20 @@ export default {
       this.showResult = true
     },
     
-    /**
-     * 根据ID和图片路径加载评价
-     */
     async loadReviewById(userId, imagePath) {
       this.isLoading = true
       this.previewImage = imagePath
       
       try {
-        // 首先检查store中是否有该评价数据
         if (this.outfitStore.evaluations.length === 0) {
-          // 如果store中还没有数据，先获取数据
           await this.outfitStore.fetchEvaluations()
         }
         
-        // 在store中查找对应的评价
         const evaluation = this.outfitStore.findEvaluationByIdAndImage(userId, imagePath)
         
         if (evaluation) {
-          // 找到评价，加载数据
           this.loadReviewFromStore(evaluation)
         } else {
-          // 未找到评价，使用模拟数据
           this.reviewData = this.getMockReviewData()
           this.showResult = true
         }
@@ -265,33 +297,23 @@ export default {
       }
     },
     
-    /**
-     * 处理文件选择变更
-     */
     handleFileChange(event) {
       const files = event.target.files
       if (!files.length) return
       
       this.file = files[0]
       
-      // 验证文件类型和大小
       if (!this.validateFile(this.file)) return
       
-      // 创建预览
       this.createPreview(this.file)
     },
     
-    /**
-     * 验证文件
-     */
     validateFile(file) {
-      // 验证文件类型
       if (!file.type.match('image/jpeg') && !file.type.match('image/png')) {
         alert('请上传JPG或PNG格式的图片')
         return false
       }
       
-      // 验证文件大小（10MB限制）
       if (file.size > 10 * 1024 * 1024) {
         alert('图片大小不能超过10MB')
         return false
@@ -300,9 +322,6 @@ export default {
       return true
     },
     
-    /**
-     * 创建图片预览
-     */
     createPreview(file) {
       const reader = new FileReader()
       reader.onload = e => {
@@ -311,149 +330,90 @@ export default {
       reader.readAsDataURL(file)
     },
     
-    /**
-     * 删除预览图片
-     */
     removeImage() {
       this.previewImage = ''
       this.file = null
       this.uploadedImageUrl = ''
       
-      // 重置文件输入框，允许重新选择同一文件
       const fileInput = document.getElementById('image-upload')
       if (fileInput) fileInput.value = ''
     },
     
-    /**
-     * 提交图片进行AI评价
-     */
     async submitImage() {
       if (!this.previewImage || this.isLoading) return
       
       this.isLoading = true
-      this.uploadCompleted = false
-      this.evaluationCompleted = false
+      this.showResult = false
       this.animationStartTime = Date.now()
-      this.startAnalysisAnimation()
+      this.analysisStatus = 0
       
-      // 同时启动上传和动画
+      this.analysisInterval = setInterval(() => {
+        this.analysisStatus = (this.analysisStatus + 1) % this.analysisStatusTexts.length
+      }, 3000)
+      
       try {
-        // 1. 上传图片
-        await this.uploadImage()
+        const formData = new FormData()
+        formData.append('file', this.file)
+        
+        formData.append('ipAddress', this.locationForTracking)
+        
+        formData.append('userId', this.userId)
+        
+        // TODO: 移除模拟API延迟
+        await new Promise(resolve => setTimeout(resolve, 1500))
+        
+        this.uploadedImageUrl = this.previewImage
         this.uploadCompleted = true
         
-        // 2. 获取AI评价
-        await this.getAIEvaluation()
+        const evaluateParams = {
+          userId: this.userId,
+          url: this.uploadedImageUrl, 
+          ipAddress: this.locationForTracking
+        }
+        
+        // TODO: 取消注释使用真实API
+        // const evaluationResponse = await evaluateOutfit(evaluateParams)
+        
+        // TODO: 移除模拟API延迟
+        await new Promise(resolve => setTimeout(resolve, 3000))
+        
+        // TODO: 移除模拟评价数据
+        this.reviewData = this.getMockReviewData()
         this.evaluationCompleted = true
         
-        // 3. 确保至少播放了最小动画时间
-        await this.ensureMinAnimationTime()
-        
-        // 4. 显示结果
-        this.showResult = true
-      } catch (error) {
-        console.error('处理图片失败:', error)
-        alert('无法处理图片，请稍后再试')
-      } finally {
-        this.isLoading = false
-        if (this.analysisInterval) {
-          clearInterval(this.analysisInterval)
-          this.analysisInterval = null
-        }
-      }
-    },
-    
-    /**
-     * 确保至少播放了最小动画时间
-     */
-    async ensureMinAnimationTime() {
-      const elapsed = Date.now() - this.animationStartTime
-      const remaining = this.minAnimationTime - elapsed
-      
-      if (remaining > 0) {
-        return new Promise(resolve => {
-          console.log(`API调用完成，等待动画结束还需${remaining}ms`)
-          setTimeout(resolve, remaining)
-        })
-      }
-    },
-    
-    /**
-     * 上传图片到服务器
-     */
-    async uploadImage() {
-      // TODO: 取消注释使用真实API
-      // const formData = new FormData()
-      // formData.append('file', this.file)
-      // const response = await uploadOutfitImage(formData)
-      // this.uploadedImageUrl = response.imageUrl
-      
-      // 模拟上传延迟和URL生成
-      return new Promise(resolve => {
-        const uploadTime = Math.random() * 2000 + 500 // 随机500-2500ms，更真实地模拟变化的网络条件
-        
-        console.log(`模拟图片上传，需要${uploadTime}ms`)
-        setTimeout(() => {
-          // 模拟上传成功后返回的URL
-          this.uploadedImageUrl = `https://api.example.com/uploads/${Date.now()}.jpg`
-          resolve()
-        }, uploadTime)
-      })
-    },
-    
-    /**
-     * 获取AI评价
-     */
-    async getAIEvaluation() {
-      // 确保图片已上传
-      if (!this.uploadedImageUrl) {
-        throw new Error('图片未上传成功')
-      }
-      
-      // TODO: 取消注释使用真实API
-      // const userId = localStorage.getItem('userId') || '1' 
-      // const data = {
-      //   userId,
-      //   imageUrl: this.uploadedImageUrl
-      // }
-      // const result = await evaluateOutfit(data)
-      // this.reviewData = result
-      
-      // 模拟AI评价延迟和结果
-      return new Promise(resolve => {
-        const aiTime = Math.random() * 4000 + 1000 // 随机1000-5000ms，模拟AI处理时间的变化
-        
-        console.log(`模拟AI评价，需要${aiTime}ms`)
-        setTimeout(() => {
-          // 获取评价数据
-          this.reviewData = this.getMockReviewData()
-          
-          // 更新动画状态到最后阶段
-          this.analysisStatus = this.analysisStatusTexts.length - 1
-          
-          // 将评价保存到store中（添加到评价历史记录）
-          const userId = localStorage.getItem('userId') || '1'
-          const evaluation = {
-            userId: userId,
-            imagePath: this.previewImage, // 使用当前预览图片作为图片路径
+        if (this.evaluationCompleted) {
+          const evaluationRecord = {
+            userId: this.userId,
+            imagePath: this.uploadedImageUrl,
             description: this.reviewData.description,
             advantages: this.reviewData.advantages,
             disadvantages: this.reviewData.disadvantages,
             suggestions: this.reviewData.suggestions,
             score: this.reviewData.score,
             summary: this.reviewData.summary,
-            createdTime: new Date().toISOString() // 使用当前时间
+            createdTime: new Date().toISOString()
           }
           
-          this.outfitStore.addEvaluation(evaluation)
-          resolve()
-        }, aiTime)
-      })
+          this.outfitStore.addEvaluation(evaluationRecord)
+          this.outfitStore.setCurrentEvaluation(evaluationRecord)
+        }
+        
+        const elapsedTime = Date.now() - this.animationStartTime
+        if (elapsedTime < this.minAnimationTime) {
+          await new Promise(resolve => setTimeout(resolve, this.minAnimationTime - elapsedTime))
+        }
+        
+        clearInterval(this.analysisInterval)
+        this.showResult = true
+      } catch (error) {
+        console.error('图片分析失败', error)
+        alert('图片分析失败，请稍后再试')
+      } finally {
+        this.isLoading = false
+        clearInterval(this.analysisInterval)
+      }
     },
     
-    /**
-     * 重置视图状态
-     */
     resetView() {
       this.previewImage = ''
       this.file = null
@@ -469,70 +429,36 @@ export default {
         suggestions: []
       }
       
-      // 重置文件输入框
       const fileInput = document.getElementById('image-upload')
       if (fileInput) fileInput.value = ''
     },
     
-    /**
-     * 启动分析动画
-     */
-    startAnalysisAnimation() {
-      this.analysisStatus = 0
-      
-      // 设置分析状态自动循环
-      this.analysisInterval = setInterval(() => {
-        // 如果上传完成，确保至少显示第二阶段
-        if (this.uploadCompleted && this.analysisStatus < 1) {
-          this.analysisStatus = 1
-        }
-        
-        // 如果评价也完成了，显示最后阶段
-        if (this.evaluationCompleted) {
-          this.analysisStatus = this.analysisStatusTexts.length - 1
-          clearInterval(this.analysisInterval)
-          this.analysisInterval = null
-          return
-        }
-        
-        // 否则正常循环显示状态
-        this.analysisStatus = (this.analysisStatus + 1) % this.analysisStatusTexts.length
-      }, 1200) // 状态切换间隔时间
-    },
-    
-    /**
-     * 获取模拟评价数据
-     */
     getMockReviewData() {
+      // TODO: 移除模拟评价数据，使用真实API返回数据
       return {
         score: 8.7,
-        summary: '整体搭配和谐时尚，色彩明快，风格统一，展现出良好的时尚感。',
-        description: '这是一套休闲风格穿搭，上身为天蓝色衬衫，下身搭配深色修身牛仔裤，整体色调清新明快。服装剪裁合体，展现出良好的身材比例。',
+        summary: '整体搭配时尚有型，色彩搭配和谐，但细节处理可以更精致',
+        description: '这套穿搭整体风格统一，色彩搭配得当，展现了不错的时尚感。上衣选择恰当，与下装形成良好的比例，鞋履选择也与整体风格协调。不过在配饰和细节处理上还有提升空间。',
         advantages: [
-          '色彩搭配和谐统一，清新明快',
-          '衣物尺寸合适，展现出良好的身材比例',
-          '整体风格一致，展现出休闲自然的气质',
-          '单品选择时尚实用，百搭易穿'
+          '整体风格统一，展现个人风格',
+          '色彩搭配和谐，视觉效果良好',
+          '单品选择得当，比例协调'
         ],
         disadvantages: [
-          '配饰使用较少，造型层次感略显不足',
-          '整体风格安全但个性不够突出',
-          '鞋履选择略显普通，未能提升整体造型亮点'
+          '配饰略显单调，缺乏亮点',
+          '细节处理可以更加精致'
         ],
         suggestions: [
-          '可以考虑添加一些简约配饰，如项链、手表或帽子，增加造型的层次感',
-          '尝试在单色系服装上选择有质感的面料或独特的细节设计，提升整体品质感',
-          '鞋履可以考虑选择更有设计感的款式，成为整体造型的点睛之笔',
-          '可以尝试在同色系中选择不同深浅的单品搭配，增加层次感'
+          '可以考虑添加一些亮色配饰，如领带、口袋巾或胸针',
+          '关注衣物的细节质感，如面料选择和纹理搭配',
+          '尝试通过配饰增加层次感，提升整体档次'
         ]
       }
     }
   },
   beforeUnmount() {
-    // 清除当前选中的评价
     this.outfitStore.setCurrentEvaluation(null)
     
-    // 清除任何可能的定时器
     if (this.analysisInterval) {
       clearInterval(this.analysisInterval)
       this.analysisInterval = null

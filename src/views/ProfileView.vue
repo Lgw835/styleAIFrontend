@@ -74,6 +74,9 @@
           <button class="logout-btn" @click="handleLogout">
             退出登录
           </button>
+
+          <!-- 用户资料页面可能有穿搭记录的入口 -->
+          <div @click="$router.push('/outfit-records')">我的穿搭记录</div>
         </div>
       </div>
     </div>

@@ -76,9 +76,11 @@ import { useRouter } from 'vue-router'
 import { showToast } from 'vant'
 import { getSmsCode, phoneLogin } from '@/api'
 import { useUserStore } from '@/stores/user'
+import { useOutfitRecordStore } from '@/stores/outfitRecord'
 
 const router = useRouter()
 const userStore = useUserStore()
+const outfitRecordStore = useOutfitRecordStore()
 const phone = ref('')
 const verificationCode = ref('')
 const countDown = ref(0)
@@ -94,10 +96,10 @@ const getVerificationCode = async () => {
   }
   
   try {
-    // TODO: 后续接入真实API，目前使用模拟数据
+    // TODO: 取消注释使用真实API
     // const res = await getSmsCode({ phone: phone.value })
     
-    // 模拟一个验证码
+    // TODO: 移除模拟验证码
     const mockCode = Math.floor(1000 + Math.random() * 9000).toString()
     const mockSmsId = 'sms_' + Date.now()
     
@@ -140,14 +142,14 @@ const handleLogin = async () => {
       return
     }
     
-    // TODO: 后续接入真实API，目前使用模拟数据
+    // TODO: 取消注释使用真实API
     // const res = await phoneLogin({
     //   phone: phone.value,
     //   smsCode: verificationCode.value,
     //   smsId: smsId.value
     // })
     
-    // 模拟登录成功响应
+    // TODO: 移除模拟登录成功响应
     const mockResponse = {
       userInfo: {
         userId: 'user_' + Date.now(),
@@ -184,6 +186,11 @@ const handleLogin = async () => {
     // 保存用户信息到Pinia
     userStore.setUserInfo(mockResponse.userInfo, false)
     userStore.setUserProfile(mockResponse.userProfile)
+    
+    // 登录成功后，获取穿搭记录
+    outfitRecordStore.fetchOutfitRecords(mockResponse.userInfo.userId, true).catch(err => {
+      console.error('获取穿搭记录失败:', err)
+    })
     
     // 登录成功提示
     showToast('登录成功')

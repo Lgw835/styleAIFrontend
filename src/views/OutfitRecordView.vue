@@ -1,76 +1,69 @@
 <template>
   <div class="outfit-record">
-    <!-- 使用SubPageNavBar组件作为顶部导航 -->
-    <SubPageNavBar 
-      title="推荐记录" 
-      :back-link="'/'"
-    />
+    <!-- 内联导航栏替代 SubPageNavBar 组件 -->
+    <div class="sticky top-0 left-0 right-0 bg-white shadow-sm z-20">
+      <div class="container mx-auto px-4 h-14 flex items-center justify-between">
+        <div class="flex items-center">
+          <router-link to="/" class="text-gray-500 mr-4">
+            <i class="fas fa-chevron-left"></i>
+          </router-link>
+          <h1 class="text-lg font-medium">推荐记录</h1>
+        </div>
+      </div>
+    </div>
     
     <!-- 内容区域 -->
     <div class="content-container">
-      <div class="px-4">
-        <!-- 推荐记录卡片列表 -->
+      <!-- 加载指示器 -->
+      <div v-if="loading" class="flex items-center justify-center py-12">
+        <div class="animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
+      </div>
+      
+      <div v-else class="px-4">
+        <!-- 瀑布流式推荐记录列表 -->
         <template v-if="outfits.length > 0">
-          <div 
-            v-for="outfit in outfits" 
-            :key="outfit.outfit_id" 
-            class="record-card"
-            :data-outfit-id="outfit.outfit_id"
-          >
-            <!-- 更多选项按钮 -->
-            <button 
-              class="more-options-btn"
-              @click.stop="toggleMenu(outfit.outfit_id)"
-            >
-              <i class="fas fa-ellipsis-v"></i>
-            </button>
-            
-            <!-- 操作菜单 -->
+          <div class="waterfall-container">
             <div 
-              class="action-menu" 
-              :class="{ active: activeMenu === outfit.outfit_id }"
+              v-for="outfit in outfits" 
+              :key="outfit.id" 
+              class="waterfall-item"
+              :data-outfit-id="outfit.id"
             >
-              <div 
-                class="action-menu-item delete"
-                @click.stop="deleteOutfit(outfit.outfit_id)"
-              >
-                <i class="fas fa-trash"></i> 删除记录
-              </div>
-            </div>
-
-            <!-- 卡片主体内容，点击打开详情 -->
-            <div class="p-4" @click="openDetail(outfit)">
-              <div class="mb-3">
-                <div class="text-base font-medium text-gray-900">{{ outfit.title }}</div>
-                <div class="flex justify-between items-center mt-1">
-                  <div class="text-xs text-gray-500">{{ outfit.date }}</div>
-                  <div class="score-badge">评分 {{ outfit.score }}</div>
+              <!-- 卡片主体内容，点击打开详情 -->
+              <div class="outfit-card" @click="openDetail(outfit)">
+                <!-- 图片 -->
+                <img 
+                  :src="outfit.outfitImageUrl || outfit.outfitImage || outfit.imageUrl" 
+                  class="w-full object-cover rounded-t-lg" 
+                  alt="穿搭效果图"
+                  @error="handleImageError($event)"
+                >
+                
+                <!-- 简要信息 -->
+                <div class="p-2 flex justify-between items-center">
+                  <div class="text-xs text-gray-500">{{ formatDate(outfit.createdAt || outfit.createTime) }}</div>
+                  <div class="score-badge">{{ isOutfitRated(outfit) ? `评分 ${outfit.score}` : '未评价' }}</div>
                 </div>
               </div>
-
-              <div class="flex gap-2 mb-3">
-                <span 
-                  v-for="(tag, index) in outfit.tags" 
-                  :key="index" 
-                  class="tag"
-                >{{ tag }}</span>
-              </div>
-
-              <div class="text-sm text-gray-600 mb-3 line-clamp-2">
-                {{ outfit.description }}
-              </div>
-
-              <div class="grid grid-cols-3 gap-2">
-                <img 
-                  :src="outfit.image_url" 
-                  class="w-full h-24 object-cover rounded-lg" 
-                  :alt="outfit.title"
+              
+              <!-- 更多操作按钮 -->
+              <button 
+                class="more-options-btn"
+                @click.stop="toggleMenu(outfit.id)"
+              >
+                <i class="fas fa-ellipsis-v"></i>
+              </button>
+              
+              <!-- 操作菜单 -->
+              <div 
+                class="action-menu" 
+                :class="{ active: activeMenu === outfit.id }"
+              >
+                <div 
+                  class="action-menu-item delete"
+                  @click.stop="deleteOutfit(outfit.id)"
                 >
-                <div class="col-span-2 bg-[#F8F9FA] rounded-lg p-3">
-                  <div class="text-xs text-gray-500 mb-1">AI 生成描述</div>
-                  <div class="text-sm text-gray-700 line-clamp-3">
-                    {{ outfit.ai_description }}
-                  </div>
+                  <i class="fas fa-trash"></i> 删除记录
                 </div>
               </div>
             </div>
@@ -103,38 +96,37 @@
         <!-- 穿搭详情内容 -->
         <div class="p-4" v-if="currentOutfit">
           <div class="mb-6">
+            <!-- 基本信息 -->
             <div class="mb-4">
-              <h3 class="text-xl font-semibold">{{ currentOutfit.title }}</h3>
               <div class="flex justify-between items-center mt-1">
-                <p class="text-sm text-gray-500">{{ currentOutfit.date }}</p>
-                <div class="score-badge">评分 {{ currentOutfit.score }}</div>
+                <p class="text-sm text-gray-500">{{ formatDate((currentOutfit?.createTime || currentOutfit?.createdAt) || '') }}</p>
+                <div class="score-badge">{{ currentOutfit && isOutfitRated(currentOutfit) ? `评分 ${currentOutfit.score}` : '未评价' }}</div>
               </div>
             </div>
 
-            <div class="flex gap-2 mb-4">
-              <span 
-                v-for="(tag, index) in currentOutfit.tags" 
-                :key="index" 
-                class="tag"
-              >{{ tag }}</span>
-            </div>
-
+            <!-- 图片 -->
             <div class="w-full mb-4">
               <img 
-                :src="currentOutfit.image_url" 
+                :src="currentOutfit.outfitImageUrl || currentOutfit.outfitImage || currentOutfit.imageUrl" 
                 class="w-full h-auto rounded-lg" 
-                :alt="currentOutfit.title"
+                alt="穿搭效果图"
               >
             </div>
 
+            <!-- AI描述 - 简化版 -->
             <div class="bg-[#F8F9FA] rounded-lg p-4 mb-4">
               <div class="text-sm text-gray-500 mb-2">AI 生成描述</div>
-              <div class="text-gray-700">{{ currentOutfit.ai_description }}</div>
+              <div class="text-gray-700">{{ currentOutfit.aiPromptDescription || currentOutfit.aiDescription }}</div>
             </div>
 
-            <div class="text-gray-700 mb-4">
+            <!-- 基本穿搭描述 -->
+            <div class="mb-4">
               <div class="font-medium mb-2">穿搭描述</div>
-              <p>{{ currentOutfit.description }}</p>
+              <!-- 使用 Markdown 渲染组件 -->
+              <MarkdownRenderer 
+                :markdown="getOutfitDescriptionMarkdown(currentOutfit)" 
+                class="prose prose-sm text-gray-700 max-w-full"
+              />
             </div>
           </div>
         </div>
@@ -143,9 +135,14 @@
         <div class="border-t p-4">
           <h3 class="text-base font-medium mb-3">我的评价</h3>
 
+          <!-- 加载评价中 -->
+          <div v-if="loadingEvaluation" class="flex justify-center py-4">
+            <div class="animate-spin rounded-full h-6 w-6 border-4 border-blue-500 border-t-transparent"></div>
+          </div>
+
           <!-- 评价显示区域 -->
-          <div class="mb-4">
-            <template v-if="currentEvaluation">
+          <div v-else class="mb-4">
+            <template v-if="currentOutfit && isOutfitRated(currentOutfit)">
               <div>
                 <!-- 评分星星 -->
                 <div class="flex mb-4 justify-center">
@@ -153,73 +150,75 @@
                     v-for="n in 5" 
                     :key="n"
                     class="fas fa-star text-2xl mx-1"
-                    :class="n <= currentEvaluation.rating ? 'text-yellow-400' : 'text-gray-300'"
+                    :class="n <= (currentOutfit?.score || 0) ? 'text-yellow-400' : 'text-gray-300'"
                   ></i>
                 </div>
 
                 <!-- 评价内容 -->
                 <div class="bg-gray-50 rounded-lg p-4 mb-3">
-                  <p class="text-gray-700">{{ currentEvaluation.evaluation_text }}</p>
+                  {{ currentOutfit?.comment || '无评价内容' }}
                 </div>
 
-                <!-- 删除按钮 -->
-                <div class="text-right">
+              </div>
+            </template>
+            
+            <!-- 提示用户评价 -->
+            <div v-else-if="!showEvaluationForm" class="text-center py-4">
+              <p class="text-gray-500 mb-4">您尚未对此穿搭进行评价</p>
+              <button 
+                @click="startEditEvaluation" 
+                class="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+              >
+                立即评价
+              </button>
+            </div>
+            
+            <!-- 评价表单 -->
+            <div v-else>
+              <form @submit.prevent="submitEvaluationForm">
+                <!-- 评分星星 -->
+                <div class="flex mb-6 justify-center">
+                  <div class="rating">
+                    <div 
+                      v-for="n in 5" 
+                      :key="n" 
+                      class="star-container"
+                      @click="updateRating(n)"
+                    >
+                      <i class="fas fa-star text-2xl" :class="newEvaluation.score >= n ? 'text-yellow-400' : 'text-gray-300'"></i>
+                    </div>
+                  </div>
+                </div>
+                    
+                <!-- 评价内容 -->
+                <div class="mb-6">
+                  <textarea 
+                    v-model="newEvaluation.comment" 
+                    class="w-full border border-gray-300 rounded-md p-3 text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition duration-150"
+                    placeholder="分享您对这套穿搭的看法..."
+                    rows="4"
+                  ></textarea>
+                </div>
+                
+                <!-- 提交按钮 -->
+                <div class="flex justify-end space-x-3">
                   <button 
-                    @click="deleteEvaluation"
-                    class="text-red-500 text-sm flex items-center ml-auto"
+                    type="button"
+                    @click="showEvaluationForm = false" 
+                    class="px-5 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition duration-150 text-sm font-medium"
                   >
-                    <i class="fas fa-trash mr-1"></i> 删除评价
+                    取消
+                  </button>
+                  <button 
+                    type="submit" 
+                    class="px-5 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition duration-150 text-sm font-medium"
+                    :disabled="submittingEvaluation"
+                  >
+                    {{ submittingEvaluation ? '提交中...' : '提交评价' }}
                   </button>
                 </div>
-              </div>
-            </template>
-
-            <template v-else>
-              <div class="text-center text-gray-500 my-4">
-                <p>您还没有评价过这套穿搭</p>
-              </div>
-            </template>
-          </div>
-
-          <!-- 评分与评论表单 -->
-          <div v-if="!currentEvaluation" class="pt-3 border-t">
-            <div class="mb-3">
-              <label class="block text-sm font-medium text-gray-700 mb-1">评分</label>
-              <div class="rating">
-                <input 
-                  v-for="n in 5"
-                  :key="n"
-                  type="radio"
-                  :id="'star' + n"
-                  name="rating"
-                  :value="n"
-                  v-model="newRating"
-                >
-                <label 
-                  v-for="n in 5"
-                  :key="'label' + n"
-                  :for="'star' + n" 
-                  class="fas fa-star"
-                ></label>
-              </div>
+              </form>
             </div>
-
-            <div class="mb-4">
-              <label class="block text-sm font-medium text-gray-700 mb-1">评论</label>
-              <textarea 
-                v-model="newComment"
-                rows="3" 
-                class="w-full border border-gray-300 rounded-lg p-2 text-sm" 
-                placeholder="分享您对这套穿搭的看法..."
-              ></textarea>
-            </div>
-
-            <button 
-              @click="submitEvaluation"
-              class="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors"
-            >
-              提交评价
-            </button>
           </div>
         </div>
       </div>
@@ -227,212 +226,440 @@
   </div>
 </template>
 
-<script>
-import SubPageNavBar from '@/components/SubPageNavBar.vue'
+<script setup>
+import { ref, onMounted, computed, watch, onBeforeUnmount } from 'vue'
+import { useRouter } from 'vue-router'
+import { useUserStore } from '@/stores/user'
+import { useOutfitRecordStore } from '@/stores/outfitRecord'
+import { useExternalDataStore } from '@/stores/externalData'
+import { showToast } from 'vant'
+import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 
-export default {
-  name: 'OutfitRecordView',
+// 用户store
+const userStore = useUserStore()
+const outfitRecordStore = useOutfitRecordStore()
+const externalDataStore = useExternalDataStore()
+const router = useRouter()
+
+// 状态变量
+const loading = computed(() => outfitRecordStore.loading)
+const outfits = computed(() => outfitRecordStore.outfits)
+const currentOutfit = computed(() => outfitRecordStore.currentOutfit)
+const currentEvaluation = computed(() => outfitRecordStore.currentEvaluation)
+const activeMenu = ref(null)
+const showDetailModal = ref(false)
+const newRating = ref(0)
+const newComment = ref('')
+const submittingEvaluation = ref(false)
+const loadingEvaluation = ref(false)
+const refreshTimer = ref(null)
+const showEvaluationForm = ref(false)
+const newEvaluation = ref({ score: 0, comment: '' })
+
+// 打开详情模态框
+const openDetail = async (outfit) => {
+  // 设置当前查看的穿搭
+  outfitRecordStore.setCurrentOutfit(outfit)
   
-  components: {
-    SubPageNavBar
-  },
-
-  data() {
-    return {
-      // 当前用户信息
-      currentUser: {
-        user_id: "user123",
-        username: "当前用户"
-      },
-
-      // 模态框显示状态
-      showDetailModal: false,
-
-      // 当前选中的穿搭
-      currentOutfit: null,
-
-      // 当前激活的菜单ID
-      activeMenu: null,
-
-      // 新评价表单数据
-      newRating: null,
-      newComment: '',
-
-      // 模拟的穿搭数据
-      outfits: [
-        {
-          outfit_id: "1001",
-          title: "春季通勤穿搭",
-          date: "2024-03-15 10:30",
-          score: "暂无",
-          tags: ["商务场景", "知性优雅", "春季"],
-          description: "简约知性风格，米色风衣搭配白色丝质衬衫，下装选择高腰直筒西装裤，整体搭配既正式又不失温柔感。",
-          image_url: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=200&h=200&fit=crop",
-          ai_description: "一位年轻女性穿着米色风衣，内搭白色丝质衬衫，下身是高腰直筒西装裤，整体造型简约大方，突出职业女性的知性美。"
-        },
-        {
-          outfit_id: "1002",
-          title: "约会穿搭推荐",
-          date: "2024-03-13 18:45",
-          score: "暂无",
-          tags: ["约会场景", "甜美", "春季"],
-          description: "甜美淑女风格，粉色针织开衫搭配白色蕾丝连衣裙，搭配精致配饰，打造浪漫约会造型。",
-          image_url: "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?w=200&h=200&fit=crop",
-          ai_description: "温柔甜美的约会装扮，粉色针织开衫搭配白色蕾丝连衣裙，突出女性柔美气质，适合浪漫的约会场合。"
-        },
-        {
-          outfit_id: "1003",
-          title: "周末休闲穿搭",
-          date: "2024-03-10 09:15",
-          score: 4,
-          tags: ["休闲场景", "舒适", "春季"],
-          description: "舒适休闲风格，宽松牛仔裤搭配基础款T恤，外搭轻薄夹克，适合周末逛街、看电影等轻松场合。",
-          image_url: "https://images.unsplash.com/photo-1543087903-1ac2ec7aa8c5?w=200&h=200&fit=crop",
-          ai_description: "随性舒适的休闲搭配，主打轻松自在的生活态度，适合各种非正式场合，展现休闲中的时尚感。"
-        }
-      ],
-
-      // 用户评价数据
-      userEvaluations: {
-        "1003": {
-          evaluation_id: "eval001",
-          user_id: "user123",
-          outfit_id: "1003",
-          evaluation_text: "这套搭配非常适合周末，舒适又时尚，我很喜欢！",
-          rating: 4,
-          created_at: "2024-03-11 14:25"
-        }
-      }
-    }
-  },
-
-  computed: {
-    // 当前选中穿搭的评价
-    currentEvaluation() {
-      if (!this.currentOutfit) return null
-      return this.userEvaluations[this.currentOutfit.outfit_id]
-    }
-  },
-
-  methods: {
-    // 切换操作菜单显示状态
-    toggleMenu(outfitId) {
-      this.activeMenu = this.activeMenu === outfitId ? null : outfitId
-    },
-
-    // 打开穿搭详情
-    openDetail(outfit) {
-      this.currentOutfit = outfit
-      this.showDetailModal = true
-      document.body.style.overflow = 'hidden' // 防止背景滚动
-    },
-
-    // 关闭穿搭详情
-    closeDetail() {
-      this.showDetailModal = false
-      this.currentOutfit = null
-      this.newRating = null
-      this.newComment = ''
-      document.body.style.overflow = '' // 恢复背景滚动
-    },
-
-    // 删除穿搭记录
-    deleteOutfit(outfitId) {
-      if (confirm('确定要删除这条穿搭推荐记录吗？此操作不可恢复。')) {
-        // 删除穿搭数据
-        this.outfits = this.outfits.filter(outfit => outfit.outfit_id !== outfitId)
-        
-        // 删除相关评价
-        if (this.userEvaluations[outfitId]) {
-          delete this.userEvaluations[outfitId]
-        }
-
-        // 如果当前正在查看该穿搭的详情，则关闭模态框
-        if (this.currentOutfit?.outfit_id === outfitId) {
-          this.closeDetail()
-        }
-
-        // 关闭操作菜单
-        this.activeMenu = null
-      }
-    },
-
-    // 提交评价
-    submitEvaluation() {
-      if (!this.newRating) {
-        alert('请选择评分')
-        return
-      }
-
-      if (!this.newComment.trim()) {
-        alert('请输入评论内容')
-        return
-      }
-
-      // 创建新评价
-      const newEvaluation = {
-        evaluation_id: 'eval' + Date.now(),
-        user_id: this.currentUser.user_id,
-        outfit_id: this.currentOutfit.outfit_id,
-        evaluation_text: this.newComment,
-        rating: this.newRating,
-        created_at: new Date().toLocaleString('zh-CN', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit'
-        }).replace(/\//g, '-')
-      }
-
-      // 保存评价
-      this.$set(this.userEvaluations, this.currentOutfit.outfit_id, newEvaluation)
-
-      // 更新穿搭评分
-      const outfitIndex = this.outfits.findIndex(o => o.outfit_id === this.currentOutfit.outfit_id)
-      if (outfitIndex !== -1) {
-        this.$set(this.outfits[outfitIndex], 'score', this.newRating)
-      }
-
-      // 重置表单
-      this.newRating = null
-      this.newComment = ''
-
-      // 提示用户
-      alert('评价提交成功！')
-    },
-
-    // 删除评价
-    deleteEvaluation() {
-      if (!this.currentOutfit) return
-
-      if (confirm('确定要删除此评价吗？')) {
-        // 删除评价数据
-        delete this.userEvaluations[this.currentOutfit.outfit_id]
-
-        // 更新穿搭评分
-        const outfitIndex = this.outfits.findIndex(o => o.outfit_id === this.currentOutfit.outfit_id)
-        if (outfitIndex !== -1) {
-          this.$set(this.outfits[outfitIndex], 'score', '暂无')
-        }
-      }
-    }
-  },
-
-  // 点击页面其他地方关闭操作菜单
-  mounted() {
-    document.addEventListener('click', (e) => {
-      if (!e.target.closest('.more-options-btn') && !e.target.closest('.action-menu')) {
-        this.activeMenu = null
-      }
-    })
+  // 显示模态框
+  showDetailModal.value = true
+  
+  loadingEvaluation.value = true
+  
+  // 尝试获取详细信息和评价
+  try {
+    await outfitRecordStore.fetchOutfitDetail(outfit.id)
+    await outfitRecordStore.fetchOutfitEvaluation(outfit.id)
+  } catch (error) {
+    console.error('获取详情失败', error)
+    showToast('获取详情失败，请重试')
+  } finally {
+    loadingEvaluation.value = false
   }
+}
+
+// 关闭详情模态框
+const closeDetail = () => {
+  showDetailModal.value = false
+  outfitRecordStore.clearCurrentOutfit()
+  
+  // 重置评价表单
+  newRating.value = 0
+  newComment.value = ''
+}
+
+// 切换操作菜单
+const toggleMenu = (outfitId) => {
+  if (activeMenu.value === outfitId) {
+    activeMenu.value = null
+  } else {
+    activeMenu.value = outfitId
+  }
+}
+
+// 删除记录
+const deleteOutfit = async (outfitId) => {
+  if (confirm('确定要删除这条穿搭记录吗？')) {
+    // 关闭操作菜单
+    activeMenu.value = null
+    
+    try {
+      const success = await outfitRecordStore.deleteOutfit(outfitId)
+      
+      // 如果正在查看这条记录，关闭详情
+      if (success && showDetailModal.value && currentOutfit.value?.id === outfitId) {
+        closeDetail()
+      }
+      
+      showToast('穿搭记录已删除')
+    } catch (error) {
+      console.error('删除记录失败', error)
+      showToast('删除失败，请稍后再试')
+    }
+  }
+}
+
+// 开始编辑评价
+const startEditEvaluation = () => {
+  // 检查是否已评价，使用统一的判断逻辑
+  if (currentOutfit.value && isOutfitRated(currentOutfit.value)) {
+    showToast('已经评价过此穿搭')
+    return
+  }
+  
+  showEvaluationForm.value = true
+  // 设置初始评分为0（未选择状态）
+  newEvaluation.value.score = 0
+  newEvaluation.value.comment = ''
+}
+
+// 更新评分
+const updateRating = (value) => {
+  newEvaluation.value.score = value
+}
+
+// 提交评价表单
+const submitEvaluationForm = async () => {
+  // 验证表单
+  if (!newEvaluation.value.score || newEvaluation.value.score === 0) {
+    showToast('请为此穿搭评分')
+    return
+  }
+  
+  // 评论可以为空，但评分必须大于0
+  if (newEvaluation.value.comment && !newEvaluation.value.comment.trim()) {
+    showToast('请填写评价内容')
+    return
+  }
+  
+  try {
+    submittingEvaluation.value = true
+    
+    // 准备评价数据 - 确保与后端结构一致
+    const evaluationData = {
+      outfitId: currentOutfit.value.id,
+      userId: userStore.userInfo?.id || 'anonymous_user',
+      score: newEvaluation.value.score,
+      comment: newEvaluation.value.comment.trim()
+    }
+    
+    // 提交评价
+    const success = await outfitRecordStore.submitEvaluation(evaluationData)
+    
+    if (success) {
+      // 清空表单
+      newEvaluation.value = { score: 0, comment: '' }
+      
+      showToast('评价提交成功')
+    } else {
+      showToast('评价提交失败，请稍后再试')
+    }
+  } catch (error) {
+    console.error('提交评价失败', error)
+    showToast('评价提交失败，请稍后再试')
+  } finally {
+    submittingEvaluation.value = false
+  }
+}
+
+// 格式化日期
+const formatDate = (dateString) => {
+  if (!dateString) return ''
+  
+  const date = new Date(dateString)
+  return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`
+}
+
+// 主动刷新数据的方法
+const refreshOutfits = async () => {
+  try {
+    if (!userStore.isLoggedIn || !userStore.userInfo?.id) {
+      return false
+    }
+    
+    const userId = userStore.userInfo.id
+    await outfitRecordStore.fetchOutfitRecords(userId, true)
+    return true
+  } catch (error) {
+    console.error('刷新数据失败', error)
+    return false
+  }
+}
+
+// 设置定时刷新
+const setupRefreshTimer = () => {
+  // 清除已有的定时器
+  if (refreshTimer.value) {
+    clearInterval(refreshTimer.value)
+  }
+  
+  // 每60秒检查一次是否需要刷新数据
+  refreshTimer.value = setInterval(() => {
+    if (outfitRecordStore.needRefresh) {
+      refreshOutfits()
+    }
+  }, 60000)
+}
+
+// 页面加载时获取数据
+onMounted(async () => {
+  console.log('初始化穿搭记录数据')
+  
+  // 加载穿搭记录
+  await fetchRecords()
+})
+
+// 监听穿搭记录变化，保持数据实时更新
+watch(() => outfitRecordStore.outfits, (newValue, oldValue) => {
+  if (newValue !== oldValue) {
+    // 更新视图
+    console.log('穿搭记录已更新')
+  }
+})
+
+// 组件卸载时清除定时器
+onBeforeUnmount(() => {
+  if (refreshTimer.value) {
+    clearInterval(refreshTimer.value)
+    refreshTimer.value = null
+  }
+})
+
+// 初始化数据
+const fetchOutfits = async () => {
+  try {
+    // 使用更可靠的方式检查用户是否登录
+    if (!userStore.isLoggedIn) {
+      console.error('用户未登录 (isLoggedIn 检查)')
+      showToast('请先登录')
+      return
+    }
+    
+    // 对 userInfo 进行更严格的检查
+    if (!userStore.userInfo) {
+      console.error('用户信息不存在')
+      showToast('获取用户信息失败')
+      return
+    }
+    
+    // 尝试多种方式获取用户ID
+    const userId = userStore.userInfo.id || userStore.userInfo.userId || userStore.userId
+    
+    if (!userId) {
+      console.error('找不到用户ID')
+      showToast('用户ID不存在')
+      return
+    }
+    
+    console.log('使用用户ID:', userId)
+    
+    // 获取穿搭记录
+    await outfitRecordStore.fetchOutfitRecords(userId)
+  } catch (error) {
+    console.error('获取穿搭记录失败', error)
+    showToast('获取记录失败，请检查网络连接')
+  }
+}
+
+// 获取穿搭描述的 Markdown 格式
+const getOutfitDescriptionMarkdown = (outfit) => {
+  if (!outfit) return ''
+  
+  // 处理转义序列为真实换行符的辅助函数
+  const processText = (text) => {
+    if (!text) return '';
+    
+    // 移除开头和结尾的双引号
+    let processedText = text;
+    if (processedText.startsWith('"') && processedText.endsWith('"')) {
+      processedText = processedText.substring(1, processedText.length - 1);
+    }
+    
+    // 将 \n\n 转换为实际的换行符
+    return processedText.replace(/\\n\\n/g, '\n\n').replace(/\\n/g, '\n');
+  };
+  
+  // 尝试处理不同类型的描述字段
+  // 如果有outfitDescription字段，直接返回
+  if (outfit.outfitDescription) {
+    // 尝试检测是否是JSON字符串
+    if (typeof outfit.outfitDescription === 'string' && outfit.outfitDescription.trim().startsWith('{')) {
+      try {
+        const parsed = JSON.parse(outfit.outfitDescription)
+        if (parsed.readablePlan) {
+          return processText(parsed.readablePlan);
+        } else if (parsed.description) {
+          return processText(parsed.description);
+        }
+      } catch (e) {
+        // 如果解析失败，则当作普通文本返回
+      }
+    }
+    
+    // 非JSON或解析失败，直接返回文本内容
+    return processText(outfit.outfitDescription);
+  }
+  
+  // 检查其他可能包含描述的字段
+  if (outfit.readablePlan) {
+    return processText(outfit.readablePlan);
+  }
+  
+  // 兼容旧的数据结构处理
+  if (outfit.outfitData) {
+    if (typeof outfit.outfitData === 'string') {
+      try {
+        const data = JSON.parse(outfit.outfitData)
+        if (data.readablePlan) return processText(data.readablePlan);
+        if (data.description) return processText(data.description);
+      } catch (e) {
+        console.error('解析穿搭数据失败', e)
+      }
+    } else if (typeof outfit.outfitData === 'object') {
+      return processText(outfit.outfitData.readablePlan || outfit.outfitData.description || '');
+    }
+  }
+  
+  // 最后尝试直接返回description字段
+  return processText(outfit.description || outfit.requirementText || '暂无穿搭描述');
+}
+
+// 以下是不再需要的方法，但保留以保证代码完整性
+// 获取穿搭标题（兼容新旧数据结构）
+const getOutfitTitle = (outfit) => {
+  // 如果有标题则使用，否则使用场景ID构建标题
+  if (outfit.title) {
+    return outfit.title
+  }
+  
+  // 根据场景ID构建标题
+  const sceneName = getSceneName(outfit.sceneId || '')
+  return `${sceneName}穿搭推荐`
+}
+
+// 从场景ID获取场景名称
+const getSceneName = (sceneId) => {
+  const sceneMap = {
+    '商务正式': '商务',
+    '休闲日常': '休闲',
+    '约会': '约会',
+    '运动': '运动',
+    '派对': '派对'
+  }
+  return sceneMap[sceneId] || sceneId || '日常'
+}
+
+// 获取穿搭描述（兼容新旧数据结构）
+const getOutfitDescription = (outfit) => {
+  // 如果有现成的描述则使用
+  if (outfit.description) {
+    return outfit.description
+  }
+  
+  // 如果有 requirementText 则使用
+  if (outfit.requirementText) {
+    return outfit.requirementText
+  }
+  
+  // 尝试从 outfitDescription 解析描述
+  try {
+    if (outfit.outfitDescription) {
+      const parsedData = JSON.parse(outfit.outfitDescription)
+      if (typeof parsedData === 'string') {
+        return parsedData
+      } else if (parsedData.summary) {
+        return parsedData.summary
+      }
+    }
+  } catch (e) {
+    console.error('解析穿搭描述失败', e)
+  }
+  
+  // 默认描述
+  return '基于场景的穿搭推荐方案'
+}
+
+// 获取穿搭标签（兼容新旧数据结构）
+const getOutfitTags = (outfit) => {
+  // 如果有tags数组则使用
+  if (outfit.tags && Array.isArray(outfit.tags)) {
+    return outfit.tags
+  }
+  
+  // 从场景ID创建标签
+  const tags = []
+  if (outfit.sceneId) {
+    tags.push(getSceneName(outfit.sceneId))
+  }
+  
+  // 添加默认标签
+  if (tags.length === 0) {
+    tags.push('时尚', '推荐')
+  }
+  
+  return tags
+}
+
+// 获取穿搭要点（兼容新旧数据结构）
+const getOutfitKeyPoints = (outfit) => {
+  // 如果有现成的要点则使用
+  if (outfit.outfitData && outfit.outfitData.keyPoints) {
+    return outfit.outfitData.keyPoints
+  }
+  
+  // 尝试从 outfitDescription 解析要点
+  try {
+    if (outfit.outfitDescription) {
+      const parsedData = JSON.parse(outfit.outfitDescription)
+      if (parsedData.keyPoints && Array.isArray(parsedData.keyPoints)) {
+        return parsedData.keyPoints
+      }
+    }
+  } catch (e) {
+    console.error('解析穿搭要点失败', e)
+  }
+  
+  return []
+}
+
+// 处理图片加载失败
+const handleImageError = (event) => {
+  // 使用默认图片替代加载失败的图片
+  event.target.src = 'https://via.placeholder.com/200x250?text=穿搭图片'
+}
+
+// 判断穿搭是否已被评价
+const isOutfitRated = (outfit) => {
+  if (!outfit) return false;
+  // 1. 评分必须大于0
+  // 2. 评论内容可以为空，但如果存在则必须有内容
+  return (outfit.score > 0) || (outfit.comment && outfit.comment.trim().length > 0);
 }
 </script>
 
 <style scoped>
 .outfit-record {
-  padding-top: 56px;
+  padding-top: 0;
 }
 
 .content-container {
@@ -454,20 +681,57 @@ export default {
   border-radius: 4px;
 }
 
-.record-card {
+/* 瀑布流布局 */
+.waterfall-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  padding-bottom: 16px;
+}
+
+@media (min-width: 768px) {
+  .waterfall-container {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .waterfall-container {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.waterfall-item {
+  position: relative;
+  break-inside: avoid;
+  margin-bottom: 12px;
+}
+
+.outfit-card {
   background: white;
   border-radius: 12px;
-  margin-bottom: 12px;
-  position: relative;
+  overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  height: 100%;
+}
+
+.outfit-card:active {
+  transform: scale(0.98);
+}
+
+.outfit-card img {
+  height: 160px;
+  width: 100%;
+  object-fit: cover;
 }
 
 .score-badge {
   background: rgba(64, 150, 255, 0.1);
   color: #4096FF;
-  padding: 2px 8px;
+  padding: 2px 6px;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: 10px;
 }
 
 .tag {
@@ -480,10 +744,10 @@ export default {
 
 .more-options-btn {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 30px;
-  height: 30px;
+  top: 8px;
+  right: 8px;
+  width: 28px;
+  height: 28px;
   background-color: rgba(255, 255, 255, 0.9);
   border-radius: 50%;
   display: flex;
@@ -501,8 +765,8 @@ export default {
 
 .action-menu {
   position: absolute;
-  top: 45px;
-  right: 10px;
+  top: 40px;
+  right: 8px;
   background: white;
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -538,6 +802,7 @@ export default {
   background-color: #f5f5f5;
 }
 
+/* 模态框样式保持不变 */
 .modal {
   position: fixed;
   top: 0;
@@ -564,39 +829,25 @@ export default {
   overflow-y: auto;
 }
 
-.modal-content::-webkit-scrollbar {
-  width: 4px;
-}
-
-.modal-content::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
-
-.modal-content::-webkit-scrollbar-thumb {
-  background: #ddd;
-  border-radius: 4px;
-}
-
+/* 评分组件样式保持不变 */
 .rating {
   display: flex;
-  flex-direction: row-reverse;
-  justify-content: flex-end;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
 }
 
-.rating input {
-  display: none;
-}
-
-.rating label {
-  color: #ddd;
-  font-size: 24px;
-  padding: 0 2px;
+.star-container {
   cursor: pointer;
+  padding: 4px;
+  transition: transform 0.15s ease-in-out;
 }
 
-.rating label:hover,
-.rating label:hover ~ label,
-.rating input:checked ~ label {
-  color: #FFD700;
+.star-container:hover {
+  transform: scale(1.15);
+}
+
+.star-container i {
+  transition: color 0.15s ease;
 }
 </style> 

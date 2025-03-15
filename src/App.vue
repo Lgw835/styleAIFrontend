@@ -1,5 +1,7 @@
 <script setup>
 import { RouterView, useRoute } from 'vue-router'
+import { onErrorCaptured, ref, onMounted } from 'vue'
+import { useOutfitRecordStore } from '@/stores/outfitRecord'
 
 // 获取当前路由
 const route = useRoute()
@@ -10,6 +12,22 @@ const showBottomNav = () => {
   const mainRoutes = ['/', '/wardrobe', '/plaza', '/profile']
   return mainRoutes.includes(route.path)
 }
+
+const error = ref(null)
+
+onErrorCaptured((err, instance, info) => {
+  console.error('捕获到错误:', err)
+  console.log('发生错误的组件实例:', instance)
+  console.log('错误信息:', info)
+  error.value = err
+  return false // 阻止错误继续传播
+})
+
+// 在应用启动时初始化 store
+onMounted(() => {
+  const outfitRecordStore = useOutfitRecordStore()
+  outfitRecordStore.initStore()
+})
 </script>
 
 <template>

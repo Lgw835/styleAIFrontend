@@ -85,7 +85,7 @@
           </div>
         </router-link>
         
-        <router-link to="/outfit-record" class="feature-item">
+        <router-link to="/outfit-records" class="feature-item">
           <div class="feature-icon-wrapper yellow">
             <i class="fas fa-history"></i>
           </div>
@@ -305,12 +305,12 @@ export default {
         const needUpdate = !lastUpdate || (now - lastUpdate) > 60 * 60 * 1000 // 一小时更新一次
 
         if (needUpdate) {
-          // TODO: 后端API开发中，目前使用模拟数据
+          // TODO: 取消注释使用真实API，目前使用模拟数据
           await scheduleStore.fetchTodaySchedules(userStore.userInfo.userId)
           
           // 记录当前天气
           if (weatherData.value && weatherData.value.city !== '正在定位...') {
-            // TODO: 后端API开发中，目前只打印记录
+            // TODO: 取消注释使用真实API，目前只打印记录
             await scheduleStore.recordWeather({
               userId: userStore.userInfo.userId,
               location: weatherData.value.city,

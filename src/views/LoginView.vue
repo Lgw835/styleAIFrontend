@@ -60,9 +60,11 @@ import { useRouter } from 'vue-router'
 import { showToast } from 'vant'
 import { login } from '@/api' // 导入登录API
 import { useUserStore } from '@/stores/user' // 导入用户状态存储
+import { useOutfitRecordStore } from '@/stores/outfitRecord' // 导入穿搭记录Store
 
 const router = useRouter()
 const userStore = useUserStore()
+const outfitRecordStore = useOutfitRecordStore()
 const username = ref('')
 const password = ref('')
 
@@ -74,13 +76,13 @@ const handleLogin = async () => {
       return
     }
     
-    // TODO: 后续接入真实API，目前使用模拟数据
+    // TODO: 取消注释使用真实API
     // const res = await login({
     //   username: username.value,
     //   password: password.value
     // })
     
-    // 模拟登录成功的响应数据
+    // TODO: 移除模拟登录成功的响应数据
     const mockResponse = {
       userInfo: {
         userId: 'user_' + Date.now(),
@@ -117,6 +119,11 @@ const handleLogin = async () => {
     // 存储用户信息到Pinia
     userStore.setUserInfo(mockResponse.userInfo, false)
     userStore.setUserProfile(mockResponse.userProfile)
+    
+    // 登录成功后，获取穿搭记录
+    outfitRecordStore.fetchOutfitRecords(mockResponse.userInfo.userId, true).catch(err => {
+      console.error('获取穿搭记录失败:', err)
+    })
     
     // 登录成功提示
     showToast('登录成功')
