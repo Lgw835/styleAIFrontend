@@ -153,6 +153,7 @@
 
 <script>
 import SubPageNavBar from '@/components/SubPageNavBar.vue'
+import { useOutfitStore } from '@/stores/outfitStore'
 // TODO: 取消注释使用真实API
 // import { uploadOutfitImage, evaluateOutfit } from '@/api/outfit'
 
@@ -193,17 +194,77 @@ export default {
   computed: {
     analysisStatusText() {
       return this.analysisStatusTexts[this.analysisStatus % this.analysisStatusTexts.length]
+    },
+    outfitStore() {
+      return useOutfitStore()
     }
   },
   mounted() {
-    // 检查URL参数是否包含ID和图片，如果有则直接加载评价结果
-    const id = this.$route.query.id
-    const image = this.$route.query.image
-    if (id && image) {
-      this.loadReviewById(id, image)
+    // 首先检查store中是否有当前选中的评价
+    const currentEval = this.outfitStore.currentEvaluation
+    
+    if (currentEval) {
+      // 如果store中有数据，直接使用
+      this.loadReviewFromStore(currentEval)
+    } else {
+      // 如果store中没有数据，尝试从URL参数获取
+      const id = this.$route.query.id
+      const image = this.$route.query.image
+      if (id && image) {
+        this.loadReviewById(id, image)
+      }
     }
   },
   methods: {
+    /**
+     * 从store中加载评价数据
+     */
+    loadReviewFromStore(evaluation) {
+      this.previewImage = evaluation.imagePath
+      this.reviewData = {
+        score: evaluation.score,
+        summary: evaluation.summary,
+        description: evaluation.description,
+        advantages: evaluation.advantages,
+        disadvantages: evaluation.disadvantages,
+        suggestions: evaluation.suggestions
+      }
+      this.showResult = true
+    },
+    
+    /**
+     * 根据ID和图片路径加载评价
+     */
+    async loadReviewById(userId, imagePath) {
+      this.isLoading = true
+      this.previewImage = imagePath
+      
+      try {
+        // 首先检查store中是否有该评价数据
+        if (this.outfitStore.evaluations.length === 0) {
+          // 如果store中还没有数据，先获取数据
+          await this.outfitStore.fetchEvaluations()
+        }
+        
+        // 在store中查找对应的评价
+        const evaluation = this.outfitStore.findEvaluationByIdAndImage(userId, imagePath)
+        
+        if (evaluation) {
+          // 找到评价，加载数据
+          this.loadReviewFromStore(evaluation)
+        } else {
+          // 未找到评价，使用模拟数据
+          this.reviewData = this.getMockReviewData()
+          this.showResult = true
+        }
+      } catch (error) {
+        console.error('加载评价详情失败:', error)
+        alert('无法加载评价详情，请稍后再试')
+      } finally {
+        this.isLoading = false
+      }
+    },
+    
     /**
      * 处理文件选择变更
      */
@@ -364,37 +425,30 @@ export default {
         
         console.log(`模拟AI评价，需要${aiTime}ms`)
         setTimeout(() => {
+          // 获取评价数据
           this.reviewData = this.getMockReviewData()
+          
           // 更新动画状态到最后阶段
           this.analysisStatus = this.analysisStatusTexts.length - 1
+          
+          // 将评价保存到store中（添加到评价历史记录）
+          const userId = localStorage.getItem('userId') || '1'
+          const evaluation = {
+            userId: userId,
+            imagePath: this.previewImage, // 使用当前预览图片作为图片路径
+            description: this.reviewData.description,
+            advantages: this.reviewData.advantages,
+            disadvantages: this.reviewData.disadvantages,
+            suggestions: this.reviewData.suggestions,
+            score: this.reviewData.score,
+            summary: this.reviewData.summary,
+            createdTime: new Date().toISOString() // 使用当前时间
+          }
+          
+          this.outfitStore.addEvaluation(evaluation)
           resolve()
         }, aiTime)
       })
-    },
-    
-    /**
-     * 根据ID加载已有评价
-     */
-    async loadReviewById(id, image) {
-      this.isLoading = true
-      this.previewImage = image
-      
-      try {
-        // TODO: 实现加载单个评价详情的API调用
-        // const result = await getSingleEvaluation(id)
-        // this.reviewData = result
-        
-        // 模拟加载延迟和结果
-        setTimeout(() => {
-          this.reviewData = this.getMockReviewData()
-          this.showResult = true
-          this.isLoading = false
-        }, 1000)
-      } catch (error) {
-        console.error('加载评价详情失败:', error)
-        alert('无法加载评价详情，请稍后再试')
-        this.isLoading = false
-      }
     },
     
     /**
@@ -475,6 +529,9 @@ export default {
     }
   },
   beforeUnmount() {
+    // 清除当前选中的评价
+    this.outfitStore.setCurrentEvaluation(null)
+    
     // 清除任何可能的定时器
     if (this.analysisInterval) {
       clearInterval(this.analysisInterval)

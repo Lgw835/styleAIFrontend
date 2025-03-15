@@ -41,10 +41,10 @@
       
       <!-- 评价记录列表 - 水平布局 -->
       <div v-else class="reviews-list px-4 py-3">
-        <router-link 
+        <div 
           v-for="review in reviews" 
-          :key="review.userId + review.imagePath" 
-          :to="`/upload-outfit?id=${review.userId}&image=${review.imagePath}`" 
+          :key="review.userId + review.imagePath"
+          @click="viewEvaluation(review)" 
           class="review-card"
         >
           <!-- 左侧：图片和日期 -->
@@ -68,7 +68,7 @@
               <p class="ai-comment-text">{{ review.description }}</p>
             </div>
           </div>
-        </router-link>
+        </div>
       </div>
     </div>
 
@@ -81,6 +81,7 @@
 
 <script>
 import SubPageNavBar from '@/components/SubPageNavBar.vue'
+import { useOutfitStore } from '@/stores/outfitStore'
 // TODO: 取消注释以使用真实API
 // import { getFashionEvaluations } from '@/api/outfit'
 
@@ -91,73 +92,41 @@ export default {
   },
   data() {
     return {
-      reviews: [],
-      loading: false,
-      error: null
+      // 不再在组件内存储reviews数据
     }
   },
   created() {
-    this.fetchEvaluations()
+    // 使用store的方法获取评价列表，优先使用sessionStorage中的数据
+    this.outfitStore.fetchEvaluations()
+  },
+  computed: {
+    // 从store中获取数据
+    outfitStore() {
+      return useOutfitStore()
+    },
+    reviews() {
+      return this.outfitStore.evaluations
+    },
+    loading() {
+      return this.outfitStore.loading
+    },
+    error() {
+      return this.outfitStore.error
+    }
   },
   methods: {
     async fetchEvaluations() {
-      // 获取用户ID，实际项目中应该从本地存储或Vuex中获取
-      const userId = localStorage.getItem('userId') || '1'
-      
-      this.loading = true
-      this.error = null
-      
-      try {
-        // TODO: 取消注释以使用真实API调用
-        // const result = await getFashionEvaluations(userId)
-        // this.reviews = result || []
-        
-        // 模拟API响应数据
-        setTimeout(() => {
-          this.reviews = this.getMockEvaluations(userId)
-          this.loading = false
-        }, 800) // 模拟网络延迟
-      } catch (err) {
-        console.error('获取穿搭评价失败:', err)
-        this.error = '获取评价记录失败，请稍后再试'
-        this.loading = false
-      }
+      // 调用store的方法刷新数据
+      await this.outfitStore.fetchEvaluations()
     },
     
-    // 模拟评价数据
-    getMockEvaluations(userId) {
-      return [
-        {
-          userId: userId,
-          imagePath: 'https://images.unsplash.com/photo-1483721310020-03333e577078?w=200&h=200&fit=crop',
-          description: '整体搭配简约干净，休闲中带有活力感。建议可以尝试戴一顶棒球帽或选择亮色系的运动鞋来增加层次感和个性，让整体造型更加突出。',
-          advantages: '色彩搭配和谐，整体风格统一',
-          disadvantages: '配饰缺乏亮点，层次感不足',
-          suggestions: '可以添加一些亮色点缀，如鲜艳的领带或口袋巾',
-          score: 8.5,
-          createdTime: '2023-10-15T12:30:00'
-        },
-        {
-          userId: userId,
-          imagePath: 'https://images.unsplash.com/photo-1485968579580-b6d095142e6e?w=200&h=200&fit=crop',
-          description: '这套商务休闲风格穿搭非常得体，色彩搭配和谐。建议可以选择深色系的皮鞋和皮带来呼应上衣，并考虑增加口袋巾等细节，提升整体质感。',
-          advantages: '商务休闲风格把握精准，细节考究',
-          disadvantages: '颜色偏暗沉，缺少亮点',
-          suggestions: '可以考虑通过领带或袖扣增加一些亮色点缀',
-          score: 9.2,
-          createdTime: '2023-10-10T09:15:00'
-        },
-        {
-          userId: userId,
-          imagePath: 'https://images.unsplash.com/photo-1487222477894-8943e31ef7b2?w=200&h=200&fit=crop',
-          description: '简约单色系穿搭，整体效果清爽利落。可以考虑增加配饰如项链或手表增强细节，选择纹理感面料提升质感。',
-          advantages: '简约时尚，干净利落',
-          disadvantages: '略显单调，个性不够突出',
-          suggestions: '建议增加一些配饰，如项链或胸针增加亮点',
-          score: 7.8,
-          createdTime: '2023-10-05T15:45:00'
-        }
-      ]
+    // 点击评价记录时设置当前评价并导航
+    viewEvaluation(review) {
+      // 设置当前选中的评价
+      this.outfitStore.setCurrentEvaluation(review)
+      
+      // 导航到上传页面，仍然带上id和image参数作为备用
+      this.$router.push(`/upload-outfit?id=${review.userId}&image=${review.imagePath}`)
     },
     
     // 格式化日期
