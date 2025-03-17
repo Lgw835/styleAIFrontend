@@ -1,4 +1,4 @@
-import { createRouter, createWebHashHistory } from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router'
 import HomeView from '../views/HomeView.vue'
 import PlazaView from '../views/PlazaView.vue'
 import DailyMatchView from '../views/DailyMatchView.vue'
@@ -9,14 +9,20 @@ import UploadOutfitView from '../views/UploadOutfitView.vue'
 import LoginView from '../views/LoginView.vue'
 import PhoneLoginView from '../views/PhoneLoginView.vue'
 import RegisterView from '../views/RegisterView.vue'
+import FittingHistoryView from '../views/FittingHistoryView.vue'
 
 const router = createRouter({
-  history: createWebHashHistory(import.meta.env.BASE_URL),
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
+      redirect: '/login'
+    },
+    {
+      path: '/home',
       name: 'home',
-      component: HomeView
+      component: HomeView,
+      meta: { requiresAuth: true }
     },
     {
       path: '/login',
@@ -163,6 +169,25 @@ const router = createRouter({
       redirect: '/profile'
     }
   ]
+})
+
+router.beforeEach((to, from, next) => {
+  // 使用sessionStorage检查登录状态
+  const isLoggedIn = sessionStorage.getItem('isLoggedIn') === 'true'
+  console.log('路由守卫检查:', { to: to.path, from: from.path, isLoggedIn })
+  
+  if (to.meta.requiresAuth && !isLoggedIn) {
+    console.log('需要认证，重定向到登录页')
+    next({ path: '/login', query: { redirect: to.fullPath } })
+  } else {
+    if (isLoggedIn && to.path === '/login') {
+      console.log('已登录用户访问登录页，重定向到首页')
+      next({ path: '/home' })
+    } else {
+      console.log('正常导航到:', to.path)
+      next()
+    }
+  }
 })
 
 export default router 

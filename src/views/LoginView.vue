@@ -82,26 +82,39 @@ const handleLogin = async () => {
       password: password.value
     })
     
-    // 存储用户信息到Pinia
-    userStore.setUserInfo(res.userInfo, false)
-    
-    // 如果没有用户画像，设置新登录标记
-    if (!res.userProfile) {
-      localStorage.setItem('newLogin', 'true')
-    } else {
-      userStore.setUserProfile(res.userProfile)
+    // 登录成功后
+    if (res.userInfo) {
+      // 设置用户信息
+      userStore.setUserInfo(res.userInfo, true) // 会自动使用sessionStorage
       
-      // 登录成功后，获取穿搭记录
-      outfitRecordStore.fetchOutfitRecords(res.userInfo.userId, true).catch(err => {
-        console.error('获取穿搭记录失败:', err)
-      })
+      // 如果没有用户画像，设置新登录标记
+      if (!res.userProfile) {
+        sessionStorage.setItem('newLogin', 'true')
+      } else {
+        userStore.setUserProfile(res.userProfile)
+        
+        // 登录成功后，获取穿搭记录
+        outfitRecordStore.fetchOutfitRecords(res.userInfo.userId, true).catch(err => {
+          console.error('获取穿搭记录失败:', err)
+        })
+      }
+      
+      // 显示成功提示
+      showToast('登录成功')
+      
+      // 使用更确定的导航方式
+      console.log('准备跳转到首页...')
+      
+      // 延迟并使用replace而不是push以避免导航历史问题
+      setTimeout(() => {
+        console.log('执行页面跳转')
+        router.replace('/home').then(() => {
+          console.log('跳转完成')
+        }).catch(err => {
+          console.error('跳转失败:', err)
+        })
+      }, 100)
     }
-    
-    // 登录成功提示
-    showToast('登录成功')
-    
-    // 跳转到首页
-    router.push('/')
   } catch (error) {
     console.error('登录失败:', error)
     showToast('登录失败: ' + (error.message || '未知错误'))

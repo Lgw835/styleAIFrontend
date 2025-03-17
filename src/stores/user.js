@@ -14,10 +14,15 @@ export const useUserStore = defineStore('user', () => {
   const verificationCodes = ref({})
 
   // 设置用户信息
-  function setUserInfo(info, isNew = false) {
+  function setUserInfo(info, isNew = false, needSaveStorage = true) {
     userInfo.value = info
-    isLoggedIn.value = !!info
+    isLoggedIn.value = true // 明确设置登录状态
     isNewUser.value = isNew
+    
+    // 使用sessionStorage存储登录状态
+    if (needSaveStorage) {
+      sessionStorage.setItem('isLoggedIn', 'true')
+    }
   }
 
   // 设置用户画像
@@ -117,6 +122,17 @@ export const useUserStore = defineStore('user', () => {
     return !!userProfile.value
   })
 
+  // 清除用户登录状态函数
+  function clearUserInfo() {
+    userInfo.value = null
+    userProfile.value = null
+    isLoggedIn.value = false
+    
+    // 清除sessionStorage
+    sessionStorage.removeItem('isLoggedIn')
+    sessionStorage.removeItem('newLogin')
+  }
+
   return {
     userInfo,
     userProfile,
@@ -130,6 +146,7 @@ export const useUserStore = defineStore('user', () => {
     logout,
     restoreFromSession,
     saveToSession,
-    hasUserProfile
+    hasUserProfile,
+    clearUserInfo
   }
 }) 

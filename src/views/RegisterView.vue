@@ -212,7 +212,7 @@ const handleRegister = async () => {
       showToast('注册成功')
       
       // 跳转到首页
-      router.push('/')
+      await router.push('/home')
     } else {
       // 处理响应中没有用户信息的情况
       showToast('注册成功，但获取用户信息失败')

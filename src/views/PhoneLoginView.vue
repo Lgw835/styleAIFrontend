@@ -203,8 +203,8 @@ const handleLogin = async () => {
           userStore.setUserProfile(userProfile)
         }
         
-        // 保存登录状态到localStorage
-        localStorage.setItem('isLoggedIn', 'true')
+        // 保存登录状态到sessionStorage
+        sessionStorage.setItem('isLoggedIn', 'true')
         
         // 尝试获取穿搭记录
         if (userInfo.userId) {
@@ -216,7 +216,7 @@ const handleLogin = async () => {
         showToast('登录成功')
         
         // 获取重定向URL或返回首页
-        const redirect = router.currentRoute.value.query.redirect || '/'
+        const redirect = router.currentRoute.value.query.redirect || '/home'
         
         setTimeout(() => {
           router.push(redirect)

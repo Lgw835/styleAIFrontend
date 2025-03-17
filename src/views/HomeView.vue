@@ -309,15 +309,24 @@ export default {
       
       // 检查是否需要显示用户画像填写蒙版
       checkProfileNeeded()
+
+      // 在HomeView的创建时，检查登录状态
+      const isLoggedIn = sessionStorage.getItem('isLoggedIn') === 'true'
+      if (!isLoggedIn) {
+        console.log('HomeView检测到未登录状态，重定向到登录页')
+        router.replace('/login')
+      } else {
+        console.log('HomeView确认已登录状态')
+      }
     })
 
     // 检查是否需要显示用户画像填写蒙版
     const checkProfileNeeded = () => {
       if (userStore && userStore.isLoggedIn && !userStore.userProfile) {
-        const isNewLogin = localStorage.getItem('newLogin') === 'true'
+        const isNewLogin = sessionStorage.getItem('newLogin') === 'true'
         if (isNewLogin) {
           showProfileOverlay.value = true
-          localStorage.removeItem('newLogin')
+          sessionStorage.removeItem('newLogin')
         }
       }
     }
@@ -337,7 +346,7 @@ export default {
     const skipProfileSetup = () => {
       showProfileOverlay.value = false
       // 设置一个标记，24小时内不再显示
-      localStorage.setItem('profileReminderDismissed', Date.now().toString())
+      sessionStorage.setItem('profileReminderDismissed', Date.now().toString())
     }
 
     const showNotificationDialog = ref(false)
@@ -411,14 +420,14 @@ export default {
     const dismissProfileReminder = () => {
       showProfileReminder.value = false
       // 可以设置一个临时的状态，避免频繁提醒用户
-      localStorage.setItem('profileReminderDismissed', Date.now().toString())
+      sessionStorage.setItem('profileReminderDismissed', Date.now().toString())
     }
 
     // 检查是否应该显示提醒
     const shouldShowProfileReminder = () => {
       if (userStore && userStore.isLoggedIn && !userStore.userProfile) {
         // 检查是否之前关闭过提醒
-        const dismissedTime = localStorage.getItem('profileReminderDismissed')
+        const dismissedTime = sessionStorage.getItem('profileReminderDismissed')
         if (dismissedTime) {
           // 如果24小时内关闭过，则不再显示
           const hoursPassed = (Date.now() - Number(dismissedTime)) / (1000 * 60 * 60)
