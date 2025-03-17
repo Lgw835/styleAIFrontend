@@ -3,39 +3,44 @@ import { ref, computed, watch } from 'vue'
 
 export const useOutfitResultStore = defineStore('outfitResult', {
   state: () => ({
-    outfitPlan: '',
-    aiPrompt: '',
+    readablePlan: '',
+    imagePrompt: '',
+    summary: '',
     outfitImage: '',
     occasion: '',
     currentVersion: 1,
     versionHistory: [],
     outfitId: null,
-    canSave: true
+    allowSave: true,
+    currentEvaluation: null,
+    initialRecommendation: null
   }),
   
   actions: {
-    // 初始化推荐
+    // 初始化推荐，存储 API 返回的数据
     setInitialRecommendation(data) {
-      this.outfitPlan = data.readablePlan || ''
-      this.aiPrompt = data.imagePrompt || ''
-      this.occasion = data.occasion || ''
+      console.log('接收到API数据:', data)
       
-      // 清空当前图片
-      this.outfitImage = ''
+      // 直接使用API返回的字段名
+      this.readablePlan = data.readablePlan
+      this.imagePrompt = data.imagePrompt
+      this.summary = data.summary
       
-      // 重置版本历史
-      this.currentVersion = 1
+      // 创建第一个版本记录 - 使用相同的字段名
       this.versionHistory = [{
         version: 1,
-        plan: this.outfitPlan,
-        prompt: this.aiPrompt,
-        description: '初始推荐',
+        readablePlan: this.readablePlan,
+        imagePrompt: this.imagePrompt,
+        summary: this.summary,
         timestamp: new Date().toISOString()
       }]
       
-      // 重置保存状态
-      this.outfitId = null
-      this.canSave = true
+      console.log('存储完成:', {
+        readablePlan: this.readablePlan,
+        imagePrompt: this.imagePrompt,
+        summary: this.summary,
+        versionHistory: this.versionHistory
+      })
     },
     
     // 从sessionStorage恢复数据（处理页面刷新情况）
@@ -47,8 +52,9 @@ export const useOutfitResultStore = defineStore('outfitResult', {
           
           // 恢复各项数据
           this.currentVersion = parsedData.currentVersion || 1
-          this.outfitPlan = parsedData.outfitPlan || ''
-          this.aiPrompt = parsedData.aiPrompt || ''
+          this.readablePlan = parsedData.readablePlan || ''
+          this.imagePrompt = parsedData.imagePrompt || ''
+          this.summary = parsedData.summary || ''
           this.outfitImage = parsedData.outfitImage || ''
           this.versionHistory = parsedData.versionHistory || []
           this.occasion = parsedData.occasion || ''
@@ -59,13 +65,14 @@ export const useOutfitResultStore = defineStore('outfitResult', {
       }
     },
     
-    // 保存数据到sessionStorage
+    // 保存到会话存储以便页面刷新时恢复
     saveToSession() {
       try {
         const dataToSave = {
           currentVersion: this.currentVersion,
-          outfitPlan: this.outfitPlan,
-          aiPrompt: this.aiPrompt,
+          readablePlan: this.readablePlan,
+          imagePrompt: this.imagePrompt,
+          summary: this.summary,
           outfitImage: this.outfitImage,
           versionHistory: this.versionHistory,
           occasion: this.occasion,
@@ -80,79 +87,58 @@ export const useOutfitResultStore = defineStore('outfitResult', {
     
     // 监听数据变化，自动保存到sessionStorage
     watchData() {
-      watch([this.currentVersion, this.outfitPlan, this.aiPrompt, this.outfitImage, this.versionHistory], () => {
+      watch([this.currentVersion, this.readablePlan, this.imagePrompt, this.outfitImage, this.versionHistory], () => {
         this.saveToSession()
       }, { deep: true })
     },
     
-    // 添加到版本历史
-    addToVersionHistory(description, summary) {
-      const now = new Date()
-      const timestamp = now.toISOString()
+    // 添加新版本
+    addVersion(data, comment) {
+      this.currentVersion++
       
-      // 创建深拷贝以避免引用问题
-      const version = {
+      // 使用一致的字段名
+      const newVersion = {
         version: this.currentVersion,
-        timestamp,
-        description,
-        summary: summary || '',
-        plan: this.outfitPlan,
-        prompt: this.aiPrompt,
-        image: this.outfitImage,
-        occasion: this.occasion,
-        outfitId: this.outfitId
+        readablePlan: data.readablePlan || this.readablePlan,
+        imagePrompt: data.imagePrompt || this.imagePrompt,
+        summary: data.summary || this.summary,
+        timestamp: new Date().toISOString(),
+        comment: comment
       }
       
-      // 检查是否已存在相同版本号的记录
-      const existingIndex = this.versionHistory.findIndex(v => v.version === this.currentVersion)
-      if (existingIndex >= 0) {
-        this.versionHistory[existingIndex] = version
-      } else {
-        this.versionHistory.push(version)
-      }
+      // 添加到历史
+      this.versionHistory.push(newVersion)
       
-      // 自动保存到会话存储
-      this.saveToSession()
+      // 更新当前数据
+      this.readablePlan = newVersion.readablePlan
+      this.imagePrompt = newVersion.imagePrompt
+      this.summary = newVersion.summary
     },
     
-    // 恢复到特定版本
-    restoreVersion(version) {
-      if (!version) return null
+    // 切换版本
+    switchVersion(versionNumber) {
+      const version = this.versionHistory.find(v => v.version === versionNumber)
+      if (!version) return false
       
-      console.log('正在切换到版本:', version.version)
+      // 使用正确字段名更新当前数据
+      this.currentVersion = versionNumber
+      this.readablePlan = version.readablePlan
+      this.imagePrompt = version.imagePrompt
+      this.summary = version.summary
       
-      // 设置当前版本号
-      this.currentVersion = version.version
-      
-      // 恢复穿搭方案
-      if (version.plan) {
-        this.outfitPlan = version.plan
-      }
-      
-      // 恢复AI提示词
-      this.aiPrompt = version.prompt || ''
-      
-      // 恢复图片
-      this.outfitImage = version.image || ''
-      
-      // 确认版本已更新
-      console.log('已更新当前版本为:', this.currentVersion)
-      
-      // 自动保存到会话存储
-      this.saveToSession()
-      
-      return version
+      return true
     },
     
     // 重置所有数据
     resetAll() {
-      this.currentVersion = 1
-      this.outfitPlan = ''
-      this.aiPrompt = ''
+      this.readablePlan = ''
+      this.imagePrompt = ''
+      this.summary = ''
       this.outfitImage = ''
+      this.currentVersion = 1
       this.versionHistory = []
-      this.occasion = ''
       this.outfitId = null
+      this.allowSave = true
       
       // 清除会话存储
       sessionStorage.removeItem('outfitResultData')
@@ -162,7 +148,7 @@ export const useOutfitResultStore = defineStore('outfitResult', {
     parseOutfitPlan(planText) {
       // 直接设置原始 Markdown 文本，不做解析
       if (planText) {
-        this.outfitPlan = planText
+        this.readablePlan = planText
       }
       return planText
     },
@@ -170,7 +156,7 @@ export const useOutfitResultStore = defineStore('outfitResult', {
     // 格式化穿搭方案为字符串
     formatOutfitPlanToString() {
       // 直接返回原始 Markdown 字符串
-      return this.outfitPlan
+      return this.readablePlan
     },
     
     // 更新版本号并创建新版本
@@ -182,6 +168,26 @@ export const useOutfitResultStore = defineStore('outfitResult', {
     // 更新outfitId
     updateOutfitId(id) {
       this.outfitId = id
+    },
+    
+    setOutfitImage(imageUrl) {
+      this.outfitImage = imageUrl
+    },
+    
+    setAIPrompt(prompt) {
+      this.imagePrompt = prompt
+    },
+    
+    incrementVersion() {
+      this.currentVersion++
+    },
+    
+    addToHistory(version) {
+      this.versionHistory.push(version)
+    },
+    
+    setCurrentEvaluation(evaluation) {
+      this.currentEvaluation = evaluation
     }
   },
   

@@ -15,31 +15,54 @@ export const useUserStore = defineStore('user', () => {
 
   // 设置用户信息
   function setUserInfo(info, isNew = false, needSaveStorage = true) {
+    console.log('设置用户信息:', info)
     userInfo.value = info
-    isLoggedIn.value = true // 明确设置登录状态
+    isLoggedIn.value = !!info // 确保根据info是否存在设置登录状态
     isNewUser.value = isNew
     
     // 使用sessionStorage存储登录状态
     if (needSaveStorage) {
       sessionStorage.setItem('isLoggedIn', 'true')
+      console.log('已将登录状态保存到sessionStorage')
     }
   }
 
-  // 设置用户画像
-  function setUserProfile(profile) {
-    // 确保profile是一个对象
-    if (profile && typeof profile === 'object') {
-      // 如果当前已有用户画像，合并而不是替换
-      if (userProfile.value) {
-        userProfile.value = { ...userProfile.value, ...profile };
+  // 登录方法 - 可以添加这个辅助方法确保登录状态正确设置
+  function login(info) {
+    setUserInfo(info, false, true)
+    console.log('用户登录状态:', isLoggedIn.value)
+    return isLoggedIn.value
+  }
+
+  // 设置用户画像 - 确保转为字符串存储
+  function setUserProfile(profileData) {
+    if (profileData) {
+      // 如果是对象，转为字符串
+      if (typeof profileData === 'object') {
+        try {
+          userProfile.value = JSON.stringify(profileData);
+          console.log('用户画像对象已转为字符串');
+        } catch (e) {
+          console.error('用户画像JSON序列化失败:', e);
+          // 转换失败时，尝试简单处理
+          userProfile.value = String(profileData);
+        }
+      } else if (typeof profileData === 'string') {
+        // 已经是字符串，直接使用
+        userProfile.value = profileData;
       } else {
-        userProfile.value = { ...profile };
+        // 其他类型，转为字符串
+        userProfile.value = String(profileData);
       }
-      
-      // 数据发生变化时会触发watch，自动保存到sessionStorage
-      console.log('用户画像已更新:', userProfile.value);
     } else {
-      console.error('尝试设置无效的用户画像数据:', profile);
+      userProfile.value = null;
+    }
+    
+    // 保存到会话存储
+    if (userProfile.value) {
+      sessionStorage.setItem('userProfile', userProfile.value); // 直接存储字符串
+    } else {
+      sessionStorage.removeItem('userProfile');
     }
   }
 
@@ -55,24 +78,29 @@ export const useUserStore = defineStore('user', () => {
     return savedData.code === inputCode
   }
 
-  // 从 sessionStorage 恢复数据
+  // 从 sessionStorage 恢复数据时确保正确读取登录状态
   function restoreFromSession() {
     try {
+      const isLoggedInFromSession = sessionStorage.getItem('isLoggedIn') === 'true'
+      console.log('从session恢复登录状态:', isLoggedInFromSession)
+      
       const savedData = sessionStorage.getItem('userData')
       if (savedData) {
         const data = JSON.parse(savedData)
         userInfo.value = data.userInfo || null
         userProfile.value = data.userProfile || null
-        isLoggedIn.value = !!data.userInfo // 根据 userInfo 是否存在设置登录状态
+        // 优先使用sessionStorage中的isLoggedIn，其次根据userInfo判断
+        isLoggedIn.value = isLoggedInFromSession || !!data.userInfo
         isNewUser.value = data.isNewUser || false
-        verificationCodes.value = data.verificationCodes || {}
+        console.log('恢复后的登录状态:', isLoggedIn.value)
+      } else if (isLoggedInFromSession) {
+        // 如果只有isLoggedIn但没有userData，仍然设置登录状态
+        isLoggedIn.value = true
       }
     } catch (error) {
       console.error('恢复用户数据失败:', error)
-      // 出错时设置默认状态
-      userInfo.value = null
-      userProfile.value = null
-      isLoggedIn.value = false
+      // 出错时检查是否有登录状态标记
+      isLoggedIn.value = sessionStorage.getItem('isLoggedIn') === 'true'
     }
   }
 

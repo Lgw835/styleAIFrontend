@@ -232,8 +232,9 @@ import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { useOutfitRecordStore } from '@/stores/outfitRecord'
 import { useExternalDataStore } from '@/stores/externalData'
-import { showToast } from 'vant'
+import { showToast, showConfirmDialog } from 'vant'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
+import { getOutfitRecords, deleteOutfitRecord } from '@/api/outfitRecord'
 
 // 用户store
 const userStore = useUserStore()
@@ -255,6 +256,70 @@ const loadingEvaluation = ref(false)
 const refreshTimer = ref(null)
 const showEvaluationForm = ref(false)
 const newEvaluation = ref({ score: 0, comment: '' })
+
+// 获取穿搭记录
+const fetchOutfitRecords = async () => {
+  if (!userStore.isLoggedIn) {
+    console.error('用户未登录 (isLoggedIn 检查)')
+    showToast('请先登录')
+    return
+  }
+  
+  loading.value = true
+  try {
+    const userId = userStore.userInfo.userId
+    const response = await getOutfitRecords(userId)
+    
+    if (response && response.data) {
+      outfitRecordStore.records = response.data.map(item => ({
+        ...item,
+        // 确保日期格式化正确
+        createTime: new Date(item.createTime || item.createdAt).toISOString()
+      }))
+      console.log('获取到穿搭记录:', outfitRecordStore.records.length)
+    } else {
+      console.log('没有穿搭记录或返回格式不正确')
+      outfitRecordStore.records = []
+    }
+  } catch (err) {
+    console.error('获取穿搭记录失败:', err)
+    showToast('获取数据失败，请稍后再试')
+  } finally {
+    loading.value = false
+  }
+}
+
+// 查看穿搭详情
+const viewOutfitDetail = (outfit) => {
+  router.push({
+    path: '/outfit-result',
+    query: { outfitId: outfit.id }
+  })
+}
+
+// 删除穿搭记录
+const handleDeleteOutfit = async (outfit) => {
+  try {
+    await showConfirmDialog({
+      title: '删除确认',
+      message: '确定要删除这条穿搭记录吗？',
+    })
+    
+    // 用户确认删除
+    try {
+      await deleteOutfitRecord(outfit.id)
+      showToast('删除成功')
+      // 重新加载数据
+      fetchOutfitRecords()
+    } catch (err) {
+      console.error('删除失败:', err)
+      showToast('删除失败，请稍后再试')
+    }
+  } catch {
+    // 用户取消删除
+    console.log('用户取消删除')
+  }
+}
 
 // 打开详情模态框
 const openDetail = async (outfit) => {
@@ -305,14 +370,16 @@ const deleteOutfit = async (outfitId) => {
     
     try {
       // 调用真实API删除记录
-      const success = await outfitRecordStore.deleteOutfit(outfitId)
+      await deleteOutfitRecord(outfitId)
       
       // 如果正在查看这条记录，关闭详情
-      if (success && showDetailModal.value && currentOutfit.value?.id === outfitId) {
+      if (showDetailModal.value && currentOutfit.value?.id === outfitId) {
         closeDetail()
       }
       
       showToast('穿搭记录已删除')
+      // 重新加载数据
+      fetchOutfitRecords()
     } catch (error) {
       console.error('删除记录失败', error)
       showToast('删除失败，请稍后再试')
@@ -423,7 +490,7 @@ const setupRefreshTimer = () => {
 }
 
 // 页面加载时获取数据
-onMounted(async () => {
+onMounted(() => {
   console.log('初始化穿搭记录数据')
   
   // 先尝试从本地存储恢复数据
@@ -432,7 +499,7 @@ onMounted(async () => {
   // 如果本地没有数据或数据为空，从API获取
   if (!restored || outfitRecordStore.records.length === 0) {
     if (userStore.isLoggedIn) {
-      await outfitRecordStore.fetchRecords()
+      fetchOutfitRecords()
     }
   }
 })
@@ -452,42 +519,6 @@ onBeforeUnmount(() => {
     refreshTimer.value = null
   }
 })
-
-// 初始化数据
-const fetchOutfits = async () => {
-  try {
-    // 使用更可靠的方式检查用户是否登录
-    if (!userStore.isLoggedIn) {
-      console.error('用户未登录 (isLoggedIn 检查)')
-      showToast('请先登录')
-      return
-    }
-    
-    // 对 userInfo 进行更严格的检查
-    if (!userStore.userInfo) {
-      console.error('用户信息不存在')
-      showToast('获取用户信息失败')
-      return
-    }
-    
-    // 尝试多种方式获取用户ID
-    const userId = userStore.userInfo.id || userStore.userInfo.userId || userStore.userId
-    
-    if (!userId) {
-      console.error('找不到用户ID')
-      showToast('用户ID不存在')
-      return
-    }
-    
-    console.log('使用用户ID:', userId)
-    
-    // 获取穿搭记录
-    await outfitRecordStore.fetchOutfitRecords(userId)
-  } catch (error) {
-    console.error('获取穿搭记录失败', error)
-    showToast('获取记录失败，请检查网络连接')
-  }
-}
 
 // 获取穿搭描述的 Markdown 格式
 const getOutfitDescriptionMarkdown = (outfit) => {
@@ -550,110 +581,6 @@ const getOutfitDescriptionMarkdown = (outfit) => {
   
   // 最后尝试直接返回description字段
   return processText(outfit.description || outfit.requirementText || '暂无穿搭描述');
-}
-
-// 以下是不再需要的方法，但保留以保证代码完整性
-// 获取穿搭标题（兼容新旧数据结构）
-const getOutfitTitle = (outfit) => {
-  // 如果有标题则使用，否则使用场景ID构建标题
-  if (outfit.title) {
-    return outfit.title
-  }
-  
-  // 根据场景ID构建标题
-  const sceneName = getSceneName(outfit.sceneId || '')
-  return `${sceneName}穿搭推荐`
-}
-
-// 从场景ID获取场景名称
-const getSceneName = (sceneId) => {
-  const sceneMap = {
-    '商务正式': '商务',
-    '休闲日常': '休闲',
-    '约会': '约会',
-    '运动': '运动',
-    '派对': '派对'
-  }
-  return sceneMap[sceneId] || sceneId || '日常'
-}
-
-// 获取穿搭描述（兼容新旧数据结构）
-const getOutfitDescription = (outfit) => {
-  // 如果有现成的描述则使用
-  if (outfit.description) {
-    return outfit.description
-  }
-  
-  // 如果有 requirementText 则使用
-  if (outfit.requirementText) {
-    return outfit.requirementText
-  }
-  
-  // 尝试从 outfitDescription 解析描述
-  try {
-    if (outfit.outfitDescription) {
-      const parsedData = JSON.parse(outfit.outfitDescription)
-      if (typeof parsedData === 'string') {
-        return parsedData
-      } else if (parsedData.summary) {
-        return parsedData.summary
-      }
-    }
-  } catch (e) {
-    console.error('解析穿搭描述失败', e)
-  }
-  
-  // 默认描述
-  return '基于场景的穿搭推荐方案'
-}
-
-// 获取穿搭标签（兼容新旧数据结构）
-const getOutfitTags = (outfit) => {
-  // 如果有tags数组则使用
-  if (outfit.tags && Array.isArray(outfit.tags)) {
-    return outfit.tags
-  }
-  
-  // 从场景ID创建标签
-  const tags = []
-  if (outfit.sceneId) {
-    tags.push(getSceneName(outfit.sceneId))
-  }
-  
-  // 添加默认标签
-  if (tags.length === 0) {
-    tags.push('时尚', '推荐')
-  }
-  
-  return tags
-}
-
-// 获取穿搭要点（兼容新旧数据结构）
-const getOutfitKeyPoints = (outfit) => {
-  // 如果有现成的要点则使用
-  if (outfit.outfitData && outfit.outfitData.keyPoints) {
-    return outfit.outfitData.keyPoints
-  }
-  
-  // 尝试从 outfitDescription 解析要点
-  try {
-    if (outfit.outfitDescription) {
-      const parsedData = JSON.parse(outfit.outfitDescription)
-      if (parsedData.keyPoints && Array.isArray(parsedData.keyPoints)) {
-        return parsedData.keyPoints
-      }
-    }
-  } catch (e) {
-    console.error('解析穿搭要点失败', e)
-  }
-  
-  return []
-}
-
-// 处理图片加载失败
-const handleImageError = (event) => {
-  // 使用默认图片替代加载失败的图片
-  event.target.src = 'https://via.placeholder.com/200x250?text=穿搭图片'
 }
 
 // 判断穿搭是否已被评价

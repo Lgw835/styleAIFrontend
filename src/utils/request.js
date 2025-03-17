@@ -1,11 +1,12 @@
 import axios from 'axios'
 import router from '@/router'
 import { Notify } from 'vant'
+import { API_BASE_URL } from '@/api/config'
 
 // 创建axios实例
 const service = axios.create({
-  baseURL: 'http://localhost:7001', // 使用网关地址
-  timeout: 30000, // 请求超时时间
+  baseURL: API_BASE_URL, // 使用环境变量中的基础URL
+  timeout: 15000, // 请求超时时间
   headers: {
     'Content-Type': 'application/json;charset=utf-8'
   }

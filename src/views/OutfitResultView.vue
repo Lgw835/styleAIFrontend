@@ -42,9 +42,9 @@
         <!-- 穿搭方案 -->
         <div class="bg-white rounded-xl p-4 shadow-sm">
           <h3 class="text-lg font-medium mb-3">穿搭方案</h3>
-          <div class="prose prose-sm text-gray-600 leading-relaxed" v-if="outfitPlan">
+          <div class="prose prose-sm text-gray-600 leading-relaxed" v-if="readablePlan">
             <!-- 使用 Markdown 渲染组件 -->
-            <MarkdownRenderer :markdown="outfitPlan" />
+            <MarkdownRenderer :markdown="readablePlan" />
           </div>
           <div v-else class="text-gray-400 text-center py-4">
             尚未生成穿搭方案
@@ -58,7 +58,15 @@
             <button class="text-sm text-blue-500" @click="openPromptModal">编辑</button>
           </div>
           <div class="bg-gray-50 rounded-lg p-3 text-sm text-gray-600">
-            <p>{{ aiPrompt || '尚未生成提示词' }}</p>
+            <p>{{ imagePrompt || '尚未生成提示词' }}</p>
+          </div>
+        </div>
+
+        <!-- 方案总结 -->
+        <div v-if="summary" class="bg-white rounded-xl p-4 shadow-sm">
+          <h3 class="text-lg font-medium mb-3">方案总结</h3>
+          <div class="text-sm text-gray-600">
+            {{ summary }}
           </div>
         </div>
 
@@ -100,7 +108,7 @@
 
           <!-- 图片展示 -->
           <div v-if="outfitImage" class="aspect-w-1 aspect-h-1 bg-gray-100 rounded-lg overflow-hidden">
-            <img :src="outfitResult ? getImagePath(outfitResult) : outfitImage" alt="穿搭效果图" class="w-full h-auto object-cover">
+            <img :src="recommendation ? getImagePath(recommendation) : outfitImage" alt="穿搭效果图" class="w-full h-auto object-cover">
           </div>
         </div>
 
@@ -117,14 +125,14 @@
         </div>
 
         <!-- 在模板中添加v-if检查 -->
-        <div v-if="outfitResult && outfitResult.score" class="evaluation-score">
-          <span class="score-value">{{ outfitResult.score }}</span>
+        <div v-if="recommendation && recommendation.score" class="evaluation-score">
+          <span class="score-value">{{ recommendation.score }}</span>
           <span class="score-label">评分</span>
         </div>
 
-        <div v-if="outfitResult && outfitResult.description" class="evaluation-description">
+        <div v-if="recommendation && recommendation.description" class="evaluation-description">
           <h3 class="section-title">穿搭描述</h3>
-          <p>{{ outfitResult.description }}</p>
+          <p>{{ recommendation.description }}</p>
         </div>
       </div>
     </div>
@@ -132,7 +140,7 @@
     <!-- 各种模态框组件 -->
     <PromptModal 
       v-model:show="showPromptModal"
-      :prompt="aiPrompt"
+      :prompt="imagePrompt"
       @update:prompt="updatePrompt"
     />
     
@@ -180,6 +188,7 @@ import { useExternalDataStore } from '@/stores/externalData'
 import { useOutfitResultStore } from '@/stores/outfitResult'
 import { useOutfitRecordStore } from '@/stores/outfitRecord'
 import { showToast } from 'vant'
+import { getOutfitDetail, saveOutfitComment } from '@/api/outfitRecord'
 
 export default {
   name: 'OutfitResultView',
@@ -233,12 +242,14 @@ export default {
     const showHistoryModal = ref(false)
 
     // 从Pinia store引用computed值以确保响应式
-    const outfitPlan = computed(() => outfitResultStore.outfitPlan)
-    const aiPrompt = computed(() => outfitResultStore.aiPrompt)
+    const readablePlan = computed(() => outfitResultStore.readablePlan)
+    const imagePrompt = computed(() => outfitResultStore.imagePrompt)
+    const summary = computed(() => outfitResultStore.summary)
     const outfitImage = computed(() => outfitResultStore.outfitImage)
     const currentVersion = computed(() => outfitResultStore.currentVersion)
     const versionHistory = computed(() => outfitResultStore.versionHistory)
     const canSave = computed(() => outfitResultStore.canSave)
+    const allowSave = computed(() => outfitResultStore.allowSave)
 
     // 当前穿搭数据
     const outfitResult = ref({})
@@ -260,7 +271,7 @@ export default {
     // 打开保存模态框
     const openSaveModal = () => {
       // 检查是否有可保存的内容
-      if (!outfitResultStore.outfitPlan || !outfitResultStore.outfitImage) {
+      if (!outfitResultStore.readablePlan || !outfitResultStore.outfitImage) {
         showToast('请先生成穿搭方案和效果图')
         return
       }
@@ -283,8 +294,8 @@ export default {
         const outfitData = {
           userId: userStore.userInfo?.id || '',
           ipAddress: externalDataStore.locationData?.city || '未知位置',
-          outfitDescription: JSON.stringify(outfitResultStore.outfitPlan || {}),
-          aiPromptDescription: outfitResultStore.aiPrompt || '',
+          outfitDescription: JSON.stringify(outfitResultStore.readablePlan || {}),
+          aiPromptDescription: imagePrompt.value || '',
           outfitImageUrl: outfitResultStore.outfitImage || '',
           requirementText: '', // 可以使用场景信息
           sceneId: route.query.scene || '',
@@ -302,8 +313,8 @@ export default {
           imageUrl: outfitResultStore.outfitImage || '',
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),
-          outfitDescription: JSON.stringify(outfitResultStore.outfitPlan || {}),
-          aiPromptDescription: outfitResultStore.aiPrompt || '',
+          outfitDescription: JSON.stringify(outfitResultStore.readablePlan || {}),
+          aiPromptDescription: imagePrompt.value || '',
           sceneId: route.query.scene || '',
           // 评分和评论单独存储，不在这里设置
         }
@@ -339,8 +350,8 @@ export default {
         const outfitData = {
           userId: userStore.userInfo?.id || '',
           ipAddress: externalDataStore.locationData?.city || '未知位置',
-          outfitDescription: JSON.stringify(outfitResultStore.outfitPlan || {}),
-          aiPromptDescription: outfitResultStore.aiPrompt || '',
+          outfitDescription: JSON.stringify(outfitResultStore.readablePlan || {}),
+          aiPromptDescription: imagePrompt.value || '',
           outfitImageUrl: outfitResultStore.outfitImage || '',
           requirementText: '', // 可以使用场景信息
           sceneId: route.query.scene || '',
@@ -386,8 +397,8 @@ export default {
         tags: saveData.tags || [],
         score: null,
         comment: '',
-        aiPromptDescription: outfitResultStore.aiPrompt || '',
-        outfitDescription: outfitResultStore.outfitPlan || ''
+        aiPromptDescription: imagePrompt.value || '',
+        outfitDescription: outfitResultStore.readablePlan || ''
       }
     }
     
@@ -457,22 +468,6 @@ export default {
       }
     }
     
-    // 模拟API调用
-    const mockApiCall = async () => {
-      // TODO: 取消模拟API调用，使用真实API
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      
-      const mockData = {
-        readablePlan: `## 穿搭方案\n\n### 上装\n简约白色T恤，搭配浅蓝色休闲衬衫作为外层。\n\n### 下装\n直筒深蓝色牛仔裤，裤长合适，略微修身。\n\n### 鞋子配饰\n灰色低帮帆布鞋，搭配简约棕色皮带和银色手表。\n\n### 搭配要点\n- 整体色调协调，蓝白灰色系清爽自然\n- 宽松但不松垮，保持整洁有型的整体感\n- 适合休闲场合，同时兼具简约时尚气质`,
-        imagePrompt: `young ${gender === 'male' ? 'man' : 'woman'} wearing simple white t-shirt, light blue casual shirt, dark blue straight jeans, grey canvas shoes, minimal accessories, casual everyday style, clean modern background, natural lighting, 4k quality, professional fashion photography`,
-        summary: '简约日常风格穿搭，以蓝白灰为主色调，舒适自然又不失型格'
-      }
-      
-      outfitResultStore.parseOutfitPlan(mockData.readablePlan)
-      outfitResultStore.aiPrompt = mockData.imagePrompt
-      outfitResultStore.addToVersionHistory('初始方案', mockData.summary)
-    }
-    
     // 使用默认数据
     const useDefaultData = () => {
       const plan = {
@@ -486,8 +481,8 @@ export default {
         ]
       }
       
-      outfitResultStore.outfitPlan = plan
-      outfitResultStore.aiPrompt = `young ${gender === 'male' ? 'man' : 'woman'} wearing simple white t-shirt, light blue casual shirt, dark blue straight jeans, grey canvas shoes, minimal accessories, casual everyday style, clean modern background, natural lighting, 4k quality, professional fashion photography`
+      outfitResultStore.readablePlan = plan
+      outfitResultStore.imagePrompt = `young ${gender === 'male' ? 'man' : 'woman'} wearing simple white t-shirt, light blue casual shirt, dark blue straight jeans, grey canvas shoes, minimal accessories, casual everyday style, clean modern background, natural lighting, 4k quality, professional fashion photography`
       
       outfitResultStore.addToVersionHistory('初始方案', '默认推荐方案')
     }
@@ -500,7 +495,7 @@ export default {
       try {
         // 使用真实API生成图片
         const response = await generateOutfitImage({
-          prompt: aiPrompt.value,
+          prompt: imagePrompt.value,
           userId: userStore.userInfo?.userId,
           outfitId: outfitResult.value?.id || '',
           version: currentVersion.value
@@ -565,7 +560,7 @@ export default {
           userId: userStore.userInfo?.id || '',
           ipAddress: externalDataStore.locationData?.city || '未知位置',
           editedPlan: modifiedPlan,
-          previousPlan: outfitResultStore.outfitPlan || '',
+          previousPlan: outfitResultStore.readablePlan || '',
           additionalInfo: ''
         }
         const response = await followUpOutfit(requestData)
@@ -573,10 +568,10 @@ export default {
         const updatedPrompt = response.data.imagePrompt
         
         // 更新方案内容
-        outfitResultStore.outfitPlan = updatedPlan
+        outfitResultStore.readablePlan = updatedPlan
         
         // 更新提示词
-        outfitResultStore.aiPrompt = updatedPrompt
+        outfitResultStore.imagePrompt = updatedPrompt
         
         // 清除旧的效果图，需要用户重新生成
         outfitResultStore.outfitImage = null
@@ -603,28 +598,28 @@ export default {
     const restoreVersion = (version) => {
       if (!version) return
       
-      // 添加过渡效果
-      const contentArea = document.querySelector('.flex-1.pt-12.pb-4')
-      if (contentArea) {
-        contentArea.style.opacity = '0.5'
-        contentArea.style.transition = 'opacity 0.3s'
+      // 在切换版本前记录当前版本
+      const currentData = {
+        version: currentVersion.value,
+        plan: outfitResultStore.readablePlan,
+        prompt: outfitResultStore.imagePrompt,
+        summary: outfitResultStore.summary,
+        image: outfitResultStore.outfitImage
       }
       
-      // 直接恢复版本
-      outfitResultStore.restoreVersion(version)
-      
-      // 恢复内容区域显示
-      if (contentArea) {
-        setTimeout(() => {
-          contentArea.style.opacity = '1'
-        }, 300)
+      // 如果当前版本有更改但未保存，先保存当前版本
+      const existingVersion = outfitResultStore.versionHistory.find(v => v.version === currentVersion.value)
+      if (!existingVersion || 
+          existingVersion.plan !== currentData.plan || 
+          existingVersion.prompt !== currentData.prompt) {
+        outfitResultStore.addToVersionHistory(`版本 ${currentVersion.value} 自动保存`, '')
       }
       
-      // 关闭模态框
-      showHistoryModal.value = false
-      
-      // 显示成功提示
-      showToast(`已恢复到版本 ${version.version}`, 'success')
+      // 恢复选择的版本
+      const restored = outfitResultStore.restoreVersion(version)
+      if (restored) {
+        showToast(`已恢复到版本 ${version.version}: ${version.description || '无描述'}`, 'success')
+      }
     }
     
     // 版本切换后的提示 - 使用更美观的Toast通知
@@ -681,43 +676,31 @@ export default {
     
     // 生命周期钩子 - 组件挂载后初始化数据
     onMounted(() => {
-      console.log('OutfitResultView挂载，检查数据来源')
+      console.log('OutfitResultView 挂载检查:')
+      console.log('readablePlan:', outfitResultStore.readablePlan)
+      console.log('imagePrompt:', outfitResultStore.imagePrompt)
+      console.log('summary:', outfitResultStore.summary)
+      console.log('版本历史:', JSON.stringify(outfitResultStore.versionHistory))
       
-      // 初始化数据
-      if (!outfitResult.value) {
-        outfitResult.value = {}
+      // 版本历史修复 - 如果版本历史中使用了旧字段名，进行修正
+      if (outfitResultStore.versionHistory && outfitResultStore.versionHistory.length > 0) {
+        outfitResultStore.versionHistory.forEach(version => {
+          // 检查并修复字段名不一致问题
+          if (version.plan && !version.readablePlan) {
+            version.readablePlan = version.plan;
+          }
+          if (version.prompt && !version.imagePrompt) {
+            version.imagePrompt = version.prompt;
+          }
+        });
       }
       
-      // 检查是否从评价记录跳转过来
-      if (outfitResultStore.currentEvaluation) {
-        console.log('检测到来自评价记录的数据:', outfitResultStore.currentEvaluation)
-        
-        // 使用评价数据初始化当前视图
-        outfitResult.value = outfitResultStore.currentEvaluation
-        
-        // 如果有图片URL，确保正确显示
-        if (outfitResult.value.imagePath || outfitResult.value.url || outfitResult.value.fileUrl) {
-          outfitResultStore.outfitImage = getImagePath(outfitResult.value)
-        }
-        
-        // 保存到会话存储，确保刷新后不丢失
-        sessionStorage.setItem('currentOutfitResult', JSON.stringify(outfitResult.value))
+      // 使用正确的字段名检查数据是否存在
+      if (!outfitResultStore.readablePlan) {
+        console.error('穿搭推荐数据不存在，返回推荐页面')
+        router.push('/dress-recommend')
       } else {
-        // 尝试从sessionStorage恢复数据
-        const savedData = sessionStorage.getItem('currentOutfitResult')
-        if (savedData) {
-          try {
-            const parsedData = JSON.parse(savedData)
-            outfitResult.value = parsedData
-            
-            // 如果有图片，确保显示
-            if (parsedData.imagePath || parsedData.url || parsedData.fileUrl) {
-              outfitResultStore.outfitImage = getImagePath(parsedData)
-            }
-          } catch (e) {
-            console.error('恢复保存的穿搭数据失败:', e)
-          }
-        }
+        console.log('成功加载穿搭推荐数据')
       }
     })
 
@@ -834,12 +817,12 @@ export default {
           description: saveModalData.description,
           imageUrl: imageUrl,
           outfitData: {
-            top: outfitPlan.value.top,
-            bottom: outfitPlan.value.bottom,
-            accessories: outfitPlan.value.accessories,
-            keyPoints: outfitPlan.value.keyPoints
+            top: recommendation.value.top,
+            bottom: recommendation.value.bottom,
+            accessories: recommendation.value.accessories,
+            keyPoints: recommendation.value.keyPoints
           },
-          aiDescription: outfitPlan.value.aiDescription || formatOutfitPlanToString(outfitPlan.value),
+          aiDescription: recommendation.value.aiDescription || formatOutfitPlanToString(recommendation.value),
           tags: saveModalData.tags || []
         }
         
@@ -882,12 +865,14 @@ export default {
 
     return {
       // 使用computed引用store的状态
-      outfitPlan,
-      aiPrompt,
+      readablePlan,
+      imagePrompt,
+      summary,
       outfitImage,
       currentVersion,
       versionHistory,
       canSave,
+      allowSave,
       
       // 本地状态
       loading,

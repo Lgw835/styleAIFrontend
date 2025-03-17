@@ -123,6 +123,9 @@ import { useUserStore } from '@/stores/user'
 import { useExternalDataStore } from '@/stores/externalData'
 import { computed, onMounted, ref } from 'vue'
 import { useOutfitResultStore } from '@/stores/outfitResult'
+import { useRouter } from 'vue-router'
+import { recommendOutfit } from '@/api/outfitResult'
+import { OUTFIT_API } from '@/api/config'
 
 export default {
   name: 'DressRecommendView',
@@ -136,6 +139,7 @@ export default {
     const externalDataStore = useExternalDataStore()
     // 位置加载状态
     const isLocationLoading = ref(false)
+    const router = useRouter()
     
     // 初始化位置数据
     onMounted(async () => {
@@ -153,48 +157,69 @@ export default {
     
     // 计算用户画像完整度
     const calculateProfileCompleteness = () => {
-      const profile = userStore.userProfile
+      const profileStr = userStore.userProfile
       
-      if (!profile) return 0
+      if (!profileStr) return 0
       
-      // 定义要检查的关键字段
-      const keyFields = [
-        'height', 'weight', 'bodyShape', 'skinTone', 
-        'preferredStyles', 'dislikedStyles', 'colorPreferences'
-      ]
-      
-      // 检查每个字段是否有值
-      let filledFields = 0
-      for (const field of keyFields) {
-        if (profile[field] && 
-            ((typeof profile[field] === 'string' && profile[field].trim() !== '') || 
-             (Array.isArray(profile[field]) && profile[field].length > 0) ||
-             (typeof profile[field] === 'number' && profile[field] > 0))) {
-          filledFields++
+      try {
+        // 尝试将字符串解析为对象
+        const profile = typeof profileStr === 'string' 
+          ? JSON.parse(profileStr) 
+          : profileStr
+          
+        // 定义要检查的关键字段
+        const keyFields = [
+          'height', 'weight', 'bodyShape', 'skinTone', 
+          'preferredStyles', 'dislikedStyles', 'colorPreferences'
+        ]
+        
+        // 检查每个字段是否有值
+        let filledFields = 0
+        for (const field of keyFields) {
+          if (profile[field] && 
+              ((typeof profile[field] === 'string' && profile[field].trim() !== '') || 
+               (Array.isArray(profile[field]) && profile[field].length > 0) ||
+               (typeof profile[field] === 'number' && profile[field] > 0))) {
+            filledFields++
+          }
         }
+        
+        // 计算百分比
+        return Math.round((filledFields / keyFields.length) * 100)
+      } catch (error) {
+        console.error('计算用户画像完整度失败:', error)
+        return 0 // 解析失败返回0
       }
-      
-      // 计算百分比
-      return Math.round((filledFields / keyFields.length) * 100)
     }
     
     // 检查是否有用户画像
-    const hasUserProfile = computed(() => !!userStore.userProfile)
+    const hasUserProfile = computed(() => {
+      const profile = userStore.userProfile
+      
+      if (!profile) return false
+      
+      // 如果是字符串但只是空对象，也视为无效
+      if (typeof profile === 'string' && 
+         (profile === '{}' || profile === 'null' || profile === '')) {
+        return false
+      }
+      
+      return true
+    })
     
     return {
       // 返回计算完整度的函数和用户画像状态
       calculateProfileCompleteness,
       hasUserProfile,
       externalDataStore,
-      isLocationLoading
+      isLocationLoading,
+      router,
+      userStore
     }
   },
   data() {
-    const userStore = useUserStore()
-    const externalDataStore = useExternalDataStore()
-    
     return {
-      useProfile: !!userStore.userProfile,
+      useProfile: !!this.userStore?.userProfile,
       profileCompleteness: this.calculateProfileCompleteness(),
       selectedScene: '',
       selectedTags: [],
@@ -210,8 +235,7 @@ export default {
         { name: '派对', icon: 'fa-glass-cheers' },
         { name: '更多', icon: 'fa-plus' }
       ],
-      imageTags: ['优雅知性', '活力运动', '甜美可爱', '简约时尚', '成熟稳重'],
-      externalDataStore // 添加到data中
+      imageTags: ['优雅知性', '活力运动', '甜美可爱', '简约时尚', '成熟稳重']
     }
   },
   methods: {
@@ -230,37 +254,121 @@ export default {
       this.gender = gender
     },
     async handleNext() {
+      // 检查用户是否登录
+      if (!this.userStore || !this.userStore.isLoggedIn) {
+        console.log('登录检查结果:', {
+          storeExists: !!this.userStore,
+          isLoggedIn: this.userStore?.isLoggedIn,
+          hasUserInfo: !!this.userStore?.userInfo
+        })
+        this.$toast('请先登录')
+        this.router.push('/login')
+        return
+      }
+      
+      // 检查用户信息是否完整
+      const userId = this.userStore.userInfo?.userId
+      if (!userId) {
+        console.error('用户已登录但没有用户ID')
+        this.$toast('用户信息不完整，请重新登录')
+        this.router.push('/login')
+        return
+      }
+      
+      // 开始加载状态
       this.loading = true
+      this.loadingMessage = '正在生成穿搭方案，请耐心等待...'
       
       try {
-        // 准备API请求参数
+        // 准备要发送的数据
         const requestData = {
-          userId: this.userStore.userInfo?.userId,
-          gender: this.gender,
-          age: this.userStore.userProfile?.age || 0,
-          occasion: this.selectedScene,
-          weather: '', // 可选参数，下面会设置
-          preferences: this.selectedTags.join(','),
-          additionalInfo: this.additionalInfo
+          userId: userId,
+          ipAddress: this.externalDataStore.locationData?.city ? 
+            `${this.externalDataStore.locationData.province || ''} ${this.externalDataStore.locationData.city}` : "",
+          weather: "",
+          scene: this.selectedScene || '休闲日常',
+          features: this.selectedTags.join('，'),
+          additionalInfo: this.additionalInfo || ""
         }
         
-        // 如果有天气信息，按照API文档格式添加
-        if (this.externalDataStore.weatherData && this.externalDataStore.weatherData.text !== '加载中') {
-          requestData.weather = `${this.externalDataStore.weatherData.text} ${this.externalDataStore.weatherData.temp}°C`
+        // 处理用户画像信息并添加到附加信息中
+        if (this.userStore.userProfile) {
+          try {
+            // 尝试解析用户画像JSON
+            const profileObj = JSON.parse(this.userStore.userProfile);
+            
+            // 提取有用信息，忽略ID等无关字段
+            const userGender = profileObj.gender === 'male' ? '男' : profileObj.gender === 'female' ? '女' : '未指定';
+            
+            // 构建简化的用户画像信息
+            let profileInfo = `性别: ${userGender}`;
+            
+            // 添加年龄（如果有）
+            if (profileObj.age) {
+              profileInfo += `\n年龄: ${profileObj.age}岁`;
+            }
+            
+            // 添加身高体重（如果有）
+            if (profileObj.height) {
+              profileInfo += `\n身高: ${profileObj.height}cm`;
+            }
+            if (profileObj.weight) {
+              profileInfo += `\n体重: ${profileObj.weight}kg`;
+            }
+            
+            // 添加体型（如果有）
+            if (profileObj.bodyShape) {
+              profileInfo += `\n体型: ${profileObj.bodyShape}`;
+            }
+            
+            // 添加风格偏好（如果有）
+            if (profileObj.stylePreference) {
+              profileInfo += `\n风格偏好: ${profileObj.stylePreference}`;
+            }
+            
+            // 添加到附加信息
+            requestData.additionalInfo = (requestData.additionalInfo ? requestData.additionalInfo + "\n" : "") + profileInfo;
+          } catch (e) {
+            console.error('解析用户画像失败:', e);
+            // 解析失败时，添加原始性别信息
+            const userGender = this.gender === 'male' ? '男' : this.gender === 'female' ? '女' : '未指定';
+            requestData.additionalInfo = (requestData.additionalInfo ? requestData.additionalInfo + "\n" : "") + `性别: ${userGender}`;
+          }
+        } else if (this.gender) {
+          // 如果没有用户画像但有性别选择
+          const userGender = this.gender === 'male' ? '男' : '女';
+          requestData.additionalInfo = (requestData.additionalInfo ? requestData.additionalInfo + "\n" : "") + `性别: ${userGender}`;
         }
         
-        // 使用真实API
-        const response = await getOutfitRecommend(requestData)
+        console.log('API 基础 URL:', import.meta.env.VITE_API_BASE_URL)
+        console.log('发送穿搭推荐请求:', requestData)
         
-        // 初始化 outfitResult store
-        const outfitStore = useOutfitResultStore()
-        outfitStore.setInitialRecommendation(response)
+        // 使用 recommendOutfit API 函数，不再使用 fetch
+        const response = await recommendOutfit(requestData)
+        console.log('API 返回原始数据:', response)
         
-        // 导航到结果页面
-        this.$router.push('/outfit-result')
+        // 检查返回的数据格式
+        if (!response || typeof response !== 'object') {
+          throw new Error('API返回数据格式不正确')
+        }
+        
+        if (!response.readablePlan) {
+          console.warn('API返回数据中没有readablePlan字段')
+        }
+        
+        // 存储数据到 store
+        const outfitResultStore = useOutfitResultStore()
+        outfitResultStore.setInitialRecommendation(response)
+        
+        console.log('成功存储数据到store')
+        
+        // 跳转前增加延迟，确保数据已存储
+        setTimeout(() => {
+          this.router.push('/outfit-result')
+        }, 500)
+        
       } catch (error) {
-        console.error('穿搭推荐请求失败:', error)
-        this.$toast('获取穿搭推荐失败，请稍后再试')
+        console.error('获取推荐失败:', error)
       } finally {
         this.loading = false
       }
@@ -299,6 +407,47 @@ export default {
         readablePlan: `## 穿搭方案\n\n### 上装\n${topSuggestion}\n\n### 下装\n${bottomSuggestion}\n\n### 鞋子配饰\n选择${colorScheme}的鞋履，搭配简约配饰增加质感。\n\n### 搭配要点\n- ${colorScheme}，突出个人气质\n- 结合您的身材特点，强调优势部位\n- 根据您的风格偏好，兼顾时尚感与舒适度`,
         imagePrompt: `young ${this.gender === 'male' ? 'man' : 'woman'} with ${profile.bodyShape || 'average'} body type, wearing outfit that complements their physique, ${profile.colorPreferences ? profile.colorPreferences[0] : 'neutral'} color scheme, ${profile.preferredStyles ? profile.preferredStyles[0] : 'casual'} style, clean modern background, natural lighting, 4k quality, professional fashion photography`,
         summary: '基于您的身材特点和风格偏好定制的个性化穿搭方案'
+      }
+    },
+    // 获取用户画像数据的辅助函数 - 确保返回结构化数据
+    getUserProfileData() {
+      if (!this.userStore || !this.userStore.userProfile) {
+        return null
+      }
+      
+      // 检查数据类型
+      const profileData = this.userStore.userProfile
+      
+      // 如果是字符串，尝试解析为结构化数据
+      if (typeof profileData === 'string') {
+        try {
+          return JSON.parse(profileData)
+        } catch (error) {
+          console.error('无法解析用户画像数据', error)
+          return profileData // 返回原始字符串，保持兼容性
+        }
+      }
+      
+      // 如果已经是对象，直接返回
+      return profileData
+    },
+    // 添加辅助方法从字符串中提取值
+    extractProfileValue(key) {
+      if (!this.userStore.userProfile) return null
+      
+      try {
+        // 确保处理字符串
+        const profileStr = this.userStore.userProfile
+        
+        // 尝试解析
+        const profileObj = typeof profileStr === 'string' 
+          ? JSON.parse(profileStr) 
+          : profileStr
+          
+        return profileObj[key]
+      } catch (e) {
+        console.error(`提取用户画像属性 ${key} 失败`, e)
+        return null
       }
     }
   }

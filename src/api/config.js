@@ -3,8 +3,17 @@
  * 集中管理所有接口地址
  */
 
-// API 基础URL配置
-export const BASE_URL = 'http://localhost:7001'
+// API 服务路径配置
+import { ref } from 'vue'
+
+// 从环境变量获取基础 URL
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:7001'
+
+// 服务前缀
+export const SERVICE_PREFIX = {
+  DRESS: '/style-ai-dress-aggregation-service',
+  USER: '/style-ai-user-aggregation-service'
+}
 
 // 微服务名称常量
 const USER_SERVICE = 'style-ai-user-aggregation-service'
@@ -20,23 +29,28 @@ export const USER_API = {
   UPDATE_PASSWORD: `/${USER_SERVICE}/userApi/password/update`, // 修改密码
   RESET_PASSWORD: `/${USER_SERVICE}/userApi/password/reset`,   // 重置密码
   LOGIN_SMS: `/${USER_SERVICE}/userApi/login/sms`,        // 短信登录
-  INFO_UPDATE: `/${USER_SERVICE}/userApi/info/update`     // 修改用户信息
+  INFO_UPDATE: `/${USER_SERVICE}/userApi/info/update`,     // 修改用户信息
+  RECORD_WEATHER: `${SERVICE_PREFIX.USER}/scheduleApi/recordWeather`
 }
 
 // 穿搭相关接口
 export const OUTFIT_API = {
-  RECOMMEND: `/${DRESS_SERVICE}/outfitApi/recommend`,      // 穿搭推荐
+  RECOMMEND: `${SERVICE_PREFIX.DRESS}/outfitApi/recommend`,      // 穿搭推荐
   DAILY_MATCH: `/${DRESS_SERVICE}/outfitApi/daily`,        // 每日一搭
   UPLOAD: `/${DRESS_SERVICE}/outfitApi/upload`,            // 上传穿搭照片
   RECORD_LIST: `/${DRESS_SERVICE}/outfitApi/records`,      // 获取穿搭记录列表
   RECORD_DETAIL: `/${DRESS_SERVICE}/outfitApi/record/`,    // 获取穿搭记录详情，使用时需要拼接ID
-  SAVE: `/${DRESS_SERVICE}/outfitApi/save`,                // 保存穿搭
-  SAVE_COMMENT: `/${DRESS_SERVICE}/outfitApi/comment`,     // 保存穿搭评论
-  GENERATE_IMAGE: `/${DRESS_SERVICE}/outfitApi/generate`,  // 生成图片
-  FOLLOW_UP: `/${DRESS_SERVICE}/outfitApi/followup`,       // 穿搭对话修改
-  EVALUATE: '/style-ai-dress-aggregation-service/outfitApi/evaluateOutfit',
+  SAVE: `${SERVICE_PREFIX.DRESS}/outfitApi/save`,                // 保存穿搭
+  SAVE_COMMENT: `${SERVICE_PREFIX.DRESS}/outfitApi/saveOutfitComment`,     // 保存穿搭评论
+  GENERATE_IMAGE: `${SERVICE_PREFIX.DRESS}/outfitApi/generateImage`,  // 生成图片
+  FOLLOW_UP: `${SERVICE_PREFIX.DRESS}/outfitApi/followup`,       // 穿搭对话修改
+  EVALUATE: `${SERVICE_PREFIX.DRESS}/outfitApi/evaluate`,
   GET_RECOMMENDS: `/${DRESS_SERVICE}/outfitApi/recommends`, // 查看用户的穿搭推荐记录
-  GET_EVALUATIONS: `/${DRESS_SERVICE}/outfitApi/getFashionEvaluations` // 获取AI评论
+  GET_EVALUATIONS: `/${DRESS_SERVICE}/outfitApi/getFashionEvaluations`, // 获取AI评论
+  HISTORY: `${SERVICE_PREFIX.DRESS}/outfitApi/history`,
+  RECORDS: `${SERVICE_PREFIX.DRESS}/outfitApi/records`,
+  DETAIL: `${SERVICE_PREFIX.DRESS}/outfitApi/detail/`,
+  DELETE: `${SERVICE_PREFIX.DRESS}/outfitApi/delete/`
 }
 
 // 衣物相关接口
