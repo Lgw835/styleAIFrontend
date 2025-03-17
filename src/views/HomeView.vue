@@ -158,6 +158,7 @@ import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useScheduleStore } from '@/stores/schedule'
 import UserProfileOverlay from '@/components/UserProfileOverlay.vue'
+import { getWeather, saveWeatherRecord } from '@/api/weather'
 
 export default {
   name: 'HomeView',
@@ -294,44 +295,18 @@ export default {
     });
 
     onMounted(async () => {
-      // 检查天气数据是否存在且未过期（30分钟内）
-      const now = new Date()
-      const lastUpdate = weatherData.value.lastUpdated ? new Date(weatherData.value.lastUpdated) : null
-      const needUpdate = !lastUpdate || (now - lastUpdate) > 30 * 60 * 1000 // 30分钟更新一次
-
-      if (needUpdate) {
-        // 获取天气数据并等待完成
-        await externalDataStore.fetchWeatherData()
-        console.log('天气数据已更新:', weatherData.value)
-      } else {
-        console.log('使用缓存的天气数据:', weatherData.value)
+      // 获取天气数据
+      await fetchWeather()
+      // 获取幸运色
+      fetchLuckyColor()
+      // 检查日程
+      checkSchedules()
+      
+      // 保存天气记录 - 明确在天气数据加载完成后调用
+      if (weatherData.value && weatherData.value.city && weatherData.value.city !== '正在定位...') {
+        saveWeatherData()
       }
-
-      // 如果用户已登录，获取今日日程
-      if (userStore.isLoggedIn && userStore.userInfo?.userId) {
-        // 检查是否需要更新日程数据（一小时更新一次）
-        const now = new Date()
-        const lastUpdate = scheduleStore.lastUpdated ? new Date(scheduleStore.lastUpdated) : null
-        const needUpdate = !lastUpdate || (now - lastUpdate) > 60 * 60 * 1000 // 一小时更新一次
-
-        if (needUpdate) {
-          // 使用真实API
-          await scheduleStore.fetchTodaySchedules(userStore.userInfo.userId)
-          
-          // 记录当前天气
-          if (weatherData.value && weatherData.value.city !== '正在定位...') {
-            // 使用真实API记录天气
-            await scheduleStore.recordWeather({
-              userId: userStore.userInfo.userId,
-              location: weatherData.value.city,
-              temperature: weatherData.value.temp,
-              weatherType: weatherData.value.text,
-              date: new Date().toISOString()
-            })
-          }
-        }
-      }
-
+      
       // 检查是否需要显示用户画像填写蒙版
       checkProfileNeeded()
     })
@@ -459,6 +434,48 @@ export default {
       return userStore && userStore.isLoggedIn && !userStore.userProfile
     })
 
+    // 保存天气记录
+    async function saveWeatherData() {
+      if (!userStore.isLoggedIn || !weatherData.value || !weatherData.value.city) {
+        console.log('用户未登录或天气数据不完整，不记录天气信息')
+        return
+      }
+      
+      try {
+        const weatherRecord = {
+          userId: userStore.userInfo.userId,
+          location: weatherData.value.city,
+          temperature: weatherData.value.temp.toString(),
+          weatherType: weatherData.value.text,
+          date: new Date().toISOString()
+        }
+        
+        console.log('保存天气记录:', weatherRecord)
+        
+        // 调用API保存天气记录
+        const result = await saveWeatherRecord(weatherRecord)
+        console.log('天气记录保存结果:', result)
+      } catch (error) {
+        console.error('保存天气记录失败:', error)
+      }
+    }
+
+    // 修改fetchWeather方法，确保数据获取后保存天气记录
+    const fetchWeather = async () => {
+      try {
+        // 获取天气数据并等待完成
+        await externalDataStore.fetchWeatherData()
+        console.log('天气数据已更新:', weatherData.value)
+        
+        // 在天气数据更新后立即保存记录
+        if (userStore.isLoggedIn && weatherData.value && weatherData.value.city) {
+          saveWeatherData() 
+        }
+      } catch (error) {
+        console.error('获取天气数据失败:', error)
+      }
+    }
+
     return {
       weatherData,
       loading,
@@ -485,7 +502,8 @@ export default {
       shouldShowProfileReminder,
       needsProfileSetup,
       userStore,
-      router
+      router,
+      saveWeatherData
     }
   }
 }

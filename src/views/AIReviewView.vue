@@ -8,6 +8,18 @@
 
     <!-- 内容区域 -->
     <div class="content-container">
+      <!-- 添加顶部刷新按钮 -->
+      <div class="flex justify-end px-4 py-2">
+        <button 
+          @click="refreshData" 
+          class="text-blue-500 flex items-center text-sm"
+          :disabled="outfitStore.loading"
+        >
+          <i class="fas fa-sync-alt mr-1" :class="{'animate-spin': outfitStore.loading}"></i>
+          刷新数据
+        </button>
+      </div>
+
       <!-- 如果是详情模式，显示详情内容 -->
       <div v-if="showDetail" class="detail-view">
         <div class="detail-container">
@@ -75,7 +87,7 @@
           
           <!-- 评价时间 -->
           <div class="time-section">
-            <p class="time-text">评价时间: {{ formatDate(currentReview.createdTime) }}</p>
+            <p class="time-text">评价时间: {{ formatDate(currentReview.createdAt) }}</p>
           </div>
           
           <!-- 返回按钮 -->
@@ -95,8 +107,20 @@
           </div>
         </div>
         
-        <!-- 错误提示 -->
-        <div v-else-if="error" class="error-container">
+        <!-- 空状态提示 - 移到error之前，优先判断是否有数据 -->
+        <div v-else-if="evaluations.length === 0" class="empty-state">
+          <div class="flex flex-col items-center justify-center h-full px-4 py-12">
+            <i class="fas fa-tshirt text-6xl text-gray-300 mb-4"></i>
+            <h3 class="text-lg font-medium text-gray-500 mb-2">暂无穿搭评价</h3>
+            <p class="text-sm text-gray-400 text-center mb-6">上传一张穿搭照片，获取AI专业点评</p>
+            <button @click="uploadNewOutfit" class="btn-primary py-2 px-6 rounded-lg">
+              <i class="fas fa-camera mr-2"></i>上传穿搭照片
+            </button>
+          </div>
+        </div>
+        
+        <!-- 错误提示 - 仅当有错误且有内容时显示 -->
+        <div v-else-if="error && error !== '获取评价记录失败'" class="error-container">
           <div class="flex flex-col items-center justify-center h-full px-4 py-12">
             <i class="fas fa-exclamation-circle text-4xl text-red-400 mb-4"></i>
             <p class="text-sm text-red-400">{{ error }}</p>
@@ -106,20 +130,9 @@
           </div>
         </div>
         
-        <!-- 空状态提示 -->
-        <div v-else-if="evaluations.length === 0" class="empty-state">
-          <div class="flex flex-col items-center justify-center h-full px-4 py-12">
-            <i class="fas fa-tshirt text-6xl text-gray-300 mb-4"></i>
-            <h3 class="text-lg font-medium text-gray-500 mb-2">暂无穿搭评价</h3>
-            <p class="text-sm text-gray-400 text-center mb-6">上传一张穿搭照片，获取AI专业点评</p>
-            <button @click="uploadNewOutfit" class="btn-primary py-2 px-6 rounded-lg">
-              上传第一张穿搭
-            </button>
-          </div>
-        </div>
-        
         <!-- 评价记录列表 - 水平布局 -->
         <div v-else class="reviews-list px-4 py-3">
+          <!-- 评价记录列表，显示分页后的数据 -->
           <div 
             v-for="review in evaluations" 
             :key="review.userId + review.imagePath"
@@ -133,7 +146,7 @@
               </div>
               <div class="review-date">
                 <i class="far fa-calendar-alt mr-1"></i>
-                {{ formatDate(review.createdTime) }}
+                {{ formatDate(review.createdAt || review.createdTime) }}
               </div>
             </div>
             
@@ -147,6 +160,22 @@
                 <p class="ai-comment-text">{{ review.description }}</p>
               </div>
             </div>
+          </div>
+          
+          <!-- 加载更多提示器 -->
+          <div v-if="hasMoreData || loading" class="loading-more-indicator py-4 text-center">
+            <div v-if="loading" class="animate-pulse flex justify-center items-center">
+              <i class="fas fa-circle-notch fa-spin mr-2 text-gray-400"></i>
+              <span class="text-sm text-gray-500">加载更多...</span>
+            </div>
+            <div v-else class="text-sm text-gray-400">
+              上滑加载更多
+            </div>
+          </div>
+          
+          <!-- 全部加载完毕提示 -->
+          <div v-if="!hasMoreData && evaluations.length > pageSize" class="all-loaded py-4 text-center">
+            <div class="text-sm text-gray-400">— 已显示全部评价 —</div>
           </div>
         </div>
       </div>
@@ -163,7 +192,7 @@
 import SubPageNavBar from '@/components/SubPageNavBar.vue'
 import { useOutfitStore } from '@/stores/outfitStore'
 import { useUserStore } from '@/stores/user'
-import { onMounted } from 'vue'
+import { onMounted, onActivated, ref, computed, nextTick, onUnmounted } from 'vue'
 
 export default {
   name: 'AIReviewView',
@@ -174,39 +203,82 @@ export default {
     const outfitStore = useOutfitStore()
     const userStore = useUserStore()
     
-    // 立即加载评价记录
+    // 检查数据刷新需求的函数
+    const checkAndRefreshData = async () => {
+      console.log('检查 AI 评价数据是否需要刷新...')
+      
+      // 调用store中的评价获取方法，完整实现优先级顺序
+      // 1. pinia缓存 -> 2. 持久化存储 -> 3. API请求
+      await outfitStore.fetchEvaluations(false)
+      
+      console.log('数据加载完成，当前评价数量:', outfitStore.evaluations.length)
+    }
+    
+    // 页面首次加载
     onMounted(async () => {
-      // 确保用户已登录
-      if (userStore.isLoggedIn) {
-        await outfitStore.fetchEvaluations()
-      }
+      console.log('AIReviewView 组件已挂载，初始化数据')
+      await checkAndRefreshData()
+      
+      // 添加调试输出
+      console.log('挂载后评价数据:', outfitStore.evaluations)
     })
     
-    // 返回需要在模板中使用的内容
+    // 页面被激活时（从其他页面返回）
+    onActivated(async () => {
+      console.log('AIReviewView 组件被激活，检查数据更新')
+      await checkAndRefreshData()
+    })
+    
     return {
       outfitStore,
-      userStore
+      userStore,
+      refreshData: checkAndRefreshData
     }
   },
   data() {
     return {
-      // 初始化数据
+      // 添加分页相关状态
+      pageSize: 5,        // 每页显示数量
+      currentPage: 1,     // 当前页码
+      loading: false,     // 是否正在加载更多
+      hasMoreData: true,  // 是否还有更多数据
       activeTab: 0,
-      // 添加详情视图状态
       showDetail: false,
-      // 当前查看的评价
-      currentReview: null
+      currentReview: null,
+      // 用于检测滚动到底部的距理
+      bottomOffset: 200
     }
   },
   computed: {
-    // 获取有效的评价记录
+    // 获取排序后的所有评价记录 
+    sortedEvaluations() {
+      // 按创建时间排序
+      return [...this.outfitStore.evaluations]
+        .sort((a, b) => {
+          // 使用createdAt字段，同时兼容其他可能的时间字段
+          const timeA = new Date(a.createdAt || a.createdTime || a.createTime || 0).getTime();
+          const timeB = new Date(b.createdAt || b.createdTime || b.createTime || 0).getTime();
+          // 降序排列 - 最新的在前面
+          return timeB - timeA;
+        });
+    },
+    
+    // 当前页显示的数据（虚拟分页）
     evaluations() {
-      return this.outfitStore.evaluations || []
+      // 计算当前应该显示的记录
+      const end = this.currentPage * this.pageSize;
+      const paginatedData = this.sortedEvaluations.slice(0, end);
+      
+      // 更新是否还有更多数据
+      this.hasMoreData = end < this.sortedEvaluations.length;
+      
+      console.log(`显示前${end}条记录，共${this.sortedEvaluations.length}条`);
+      return paginatedData;
     },
     
     // 判断是否有数据
     hasEvaluations() {
-      return this.evaluations.length > 0
+      return this.sortedEvaluations.length > 0
     },
     
     // 格式化日期方法保持不变
@@ -285,7 +357,46 @@ export default {
       } catch (e) {
         return '未知日期'
       }
+    },
+    
+    // 处理滚动事件，实现无限滚动加载
+    handleScroll() {
+      // 如果正在加载、没有更多数据或者在详情页，则不处理
+      if (this.loading || !this.hasMoreData || this.showDetail) return;
+      
+      // 检查是否滚动到底部附近
+      const scrollPosition = window.scrollY;
+      const windowHeight = window.innerHeight;
+      const documentHeight = document.documentElement.scrollHeight;
+      
+      // 当滚动到距离底部一定距离时加载更多
+      if (scrollPosition + windowHeight >= documentHeight - this.bottomOffset) {
+        this.loadMoreData();
+      }
+    },
+    
+    // 加载更多数据
+    loadMoreData() {
+      if (this.loading || !this.hasMoreData) return;
+      
+      this.loading = true;
+      console.log('加载更多数据...');
+      
+      // 模拟异步加载，实际上是增加页码来显示更多已加载的数据
+      setTimeout(() => {
+        this.currentPage++;
+        this.loading = false;
+        console.log(`页码增加到 ${this.currentPage}，显示 ${this.pageSize * this.currentPage} 条记录`);
+      }, 500);
     }
+  },
+  mounted() {
+    // 添加滚动事件监听
+    window.addEventListener('scroll', this.handleScroll);
+  },
+  beforeUnmount() {
+    // 移除滚动事件监听，防止内存泄漏
+    window.removeEventListener('scroll', this.handleScroll);
   }
 }
 </script>
@@ -516,5 +627,35 @@ export default {
   font-weight: 500;
   color: #333;
   margin-top: 20px;
+}
+
+/* 加载更多指示器样式 */
+.loading-more-indicator {
+  padding: 1rem 0;
+  margin-top: 0.5rem;
+  border-top: 1px dashed #eee;
+}
+
+/* 加载动画效果 */
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* 全部加载完毕提示样式 */
+.all-loaded {
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: #888;
 }
 </style> 

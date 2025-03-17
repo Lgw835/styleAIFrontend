@@ -387,7 +387,7 @@ export default {
         this.outfitStore.addEvaluation({
           ...this.reviewData,
           userId: userId,
-          createdTime: new Date().toISOString()
+          createdAt: new Date().toISOString()
         })
         
         // 显示结果
@@ -418,19 +418,7 @@ export default {
       const fileInput = document.getElementById('image-upload')
       if (fileInput) fileInput.value = ''
     },
-    
-    getMockReviewData() {
-      // TODO: 移除模拟评价数据，使用真实API返回数据
-      return {
-        score: 8.7,
-        summary: '整体搭配时尚有型，色彩搭配和谐，但细节处理可以更精致',
-        description: '这套穿搭整体风格统一，色彩搭配得当，展现了不错的时尚感。上衣选择恰当，与下装形成良好的比例，鞋履选择也与整体风格协调。不过在配饰和细节处理上还有提升空间。',
-        advantages: '整体风格统一，展现个人风格',
-        disadvantages: '配饰略显单调，缺乏亮点',
-        suggestions: '可以考虑添加一些亮色配饰，如领带、口袋巾或胸针',
-        summary: '整体搭配时尚有型，色彩搭配和谐，但细节处理可以更精致'
-      }
-    },
+
   },
   beforeUnmount() {
     this.outfitStore.setCurrentEvaluation(null)

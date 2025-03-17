@@ -74,7 +74,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { showToast } from 'vant'
-import { getSmsCode, phoneLogin } from '@/api'
+import { getSmsCode, loginWithPhone } from '@/api/user'
 import { useUserStore } from '@/stores/user'
 import { useOutfitRecordStore } from '@/stores/outfitRecord'
 
@@ -98,28 +98,50 @@ const getVerificationCode = async () => {
   try {
     // 使用真实API
     const res = await getSmsCode({ phone: phone.value })
+    console.log('获取验证码响应:', res)
     
-    // 存储验证码ID
-    smsId.value = res.data.code
-    
-    showToast('验证码已发送至您的手机')
-    
-    // 开始倒计时
-    countDown.value = 60
-    const timer = setInterval(() => {
-      countDown.value--
-      if (countDown.value <= 0) {
-        clearInterval(timer)
+    // 检查响应格式并正确提取验证码
+    if (res && res.success) {
+      // 直接从响应中获取验证码 (修正路径)
+      if (res.code) {
+        // 正确保存验证码
+        smsId.value = res.code
+        console.log('成功保存验证码:', smsId.value)
+        showToast('验证码已发送至您的手机')
+      } else if (res.data && res.data.code) {
+        // 兼容嵌套数据结构
+        smsId.value = res.data.code
+        console.log('成功保存验证码(嵌套结构):', smsId.value)
+        showToast('验证码已发送至您的手机')
+      } else {
+        // 无法找到验证码
+        showToast('验证码已发送至您的手机，请注意查收')
       }
-    }, 1000)
+      
+      // 无论如何都开始倒计时
+      startCountdown()
+    } else {
+      // 请求成功但业务失败
+      showToast(res.message || '获取验证码失败，请稍后再试')
+    }
   } catch (error) {
     console.error('获取验证码失败:', error)
-    showToast('获取验证码失败: ' + (error.message || '未知错误'))
+    showToast('获取验证码失败: ' + (error.message || '请检查网络连接'))
   }
 }
 
+// 单独的倒计时函数
+const startCountdown = () => {
+  countDown.value = 60
+  const timer = setInterval(() => {
+    countDown.value--
+    if (countDown.value <= 0) {
+      clearInterval(timer)
+    }
+  }, 1000)
+}
+
 const handleLogin = async () => {
-  // 验证表单
   if (!phone.value || !/^1[3-9]\d{9}$/.test(phone.value)) {
     showToast('请输入正确的手机号')
     return
@@ -130,30 +152,86 @@ const handleLogin = async () => {
     return
   }
   
+  // 增强验证码验证逻辑
+  console.log('验证码比较:', {
+    '系统验证码': smsId.value,
+    '用户输入验证码': verificationCode.value
+  })
+  
+  // 验证码验证 - 强制转为字符串再比较
+  if (!smsId.value) {
+    showToast('请先获取验证码')
+    return
+  }
+  
+  // 确保验证码比较正确进行
+  if (String(smsId.value) !== String(verificationCode.value)) {
+    console.log('验证码不匹配，拦截登录请求')
+    showToast('验证码错误，请重新输入')
+    return
+  }
+  
+  console.log('验证码验证通过，继续登录流程')
+  
   try {
-    // 使用真实API
-    const res = await phoneLogin({
+    const response = await loginWithPhone({
       phone: phone.value,
       code: verificationCode.value
     })
     
-    // 保存用户信息到Pinia
-    userStore.setUserInfo(res.data.userInfo, false)
-    userStore.setUserProfile(res.data.userProfile)
+    console.log('手机验证码登录响应:', response)
     
-    // 登录成功后，获取穿搭记录
-    outfitRecordStore.fetchOutfitRecords(res.data.userInfo.userId, true).catch(err => {
-      console.error('获取穿搭记录失败:', err)
-    })
+    // 检查登录是否成功 - 优化判断条件
+    // 如果返回了用户信息，就认为登录成功
+    if (response.data?.userInfo || 
+        (response.userInfo) || 
+        (response.code === 0 || response.success)) {
+      
+      // 提取用户信息 - 支持多种格式
+      const userInfo = response.data?.userInfo || response.userInfo || response.data
+      const userProfile = response.data?.userProfile || response.userProfile
+      
+      console.log('提取的用户信息:', userInfo)
+      
+      // 更新用户信息
+      if (userInfo) {
+        // 存储用户信息到store
+        userStore.setUserInfo(userInfo, false)
+        
+        // 存储用户画像(如果有)
+        if (userProfile) {
+          userStore.setUserProfile(userProfile)
+        }
+        
+        // 保存登录状态到localStorage
+        localStorage.setItem('isLoggedIn', 'true')
+        
+        // 尝试获取穿搭记录
+        if (userInfo.userId) {
+          outfitRecordStore.fetchOutfitRecords(userInfo.userId, true).catch(err => {
+            console.error('获取穿搭记录失败:', err)
+          })
+        }
+        
+        showToast('登录成功')
+        
+        // 获取重定向URL或返回首页
+        const redirect = router.currentRoute.value.query.redirect || '/'
+        
+        setTimeout(() => {
+          router.push(redirect)
+        }, 1500)
+        
+        return // 重要：成功后直接返回，不执行后续错误逻辑
+      }
+    }
     
-    // 登录成功提示
-    showToast('登录成功')
+    // 如果代码执行到这里，说明无法识别为成功响应
+    showToast(response.message || '登录失败，请确认账号和验证码')
     
-    // 跳转到首页
-    router.push('/')
   } catch (error) {
-    console.error('登录失败:', error)
-    showToast('登录失败: ' + (error.message || '未知错误'))
+    console.error('登录请求失败:', error)
+    showToast('登录失败: ' + (error.message || '网络错误，请重试'))
   }
 }
 </script> 

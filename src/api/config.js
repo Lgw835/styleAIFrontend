@@ -15,7 +15,7 @@ export const USER_API = {
   SMS_CODE: `/${USER_SERVICE}/userApi/sms/code`,          // 获取短信验证码
   REGISTER: `/${USER_SERVICE}/userApi/register`,          // 用户注册
   LOGIN: `/${USER_SERVICE}/userApi/login`,                // 用户登录
-  LOGIN_PHONE: `/${USER_SERVICE}/userApi/login/phone`,    // 手机验证码登录
+  LOGIN_PHONE: `/${USER_SERVICE}/userApi/login/sms`,      // 修正：手机验证码登录
   PROFILE: `/${USER_SERVICE}/userApi/profile`,            // 提交用户信息
   UPDATE_PASSWORD: `/${USER_SERVICE}/userApi/password/update`, // 修改密码
   RESET_PASSWORD: `/${USER_SERVICE}/userApi/password/reset`,   // 重置密码
@@ -36,7 +36,7 @@ export const OUTFIT_API = {
   FOLLOW_UP: `/${DRESS_SERVICE}/outfitApi/followup`,       // 穿搭对话修改
   EVALUATE: '/style-ai-dress-aggregation-service/outfitApi/evaluateOutfit',
   GET_RECOMMENDS: `/${DRESS_SERVICE}/outfitApi/recommends`, // 查看用户的穿搭推荐记录
-  GET_EVALUATIONS: `/${DRESS_SERVICE}/outfitApi/evaluations` // 获取AI评论
+  GET_EVALUATIONS: `/${DRESS_SERVICE}/outfitApi/getFashionEvaluations` // 获取AI评论
 }
 
 // 衣物相关接口

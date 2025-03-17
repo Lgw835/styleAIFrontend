@@ -42,12 +42,12 @@ export function login(data) {
 
 /**
  * 手机验证码登录
- * @param {Object} data - 登录信息 {phone, smsCode, smsId}
+ * @param {Object} data - 包含手机号和验证码的对象
  * @returns {Promise}
  */
-export function phoneLogin(data) {
+export function loginWithPhone(data) {
   return request({
-    url: '/style-ai-user-aggregation-service/userApi/login/phone',
+    url: USER_API.LOGIN_PHONE,
     method: 'post',
     data
   })
