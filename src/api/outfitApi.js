@@ -4,7 +4,7 @@ import axios from 'axios'
 const API_BASE_URL = '/api/v1'
 
 // 获取用户穿搭记录列表
-export const getUserOutfitRecords = async (userId, page = 0, size = 20) => {
+export const getUserOutfitRecords = async (userId, page = 0, size = 10) => {
   try {
     const response = await axios.get(`${API_BASE_URL}/outfit-records`, {
       params: { 

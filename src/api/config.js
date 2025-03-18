@@ -43,7 +43,7 @@ export const OUTFIT_API = {
   SAVE: `${SERVICE_PREFIX.DRESS}/outfitApi/save`,                // 保存穿搭
   SAVE_COMMENT: `${SERVICE_PREFIX.DRESS}/outfitApi/saveOutfitComment`,     // 保存穿搭评论
   GENERATE_IMAGE: `${SERVICE_PREFIX.DRESS}/outfitApi/generateImage`,  // 生成图片
-  FOLLOW_UP: `${SERVICE_PREFIX.DRESS}/outfitApi/followup`,       // 穿搭对话修改
+  FOLLOW_UP: `${SERVICE_PREFIX.DRESS}/outfitApi/followUp`,       // 穿搭对话修改
   EVALUATE: `${SERVICE_PREFIX.DRESS}/outfitApi/evaluate`,
   GET_RECOMMENDS: `/${DRESS_SERVICE}/outfitApi/recommends`, // 查看用户的穿搭推荐记录
   GET_EVALUATIONS: `/${DRESS_SERVICE}/outfitApi/getFashionEvaluations`, // 获取AI评论
@@ -108,4 +108,9 @@ export const SCHEDULE_API = {
   TODAY: `/${USER_SERVICE}/scheduleApi/today`,                 // 获取今日日程
   DATE: `/${USER_SERVICE}/scheduleApi/date`,                   // 获取指定日期的日程
   DELETE: `/${USER_SERVICE}/scheduleApi/delete/`               // 删除日程，使用时需要拼接scheduleId
-} 
+}
+
+// 检查API配置是否正确
+export const OUTFIT_API_CHECKED = API_BASE_URL + '/style-ai-dress-aggregation-service/outfitApi';
+// 或者固定路径
+// export const OUTFIT_API = 'http://localhost:7001/style-ai-dress-aggregation-service/outfitApi'; 

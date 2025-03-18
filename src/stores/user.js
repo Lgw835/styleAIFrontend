@@ -40,7 +40,36 @@ export const useUserStore = defineStore('user', () => {
       // 如果是对象，转为字符串
       if (typeof profileData === 'object') {
         try {
-          userProfile.value = JSON.stringify(profileData);
+          // 确保所有字段都能被正确保存
+          const validatedProfile = {
+            // 基本信息
+            profileId: profileData.profileId || null,
+            userId: profileData.userId,
+            gender: profileData.gender || '',
+            age: profileData.age || '',
+            height: profileData.height || '',
+            weight: profileData.weight || '',
+            bodyShape: profileData.bodyShape || '',
+            
+            // 风格偏好
+            stylePreference: profileData.stylePreference || '',
+            
+            // 外观特征
+            skinTone: profileData.skinTone || '',
+            hairColor: profileData.hairColor || '',
+            hairLength: profileData.hairLength || '',
+            hairStyle: profileData.hairStyle || '',
+            eyeColor: profileData.eyeColor || '',
+            faceShape: profileData.faceShape || '',
+            bodyType: profileData.bodyType || '',
+            
+            // 其他描述
+            tattooDescription: profileData.tattooDescription || '',
+            piercingDescription: profileData.piercingDescription || '',
+            otherFeatures: profileData.otherFeatures || ''
+          };
+          
+          userProfile.value = JSON.stringify(validatedProfile);
           console.log('用户画像对象已转为字符串');
         } catch (e) {
           console.error('用户画像JSON序列化失败:', e);

@@ -113,27 +113,29 @@
         </div>
 
         <!-- 操作按钮 -->
-        <div class="flex space-x-4 px-4 pb-6">
-          <button class="flex-1 bg-white border border-blue-500 text-blue-500 py-3 rounded-lg"
-                  @click="openModifyModal">
-            修改方案
-          </button>
-          <button class="flex-1 bg-blue-500 text-white py-3 rounded-lg"
-                  @click="openSaveModal">
-            保存到记录
-          </button>
+        <div class="fixed bottom-0 left-0 right-0 bg-white border-t shadow-md pb-safe z-30">
+          <div class="container mx-auto px-4 py-3 flex space-x-4 max-w-lg">
+            <button
+              @click="openModifyModal"
+              class="flex-1 py-3 border border-blue-500 text-blue-500 rounded-lg font-medium hover:bg-blue-50 transition-colors flex items-center justify-center"
+            >
+              <i class="fas fa-pencil-alt mr-2"></i>
+              修改方案
+            </button>
+            <button
+              @click="openSaveModal"
+              class="flex-1 py-3 bg-blue-500 text-white rounded-lg font-medium hover:bg-blue-600 transition-colors flex items-center justify-center shadow-sm"
+              :disabled="!canSave"
+              :class="{'opacity-50 cursor-not-allowed': !canSave}"
+            >
+              <i class="fas fa-save mr-2"></i>
+              保存到记录
+            </button>
+          </div>
         </div>
 
-        <!-- 在模板中添加v-if检查 -->
-        <div v-if="recommendation && recommendation.score" class="evaluation-score">
-          <span class="score-value">{{ recommendation.score }}</span>
-          <span class="score-label">评分</span>
-        </div>
-
-        <div v-if="recommendation && recommendation.description" class="evaluation-description">
-          <h3 class="section-title">穿搭描述</h3>
-          <p>{{ recommendation.description }}</p>
-        </div>
+        <!-- 添加底部占位空间，防止内容被底部按钮遮挡 -->
+        <div class="h-20"></div>
       </div>
     </div>
 
@@ -155,7 +157,9 @@
     
     <ModifyModal 
       v-model:show="showModifyModal"
-      @modify="modifyOutfit"
+      :is-submitting="isSubmittingModification"
+      v-model:modify-text="modifyPlanText"
+      @submit="submitModification"
     />
     
     <HistoryModal 
@@ -259,7 +263,10 @@ export default {
     // 保存模态框数据
     const saveModalData = reactive({
       rating: 0,
-      comment: ''
+      comment: '',
+      title: '',
+      description: '',
+      tags: []
     })
     
     // 初始化保存模态框数据
@@ -566,19 +573,17 @@ export default {
         const response = await followUpOutfit(requestData)
         const updatedPlan = response.data.readablePlan
         const updatedPrompt = response.data.imagePrompt
+        const updatedSummary = response.data.summary || ''
         
-        // 更新方案内容
-        outfitResultStore.readablePlan = updatedPlan
-        
-        // 更新提示词
-        outfitResultStore.imagePrompt = updatedPrompt
+        // 使用addVersion方法添加新版本，替代createNewVersion和addToVersionHistory
+        outfitResultStore.addVersion({
+          readablePlan: updatedPlan,
+          imagePrompt: updatedPrompt,
+          summary: updatedSummary
+        }, '手动修改: 用户修改了穿搭方案')
         
         // 清除旧的效果图，需要用户重新生成
-        outfitResultStore.outfitImage = null
-        
-        // 创建新版本
-        outfitResultStore.createNewVersion() // 先创建新版本号
-        outfitResultStore.addToVersionHistory('手动修改', '用户修改了穿搭方案')
+        outfitResultStore.setOutfitImage(null)
         
         // 关闭修改模态框
         showModifyModal.value = false
@@ -588,7 +593,7 @@ export default {
         
       } catch (error) {
         console.error('修改穿搭方案失败', error)
-        showToast('修改失败，请重试')
+        showToast('修改失败，请重试', 'error')
       } finally {
         loading.value = false
       }
@@ -610,13 +615,19 @@ export default {
       // 如果当前版本有更改但未保存，先保存当前版本
       const existingVersion = outfitResultStore.versionHistory.find(v => v.version === currentVersion.value)
       if (!existingVersion || 
-          existingVersion.plan !== currentData.plan || 
-          existingVersion.prompt !== currentData.prompt) {
-        outfitResultStore.addToVersionHistory(`版本 ${currentVersion.value} 自动保存`, '')
+          existingVersion.readablePlan !== currentData.plan || 
+          existingVersion.imagePrompt !== currentData.prompt) {
+        
+        // 使用addVersion方法而不是不存在的addToVersionHistory
+        outfitResultStore.addVersion({
+          readablePlan: currentData.plan,
+          imagePrompt: currentData.prompt,
+          summary: currentData.summary
+        }, `版本 ${currentVersion.value} 自动保存`)
       }
       
-      // 恢复选择的版本
-      const restored = outfitResultStore.restoreVersion(version)
+      // 使用switchVersion方法恢复选择的版本
+      const restored = outfitResultStore.switchVersion(version.version)
       if (restored) {
         showToast(`已恢复到版本 ${version.version}: ${version.description || '无描述'}`, 'success')
       }
@@ -671,45 +682,66 @@ export default {
     
     // 打开各种模态框
     const openPromptModal = () => { showPromptModal.value = true }
-    const openModifyModal = () => { showModifyModal.value = true }
     const openHistoryModal = () => { showHistoryModal.value = true }
     
+    // 打开修改方案对话框 - 更新为更健壮的实现
+    const openModifyModal = () => {
+      // 确保先清空之前的输入，再打开模态框
+      modifyPlanText.value = ''
+      // 打开模态框
+      showModifyModal.value = true
+    }
+
     // 生命周期钩子 - 组件挂载后初始化数据
     onMounted(() => {
       console.log('OutfitResultView 挂载检查:')
-      console.log('readablePlan:', outfitResultStore.readablePlan)
-      console.log('imagePrompt:', outfitResultStore.imagePrompt)
-      console.log('summary:', outfitResultStore.summary)
-      console.log('版本历史:', JSON.stringify(outfitResultStore.versionHistory))
       
-      // 版本历史修复 - 如果版本历史中使用了旧字段名，进行修正
-      if (outfitResultStore.versionHistory && outfitResultStore.versionHistory.length > 0) {
-        outfitResultStore.versionHistory.forEach(version => {
-          // 检查并修复字段名不一致问题
-          if (version.plan && !version.readablePlan) {
-            version.readablePlan = version.plan;
-          }
-          if (version.prompt && !version.imagePrompt) {
-            version.imagePrompt = version.prompt;
-          }
-        });
-      }
-      
-      // 使用正确的字段名检查数据是否存在
-      if (!outfitResultStore.readablePlan) {
-        console.error('穿搭推荐数据不存在，返回推荐页面')
+      // 先尝试初始化数据（从会话存储恢复）
+      initData().then(() => {
+        console.log('数据初始化完成')
+        console.log('readablePlan:', outfitResultStore.readablePlan)
+        console.log('imagePrompt:', outfitResultStore.imagePrompt)
+        console.log('summary:', outfitResultStore.summary)
+        console.log('版本历史:', JSON.stringify(outfitResultStore.versionHistory))
+        
+        // 版本历史修复 - 如果版本历史中使用了旧字段名，进行修正
+        if (outfitResultStore.versionHistory && outfitResultStore.versionHistory.length > 0) {
+          outfitResultStore.versionHistory.forEach(version => {
+            // 检查并修复字段名不一致问题
+            if (version.plan && !version.readablePlan) {
+              version.readablePlan = version.plan;
+            }
+            if (version.prompt && !version.imagePrompt) {
+              version.imagePrompt = version.prompt;
+            }
+          });
+        }
+        
+        // 使用正确的字段名检查数据是否存在
+        if (!outfitResultStore.readablePlan) {
+          console.error('穿搭推荐数据不存在，返回推荐页面')
+          router.push('/dress-recommend')
+        } else {
+          console.log('成功加载穿搭推荐数据')
+        }
+        
+        // 启用数据监听，确保状态变化时自动保存到sessionStorage
+        outfitResultStore.watchData()
+      }).catch(error => {
+        console.error('初始化数据失败:', error)
         router.push('/dress-recommend')
-      } else {
-        console.log('成功加载穿搭推荐数据')
-      }
+      })
     })
 
     // 监听路由变化，在离开页面时清除数据
     onBeforeRouteLeave((to, from, next) => {
-      // 如果不是返回到DressRecommendView，则清除数据
-      if (to.name !== 'dress-recommend') {
-        outfitResultStore.resetAll()
-      }
+      // 无条件清除数据，确保不会留下残留
+      outfitResultStore.resetAll()
+      console.log('离开页面，已清空穿搭结果数据')
+      
+      // 清除 sessionStorage 中的数据
+      sessionStorage.removeItem('outfitResultData')
+      
       next()
     })
 
@@ -855,12 +887,90 @@ export default {
     const getImagePath = (outfit) => {
       // 增加防御性检查，确保outfit存在
       if (!outfit) {
-        console.warn('尝试获取图片路径时outfit对象为undefined')
-        return ''
+        return outfitImage.value || '' // 使用store中的图片或空字符串
       }
       
       // 优先使用imagePath，然后是url，最后是fileUrl
       return outfit.imagePath || outfit.url || outfit.fileUrl || ''
+    }
+
+    // 修改方案相关
+    const modifyPlanText = ref('') // 存储用户的修改请求
+    const isSubmittingModification = ref(false) // 提交修改的加载状态
+
+    // 提交修改方案请求 - 优化错误处理和用户体验
+    const submitModification = async () => {
+      // 验证输入不为空
+      if (!modifyPlanText.value.trim()) {
+        showToast('请输入您的修改意见', 'warning')
+        return
+      }
+      
+      // 防止重复提交
+      if (isSubmittingModification.value) {
+        return
+      }
+      
+      isSubmittingModification.value = true
+      
+      try {
+        // 准备发送到API的数据
+        const modificationData = {
+          userId: userStore.userInfo?.userId || '',
+          ipAddress: externalDataStore.locationData?.city ? 
+            `${externalDataStore.locationData.province || ''} ${externalDataStore.locationData.city}` : "",
+          editedPlan: modifyPlanText.value, // 用户输入的修改意见
+          previousPlan: readablePlan.value || '', // 当前的穿搭方案
+          additionalInfo: summary.value || '' // 方案摘要作为附加信息
+        }
+        
+        console.log('发送穿搭方案修改请求:', modificationData)
+        
+        // 调用API获取新方案
+        const response = await followUpOutfit(modificationData)
+        
+        // 打印完整的响应以便调试
+        console.log('API响应数据:', response)
+        
+        // 更灵活地处理API返回的数据结构
+        let responseData = response
+        
+        // 检查response.data是否存在，如果存在就使用它
+        if (response && response.data) {
+          responseData = response.data
+        }
+        
+        // 分别获取所需的字段，提供默认值以防字段不存在
+        const newReadablePlan = responseData.readablePlan || responseData.outfitDescription || responseData.plan || ''
+        const newImagePrompt = responseData.imagePrompt || responseData.prompt || responseData.aiPromptDescription || ''
+        const newSummary = responseData.summary || responseData.description || ''
+        
+        if (!newReadablePlan) {
+          console.warn('API返回数据中没有找到有效的穿搭方案')
+        }
+        
+        // 使用outfitResultStore中的addVersion方法更新版本
+        outfitResultStore.addVersion({
+          readablePlan: newReadablePlan, 
+          imagePrompt: newImagePrompt,
+          summary: newSummary
+        }, modifyPlanText.value)
+        
+        // 清除旧的效果图
+        outfitResultStore.setOutfitImage(null)
+        
+        // 关闭修改对话框
+        showModifyModal.value = false
+        
+        // 成功提示
+        showToast('穿搭方案已更新，您可以重新生成效果图', 'success')
+      } catch (error) {
+        console.error('修改方案失败:', error)
+        // 提供更详细的错误信息
+        showToast(`修改方案失败: ${error.message || '请稍后再试'}`, 'error')
+      } finally {
+        isSubmittingModification.value = false
+      }
     }
 
     return {
@@ -907,7 +1017,12 @@ export default {
       // 新增或修改的状态和方法
       saveModalData,
       saveToRecord,
-      getImagePath
+      getImagePath,
+      
+      // 修改方案相关
+      modifyPlanText,
+      isSubmittingModification,
+      submitModification
     }
   }
 }
@@ -927,5 +1042,77 @@ export default {
 .fade-enter-from,
 .fade-leave-to {
   opacity: 0;
+}
+
+/* Markdown样式 */
+.markdown-body {
+  line-height: 1.6;
+  color: #24292e;
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4 {
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.markdown-body h1 { font-size: 1.8em; }
+.markdown-body h2 { font-size: 1.5em; }
+.markdown-body h3 { font-size: 1.25em; }
+.markdown-body h4 { font-size: 1em; }
+
+.markdown-body p {
+  margin-top: 0;
+  margin-bottom: 1em;
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  margin-top: 0;
+  margin-bottom: 1em;
+  padding-left: 2em;
+}
+
+.markdown-body li {
+  margin-bottom: 0.25em;
+}
+
+.markdown-body blockquote {
+  padding: 0 1em;
+  color: #6a737d;
+  border-left: 0.25em solid #dfe2e5;
+  margin: 0 0 1em 0;
+}
+
+.markdown-body pre {
+  padding: 16px;
+  overflow: auto;
+  font-size: 85%;
+  line-height: 1.45;
+  background-color: #f6f8fa;
+  border-radius: 3px;
+  margin-bottom: 1em;
+}
+
+.markdown-body code {
+  padding: 0.2em 0.4em;
+  margin: 0;
+  font-size: 85%;
+  background-color: rgba(27,31,35,0.05);
+  border-radius: 3px;
+}
+
+/* 底部安全区域适配 - 尤其是对iPhone刘海屏等设备 */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 1rem);
+}
+
+/* 按钮阴影美化 */
+.shadow-md {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 </style> 

@@ -292,42 +292,98 @@ export default {
         }
         
         // 处理用户画像信息并添加到附加信息中
-        if (this.userStore.userProfile) {
+        if (this.useProfile && this.userStore.userProfile) {
           try {
             // 尝试解析用户画像JSON
             const profileObj = JSON.parse(this.userStore.userProfile);
             
-            // 提取有用信息，忽略ID等无关字段
-            const userGender = profileObj.gender === 'male' ? '男' : profileObj.gender === 'female' ? '女' : '未指定';
+            // 开始构建用户画像信息，每个有值的字段都添加进来
+            let profileInfo = [];
             
-            // 构建简化的用户画像信息
-            let profileInfo = `性别: ${userGender}`;
+            // 添加性别
+            if (profileObj.gender) {
+              const userGender = profileObj.gender === 'male' ? '男' : profileObj.gender === 'female' ? '女' : profileObj.gender;
+              profileInfo.push(`我的性别: ${userGender}`);
+            }
             
-            // 添加年龄（如果有）
+            // 添加年龄
             if (profileObj.age) {
-              profileInfo += `\n年龄: ${profileObj.age}岁`;
+              profileInfo.push(`我的年龄: ${profileObj.age}岁`);
             }
             
-            // 添加身高体重（如果有）
+            // 添加身高
             if (profileObj.height) {
-              profileInfo += `\n身高: ${profileObj.height}cm`;
+              profileInfo.push(`我的身高: ${profileObj.height}cm`);
             }
+            
+            // 添加体重
             if (profileObj.weight) {
-              profileInfo += `\n体重: ${profileObj.weight}kg`;
+              profileInfo.push(`我的体重: ${profileObj.weight}kg`);
             }
             
-            // 添加体型（如果有）
+            // 添加体型
             if (profileObj.bodyShape) {
-              profileInfo += `\n体型: ${profileObj.bodyShape}`;
+              profileInfo.push(`我的体型: ${profileObj.bodyShape}`);
             }
             
-            // 添加风格偏好（如果有）
+            // 添加风格偏好
             if (profileObj.stylePreference) {
-              profileInfo += `\n风格偏好: ${profileObj.stylePreference}`;
+              profileInfo.push(`我的风格偏好: ${profileObj.stylePreference}`);
             }
             
-            // 添加到附加信息
-            requestData.additionalInfo = (requestData.additionalInfo ? requestData.additionalInfo + "\n" : "") + profileInfo;
+            // 添加肤色
+            if (profileObj.skinTone) {
+              profileInfo.push(`我的肤色: ${profileObj.skinTone}`);
+            }
+            
+            // 添加发色
+            if (profileObj.hairColor) {
+              profileInfo.push(`我的发色: ${profileObj.hairColor}`);
+            }
+            
+            // 添加发长
+            if (profileObj.hairLength) {
+              profileInfo.push(`我的发长: ${profileObj.hairLength}`);
+            }
+            
+            // 添加发型
+            if (profileObj.hairStyle) {
+              profileInfo.push(`我的发型: ${profileObj.hairStyle}`);
+            }
+            
+            // 添加眼睛颜色
+            if (profileObj.eyeColor) {
+              profileInfo.push(`我的眼睛颜色: ${profileObj.eyeColor}`);
+            }
+            
+            // 添加脸型
+            if (profileObj.faceShape) {
+              profileInfo.push(`我的脸型: ${profileObj.faceShape}`);
+            }
+            
+            // 添加纹身描述
+            if (profileObj.tattooDescription) {
+              profileInfo.push(`我的纹身描述: ${profileObj.tattooDescription}`);
+            }
+            
+            // 添加穿孔描述
+            if (profileObj.piercingDescription) {
+              profileInfo.push(`我的穿孔描述: ${profileObj.piercingDescription}`);
+            }
+            
+            // 添加其他特征
+            if (profileObj.otherFeatures) {
+              profileInfo.push(`我的其他特征: ${profileObj.otherFeatures}`);
+            }
+            
+            // 将所有信息合并为一个字符串，每项一行
+            const profileInfoText = profileInfo.join('\n');
+            
+            // 添加到附加信息，并添加一个用户画像区域的标题
+            if (profileInfoText) {
+              requestData.additionalInfo = (requestData.additionalInfo ? requestData.additionalInfo + "\n\n" : "") 
+                + "【用户画像信息】\n" + profileInfoText;
+            }
           } catch (e) {
             console.error('解析用户画像失败:', e);
             // 解析失败时，添加原始性别信息
@@ -335,7 +391,7 @@ export default {
             requestData.additionalInfo = (requestData.additionalInfo ? requestData.additionalInfo + "\n" : "") + `性别: ${userGender}`;
           }
         } else if (this.gender) {
-          // 如果没有用户画像但有性别选择
+          // 如果没有使用用户画像但有性别选择
           const userGender = this.gender === 'male' ? '男' : '女';
           requestData.additionalInfo = (requestData.additionalInfo ? requestData.additionalInfo + "\n" : "") + `性别: ${userGender}`;
         }

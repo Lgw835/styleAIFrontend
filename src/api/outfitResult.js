@@ -20,9 +20,9 @@ export function generateOutfitImage(data) {
 }
 
 // 获取穿搭方案细节补充
-export function getOutfitFollowup(data) {
+export function followUpOutfit(data) {
   return request({
-    url: OUTFIT_API.FOLLOWUP,
+    url: OUTFIT_API.FOLLOW_UP,
     method: 'post',
     data
   })

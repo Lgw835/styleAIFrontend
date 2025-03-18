@@ -6,7 +6,7 @@ import { API_BASE_URL } from '@/api/config'
 // 创建axios实例
 const service = axios.create({
   baseURL: API_BASE_URL, // 使用环境变量中的基础URL
-  timeout: 15000, // 请求超时时间
+  timeout: 60000, // 请求超时时间
   headers: {
     'Content-Type': 'application/json;charset=utf-8'
   }
