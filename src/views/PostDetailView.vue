@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import TopNavBar from '@/components/TopNavBar.vue';
 import { SQUARE_API } from '@/api/config';
@@ -301,23 +301,19 @@ const formatNumber = (num) => {
   return num.toString();
 };
 
-onMounted(() => {
-  // 从路由参数中获取帖子ID
-  postId.value = route.params.id || '';
-  console.log('Post ID:', postId.value);
+onMounted(async () => {
+  // 从路由参数获取帖子ID
+  postId.value = route.params.id;
   
-  // 检查用户是否登录
-  if (!checkUserLogin()) return;
+  // 确保在获取评论之前等待一下，让计算属性 postData 有时间更新
+  await nextTick();
   
-  // 检查是否能找到帖子数据
+  // 检查计算属性是否已获得数据
   if (!postData.value) {
-    console.error('未找到帖子数据，返回列表页');
-    router.replace('/plaza');
-    return;
-  }
-  
-  // 获取评论
-  if (postId.value) {
+    console.log("未找到帖子数据，但允许用户留在此页面");
+    // 可以添加一个标志，显示错误信息给用户
+  } else {
+    // 如果找到了帖子数据，加载评论
     fetchComments();
   }
 });
@@ -347,7 +343,6 @@ onMounted(() => {
             <img :src="postData.author.imagePath" class="avatar" :alt="postData.author.username">
             <div class="user-details">
               <div class="username">{{ postData.author.username }}</div>
-              <div class="location">IP属地：{{ postData.post.ipAddress || '未知' }}</div>
             </div>
           </div>
           <button 

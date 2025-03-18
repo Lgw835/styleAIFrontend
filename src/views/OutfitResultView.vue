@@ -108,7 +108,12 @@
 
           <!-- 图片展示 -->
           <div v-if="outfitImage" class="aspect-w-1 aspect-h-1 bg-gray-100 rounded-lg overflow-hidden">
-            <img :src="recommendation ? getImagePath(recommendation) : outfitImage" alt="穿搭效果图" class="w-full h-auto object-cover">
+            <img :src="formatImageSource(outfitImage)" alt="穿搭效果图" class="w-full h-auto object-cover">
+            <div class="absolute top-2 right-2">
+              <button @click="debugImageData" class="bg-gray-800 bg-opacity-50 text-white p-1 rounded text-xs">
+                <i class="fas fa-bug"></i>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -494,11 +499,15 @@ export default {
       outfitResultStore.addToVersionHistory('初始方案', '默认推荐方案')
     }
     
-    // 生成图片方法
+    // 修改generateImage方法以正确处理返回的base64数据
     const generateImage = async () => {
       if (loading.value) return
       
       loading.value = true
+      isGenerating.value = true
+      generatingProgress.value = 0
+      generatingStatus.value = "正在生成图片..."
+      
       try {
         // 使用真实API生成图片
         const response = await generateOutfitImage({
@@ -508,8 +517,19 @@ export default {
           version: currentVersion.value
         })
         
-        // 更新图片URL
-        outfitResultStore.setOutfitImage(response.imageUrl)
+        console.log("图片生成API返回:", response)
+        
+        // 检查API返回的数据格式
+        let imageData = response;
+        if (response.data) {
+          imageData = response.data;
+        }
+        
+        // 获取图片URL或base64数据
+        let imageUrl = imageData.imageUrl || imageData.url || imageData;
+        
+        // 将图片数据存储到store
+        outfitResultStore.setOutfitImage(imageUrl)
         
         // 成功提示
         showToast('图片生成成功')
@@ -518,6 +538,7 @@ export default {
         showToast('图片生成失败，请稍后再试')
       } finally {
         loading.value = false
+        isGenerating.value = false
       }
     }
 
@@ -883,15 +904,16 @@ export default {
       openSaveModal()
     }
 
-    // 在计算属性或方法中添加
+    // 修改getImagePath方法
     const getImagePath = (outfit) => {
       // 增加防御性检查，确保outfit存在
       if (!outfit) {
-        return outfitImage.value || '' // 使用store中的图片或空字符串
+        return formatImageSource(outfitImage.value || ''); // 使用格式化后的图片或空字符串
       }
       
-      // 优先使用imagePath，然后是url，最后是fileUrl
-      return outfit.imagePath || outfit.url || outfit.fileUrl || ''
+      // 获取图片路径并进行格式化
+      const imageSrc = outfit.imagePath || outfit.url || outfit.fileUrl || '';
+      return formatImageSource(imageSrc);
     }
 
     // 修改方案相关
@@ -973,6 +995,58 @@ export default {
       }
     }
 
+    // 优化formatImageSource方法以适应更多base64格式
+    const formatImageSource = (imageData) => {
+      if (!imageData) return '';
+      
+      // 如果是字符串类型进行处理
+      if (typeof imageData === 'string') {
+        // 已经是完整的data:image格式
+        if (imageData.startsWith('data:image')) {
+          return imageData;
+        }
+        
+        // 是纯base64字符串但没有前缀 - 扩展识别更多base64开头模式
+        const base64Patterns = ['/9j/', 'iVBOR', 'PHN2Z', 'R0lGOD', 'PD94', 'Qk0', 'SUkqA', 'TU0A'];
+        for (const pattern of base64Patterns) {
+          if (imageData.startsWith(pattern)) {
+            console.log("检测到base64图片，添加前缀");
+            return `data:image/jpeg;base64,${imageData}`;
+          }
+        }
+        
+        // 如果包含base64关键字但格式不完整
+        if (imageData.includes('base64,') && !imageData.startsWith('data:')) {
+          console.log("检测到不完整的base64格式，修复前缀");
+          return `data:image/jpeg;base64,${imageData.split('base64,')[1]}`;
+        }
+        
+        // 如果是普通URL，直接返回
+        return imageData;
+      }
+      
+      // 如果是对象类型，尝试获取URL属性
+      if (typeof imageData === 'object' && imageData !== null) {
+        const url = imageData.url || imageData.imageUrl || imageData.src || '';
+        return formatImageSource(url); // 递归处理找到的URL
+      }
+      
+      // 默认返回空字符串
+      return '';
+    }
+
+    // 添加调试方法，在控制台查看图片数据
+    const debugImageData = () => {
+      console.log("当前图片数据:", outfitImage.value);
+      console.log("格式化后:", formatImageSource(outfitImage.value));
+      
+      // 检查是否为base64格式
+      if (typeof outfitImage.value === 'string' && outfitImage.value.length > 100) {
+        console.log("看起来是base64数据，长度:", outfitImage.value.length);
+        console.log("前20个字符:", outfitImage.value.substring(0, 20));
+      }
+    }
+
     return {
       // 使用computed引用store的状态
       readablePlan,
@@ -1022,7 +1096,13 @@ export default {
       // 修改方案相关
       modifyPlanText,
       isSubmittingModification,
-      submitModification
+      submitModification,
+      
+      // 新增的formatImageSource方法
+      formatImageSource,
+      
+      // 新增的debugImageData方法
+      debugImageData
     }
   }
 }

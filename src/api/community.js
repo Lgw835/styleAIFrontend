@@ -159,4 +159,19 @@ export function deleteComment(commentId) {
     url: SQUARE_API.COMMENT_DELETE + commentId,
     method: 'delete'
   })
-} 
+}
+
+/**
+ * 获取单个帖子详情
+ * @param {Object} params - 参数对象
+ * @param {string} params.postId - 帖子ID
+ * @param {string} params.userId - 用户ID
+ * @returns {Promise}
+ */
+export const getPostById = (params) => {
+  return request({
+    url: SQUARE_API.GET_POST_DETAIL,
+    method: 'get',
+    params
+  });
+}; 
