@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { useUserStore } from '@/stores/user'
-// 导入真实API
-import { getFashionEvaluations } from '@/api/outfit'
+// 导入统一的API
+import { getFashionEvaluations, evaluateOutfit } from '@/api/outfit'
 import { useOutfitResultStore } from '@/stores/outfitResult'
 
 // Session Storage的key常量
@@ -9,8 +9,8 @@ const EVALUATION_STORAGE_KEY = 'outfit_evaluations'
 
 export const useOutfitStore = defineStore('outfit', {
   state: () => ({
-    // 所有评价记录列表
-    evaluations: [],
+    // 所有评价记录列表 - 与session storage中的数据结构保持一致
+    outfit_evaluations: [], // 改为与session storage key一致的命名
     // 当前选中的评价
     currentEvaluation: null,
     // 加载状态
@@ -45,56 +45,53 @@ export const useOutfitStore = defineStore('outfit', {
       }
     },
     
-    // 增强从sessionStorage加载数据的方法
+    // 从sessionStorage加载数据
     loadFromSessionStorage() {
       try {
-        // 只从sessionStorage读取数据
         const storedData = sessionStorage.getItem(EVALUATION_STORAGE_KEY)
-        
         if (storedData) {
-          console.log('从SessionStorage找到持久化数据');
+          console.log('从SessionStorage找到持久化数据', storedData.substring(0, 100) + '...')
           
           // 解析存储的数据
-          const parsedData = JSON.parse(storedData);
+          const parsedData = JSON.parse(storedData)
           
-          // 检查数据结构 - 兼容新旧两种格式
+          // 确保数据是数组
           if (Array.isArray(parsedData)) {
-            // 旧格式 - 直接是数组
-            this.evaluations = parsedData;
-          } else if (parsedData && parsedData.evaluations) {
-            // 新格式 - 包含evaluations属性的对象
-            this.evaluations = parsedData.evaluations || [];
-            this.lastEvaluationFetchTime = parsedData.lastEvaluationFetchTime || null;
+            this.outfit_evaluations = parsedData
+            console.log('成功加载评价数据数组，条目数:', this.outfit_evaluations.length)
+            this.lastEvaluationFetchTime = Date.now()
+            return true
           } else {
-            // 无效数据
-            console.warn('SessionStorage中的数据格式无效');
-            this.evaluations = [];
-            return false;
+            console.warn('SessionStorage中的数据不是数组格式')
           }
-          
-          console.log('成功从SessionStorage加载评价数据，数量:', this.evaluations.length);
-          return this.evaluations.length > 0;
+        } else {
+          console.log('SessionStorage中没有找到数据')
         }
       } catch (err) {
-        console.error('从SessionStorage加载数据失败:', err);
-        this.evaluations = [];
+        console.error('从SessionStorage加载数据失败:', err)
       }
-      return false;
+      return false
     },
     
-    // 增强保存到sessionStorage的方法
+    // 保存到sessionStorage
     saveToSessionStorage() {
       try {
-        const dataToSave = {
-          evaluations: this.evaluations,
-          lastEvaluationFetchTime: this.lastEvaluationFetchTime
+        // 确保数据是数组
+        if (!Array.isArray(this.outfit_evaluations)) {
+          console.warn('保存的outfit_evaluations不是数组，创建空数组')
+          this.outfit_evaluations = []
         }
         
-        // 打印保存的数据以便调试
-        console.log('保存到sessionStorage的评价数据:', dataToSave)
+        // 序列化前打印一部分数据，方便调试
+        console.log('准备保存到SessionStorage的数据:',
+          this.outfit_evaluations.length > 0 
+            ? JSON.stringify(this.outfit_evaluations[0]).substring(0, 100) + '...'
+            : '[]'
+        )
         
-        // 只保存到sessionStorage
-        sessionStorage.setItem(EVALUATION_STORAGE_KEY, JSON.stringify(dataToSave))
+        // 保存数组
+        sessionStorage.setItem(EVALUATION_STORAGE_KEY, JSON.stringify(this.outfit_evaluations))
+        console.log('成功保存评价数据到SessionStorage，条目数:', this.outfit_evaluations.length)
         return true
       } catch (error) {
         console.error('保存评价数据到sessionStorage失败:', error)
@@ -113,8 +110,8 @@ export const useOutfitStore = defineStore('outfit', {
       }
       
       // 2. 首先检查pinia中是否已有数据
-      if (this.evaluations && this.evaluations.length > 0) {
-        console.log('使用pinia中已有的评价数据，数量:', this.evaluations.length);
+      if (this.outfit_evaluations && this.outfit_evaluations.length > 0) {
+        console.log('使用pinia中已有的评价数据，数量:', this.outfit_evaluations.length);
         
         // 如果缓存已过期，在后台刷新数据但仍使用已有数据
         if (this.needRefreshEvaluations()) {
@@ -128,7 +125,7 @@ export const useOutfitStore = defineStore('outfit', {
       // 3. pinia没有数据，尝试从session存储加载
       const hasSessionData = this.loadFromSessionStorage();
       if (hasSessionData) {
-        console.log('从session存储加载到数据，数量:', this.evaluations.length);
+        console.log('从session存储加载到数据，数量:', this.outfit_evaluations.length);
         
         // 如果从session加载的数据已过期，后台刷新
         if (this.needRefreshEvaluations()) {
@@ -146,120 +143,100 @@ export const useOutfitStore = defineStore('outfit', {
     
     // 实际从API获取数据的方法
     async fetchFromAPI() {
-      // 获取用户信息
-      const userStore = useUserStore();
-      if (!userStore.isLoggedIn) {
-        console.log('用户未登录，不获取评价数据');
-        this.evaluations = [];
-        return;
-      }
-      
-      this.loading = true;
-      
-      try {
-        console.log('从API获取评价记录，用户ID:', userStore.userInfo.userId);
-        
-        // 发出API请求
-        const response = await getFashionEvaluations(userStore.userInfo.userId);
-        console.log('API响应完整数据:', response);
-        
-        // 初始化评价数组
-        let evaluationData = [];
-        
-        // 处理各种可能的响应格式
-        if (response && response.success === true) {
-          // 标准成功响应
-          evaluationData = Array.isArray(response.data) ? response.data : [];
-          console.log('从标准响应中提取数据，条目数:', evaluationData.length);
-        } else if (Array.isArray(response)) {
-          // 直接返回数组的情况
-          evaluationData = response;
-          console.log('API直接返回数组数据，条目数:', evaluationData.length);
-        } else if (response && response.data && Array.isArray(response.data)) {
-          // 只有data字段但没有success标志的情况
-          evaluationData = response.data;
-          console.log('从data字段提取数组数据，条目数:', evaluationData.length);
-        }
-        
-        // 一定要打印原始数据看看结构
-        console.log('提取的原始评价数据:', evaluationData);
-        
-        // 处理并标准化评价数据
-        if (evaluationData.length > 0) {
-          this.evaluations = evaluationData.map(item => ({
-            ...item,
-            // 标准化图片路径
-            imagePath: item.imagePath || item.url || item.fileUrl || '',
-            // 标准化创建时间 - 修改为使用createdAt
-            createdAt: item.createdAt || item.createdTime || item.createTime || new Date().toISOString()
-          }));
-          
-          // 记录更新时间
-          this.lastEvaluationFetchTime = Date.now();
-          
-          // 保存到存储
-          this.saveToSessionStorage();
-          console.log('已更新评价数据并保存到会话存储，条目数:', this.evaluations.length);
-        } else {
-          console.log('API返回空数据，显示空状态');
-          this.evaluations = [];
-          
-          // 即使是空数据也更新时间，避免频繁请求
-          this.lastEvaluationFetchTime = Date.now();
-          this.saveToSessionStorage();
-        }
-      } catch (error) {
-        console.error('获取评价数据时出错:', error);
-        // 保持evaluations不变，可能有旧数据
-      } finally {
-        this.loading = false;
-        console.log('评价数据获取完成，最终结果条目数:', this.evaluations.length);
-      }
-    },
-    
-    // 添加新的评价记录
-    addEvaluation(evaluation) {
-      // 确保imagePath字段存在
-      const imagePath = evaluation.imagePath || evaluation.url || evaluation.fileUrl
-      
-      if (!imagePath) {
-        console.error('评价数据缺少图片路径')
+      const userStore = useUserStore()
+      if (!userStore.isLoggedIn || !userStore.userInfo?.userId) {
+        console.log('用户未登录，不获取评价数据')
+        this.outfit_evaluations = []
         return
       }
       
-      const normalizedEvaluation = {
-        ...evaluation,
-        imagePath
+      this.loading = true
+      
+      try {
+        console.log('从API获取评价记录，用户ID:', userStore.userInfo.userId)
+        
+        const response = await getFashionEvaluations(userStore.userInfo.userId)
+        console.log('API响应完整数据:', response)
+        
+        // 处理返回的数据
+        if (Array.isArray(response)) {
+          // 直接使用返回的数组，保持字段名一致
+          this.outfit_evaluations = response
+          this.lastEvaluationFetchTime = Date.now()
+          this.saveToSessionStorage()
+          console.log('已更新评价数据并保存到会话存储，条目数:', this.outfit_evaluations.length)
+        } else {
+          console.log('API返回空数据，显示空状态')
+          this.outfit_evaluations = []
+          this.lastEvaluationFetchTime = Date.now()
+          this.saveToSessionStorage()
+        }
+      } catch (error) {
+        console.error('获取评价数据时出错:', error)
+      } finally {
+        this.loading = false
+        console.log('评价数据获取完成，最终结果条目数:', this.outfit_evaluations.length)
       }
-      
-      // 检查是否已存在相同评价
-      const existingIndex = this.evaluations.findIndex(item => 
-        item.userId === normalizedEvaluation.userId && 
-        item.imagePath === normalizedEvaluation.imagePath
-      )
-      
-      if (existingIndex >= 0) {
-        // 更新已有评价
-        this.evaluations.splice(existingIndex, 1, normalizedEvaluation)
-      } else {
-        // 添加新评价到列表开头
-        this.evaluations.unshift(normalizedEvaluation)
+    },
+    
+    // 添加或更新评价记录
+    async addEvaluation(evaluation) {
+      try {
+        console.log('添加评价记录:', evaluation)
+        
+        // 确保评价数据有必要的字段
+        if (!evaluation.reviewId) {
+          console.warn('评价数据缺少reviewId，可能无法正确保存')
+        }
+        
+        const newEvaluation = {
+          userId: evaluation.userId,
+          reviewId: evaluation.reviewId || `review_${Date.now()}`, // 确保有reviewId
+          imagePath: evaluation.imagePath || evaluation.url || evaluation.fileUrl,
+          description: evaluation.description || '',
+          advantages: evaluation.advantages || '',
+          disadvantages: evaluation.disadvantages || '',
+          suggestions: evaluation.suggestions || '',
+          score: evaluation.score || 0,
+          createdAt: evaluation.createdAt || new Date().toISOString()
+        }
+        
+        // 检查是否已存在相同reviewId的评价
+        const existingIndex = this.outfit_evaluations.findIndex(
+          item => item.reviewId === newEvaluation.reviewId
+        )
+        
+        if (existingIndex >= 0) {
+          console.log('更新已存在的评价记录')
+          // 更新已存在的评价
+          this.outfit_evaluations[existingIndex] = newEvaluation
+        } else {
+          console.log('添加新的评价记录')
+          // 添加新评价到数组开头，使最新的评价显示在最前面
+          this.outfit_evaluations.unshift(newEvaluation)
+        }
+        
+        // 保存到session storage
+        const saveResult = this.saveToSessionStorage()
+        console.log('保存评价到Session storage:', saveResult ? '成功' : '失败')
+        
+        return true
+      } catch (error) {
+        console.error('保存评价记录出错:', error)
+        return false
       }
-      
-      // 保存到sessionStorage
-      this.saveToSessionStorage()
     },
     
     // 根据ID和图片路径查找评价
     findEvaluationByIdAndImage(userId, imagePath) {
-      return this.evaluations.find(item => 
+      return this.outfit_evaluations.find(item => 
         item.userId === userId && item.imagePath === imagePath
       )
     },
     
     // 清除所有数据（用于退出登录等场景）
     clearEvaluations() {
-      this.evaluations = []
+      this.outfit_evaluations = []
       this.currentEvaluation = null
       sessionStorage.removeItem(EVALUATION_STORAGE_KEY)
     },

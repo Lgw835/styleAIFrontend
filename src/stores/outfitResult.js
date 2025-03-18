@@ -1,6 +1,10 @@
 import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
-import { followUpOutfit } from '@/api/outfitResult'
+import { 
+  recommendOutfit,
+  generateOutfitImage, 
+  followUpOutfit 
+} from '@/api/outfit'
 import { useUserStore } from '@/stores/user'
 import { useExternalDataStore } from '@/stores/externalData'
 
@@ -311,6 +315,46 @@ export const useOutfitResultStore = defineStore('outfitResult', {
     // 清空结果 - 与resetAll相同
     clearResults() {
       this.resetAll()
+    },
+    
+    // 生成方案函数
+    async generatePlan(data) {
+      try {
+        // 使用统一的API
+        const response = await recommendOutfit(data)
+        // 处理响应...
+      } catch (error) {
+        // 错误处理...
+      }
+    },
+    
+    // 生成图片函数
+    async generateImage(prompt) {
+      try {
+        // 使用统一的API
+        const response = await generateOutfitImage({
+          prompt,
+          userId: userId.value
+        })
+        // 处理响应...
+      } catch (error) {
+        // 错误处理...
+      }
+    },
+    
+    // 方案跟进函数
+    async followUp(promptText) {
+      try {
+        // 使用统一的API
+        const response = await followUpOutfit({
+          userId: userId.value,
+          plan: readablePlan.value,
+          prompt: promptText
+        })
+        // 处理响应...
+      } catch (error) {
+        // 错误处理...
+      }
     },
   }
 }) 

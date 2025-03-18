@@ -137,15 +137,15 @@
 </template>
 
 <script>
+import { ref, computed, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import SubPageNavBar from '@/components/SubPageNavBar.vue'
-import { useOutfitStore } from '@/stores/outfitStore'
-import { useExternalDataStore } from '@/stores/externalData'
 import { useUserStore } from '@/stores/user'
-import { showToast } from 'vant'
-// 启用真实API
+import { useExternalDataStore } from '@/stores/externalData'
+import { useOutfitStore } from '@/stores/outfitStore'
+// 导入统一的API
 import { uploadOutfitImage, evaluateOutfit } from '@/api/outfit'
-// 删除模拟API
-// import { mockOutfitAPI } from '@/api/mockAPI'
+import { showToast } from 'vant'
 
 export default {
   name: 'UploadOutfitView',
@@ -345,7 +345,7 @@ export default {
         // 打印调试信息
         console.log('准备上传文件:', this.file.name, this.file.type, this.file.size)
         
-        // 上传图片
+        // 上传图片 - 使用统一的API
         const uploadResponse = await uploadOutfitImage({
           image: this.file,
           userId: userId
@@ -370,7 +370,7 @@ export default {
           url: uploadResponse.fileUrl
         })
         
-        // 使用fileUrl字段传递给评价API
+        // 使用fileUrl字段传递给评价API - 使用统一的API
         const evaluationResponse = await evaluateOutfit({
           userId: userId,
           ipAddress: ipAddress,

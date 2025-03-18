@@ -2,17 +2,131 @@ import request from '@/utils/request'
 import { OUTFIT_API } from './config'
 
 /**
- * 获取穿搭推荐
+ * ==================== 穿搭推荐相关 ====================
+ */
+
+/**
+ * 智能穿搭推荐生成
  * @param {Object} data - 推荐参数
  * @returns {Promise}
  */
-export function getOutfitRecommend(data) {
+export function recommendOutfit(data) {
   return request({
     url: '/style-ai-dress-aggregation-service/outfitApi/recommend',
     method: 'post',
     data
   })
 }
+
+/**
+ * 生成穿搭图片
+ * @param {Object} data - 包含prompt和userId等信息
+ * @returns {Promise}
+ */
+export function generateOutfitImage(data) {
+  return request({
+    url: '/style-ai-dress-aggregation-service/outfitApi/generateImage',
+    method: 'post',
+    data
+  })
+}
+
+/**
+ * 发送穿搭方案跟进请求 (修改方案)
+ * @param {Object} data - 包含穿搭方案和用户修改意见
+ * @returns {Promise}
+ */
+export function followUpOutfit(data) {
+  return request({
+    url: '/style-ai-dress-aggregation-service/outfitApi/followUp',
+    method: 'post',
+    data
+  })
+}
+
+/**
+ * 保存穿搭方案
+ * @param {Object} data - 保存的穿搭方案数据
+ * @returns {Promise}
+ */
+export function saveOutfit(data) {
+  return request({
+    url: '/style-ai-dress-aggregation-service/outfitApi/save',
+    method: 'post',
+    data
+  })
+}
+
+/**
+ * ==================== 穿搭记录相关 ====================
+ */
+
+/**
+ * 获取用户穿搭记录列表
+ * @param {string} userId - 用户ID
+ * @returns {Promise}
+ */
+export function getOutfitRecords(userId) {
+  return request({
+    url: OUTFIT_API.RECORDS || OUTFIT_API.RECORD_LIST,
+    method: 'get',
+    params: { userId }
+  })
+}
+
+/**
+ * 获取穿搭记录详情
+ * @param {string|number} id - 记录ID
+ * @returns {Promise}
+ */
+export function getOutfitDetail(id) {
+  return request({
+    url: (OUTFIT_API.DETAIL || OUTFIT_API.RECORD_DETAIL) + id,
+    method: 'get'
+  })
+}
+
+/**
+ * 保存穿搭评论
+ * @param {Object} data - 评论信息
+ * @returns {Promise}
+ */
+export function saveOutfitComment(data) {
+  return request({
+    url: OUTFIT_API.SAVE_COMMENT,
+    method: 'post',
+    data
+  })
+}
+
+/**
+ * 删除穿搭记录
+ * @param {string|number} outfitId - 穿搭记录ID
+ * @returns {Promise}
+ */
+export function deleteOutfitRecord(outfitId) {
+  return request({
+    url: OUTFIT_API.DELETE + outfitId,
+    method: 'delete'
+  })
+}
+
+/**
+ * 获取用户穿搭推荐记录
+ * @param {string} userId - 用户ID
+ * @returns {Promise}
+ */
+export function getOutfitRecommends(userId) {
+  return request({
+    url: OUTFIT_API.GET_RECOMMENDS,
+    method: 'get',
+    params: { userId }
+  })
+}
+
+/**
+ * ==================== 每日一搭相关 ====================
+ */
 
 /**
  * 获取每日一搭
@@ -26,6 +140,10 @@ export function getDailyMatch(params) {
     params
   })
 }
+
+/**
+ * ==================== 穿搭图片相关 ====================
+ */
 
 /**
  * 上传穿搭照片
@@ -48,81 +166,8 @@ export async function uploadOutfitImage(params) {
 }
 
 /**
- * 获取穿搭记录列表
- * @param {Object} params - 查询参数 {page, size}
- * @returns {Promise}
+ * ==================== AI评价相关（不要修改） ====================
  */
-export function getOutfitRecords(params) {
-  return request({
-    url: OUTFIT_API.RECORD_LIST,
-    method: 'get',
-    params
-  })
-}
-
-/**
- * 获取穿搭记录详情
- * @param {string|number} id - 记录ID
- * @returns {Promise}
- */
-export function getOutfitRecordDetail(id) {
-  return request({
-    url: OUTFIT_API.RECORD_DETAIL + id,
-    method: 'get'
-  })
-}
-
-/**
- * 保存穿搭
- * @param {Object} data - 穿搭信息
- * @returns {Promise}
- */
-export function saveOutfit(data) {
-  return request({
-    url: OUTFIT_API.SAVE,
-    method: 'post',
-    data
-  })
-}
-
-/**
- * 保存穿搭评论
- * @param {Object} data - 评论信息
- * @returns {Promise}
- */
-export function saveOutfitComment(data) {
-  return request({
-    url: OUTFIT_API.SAVE_COMMENT,
-    method: 'post',
-    data
-  })
-}
-
-/**
- * 生成穿搭图片
- * @param {Object} data - 图片生成参数
- * @returns {Promise}
- */
-export function generateOutfitImage(data) {
-  return request({
-    url: OUTFIT_API.GENERATE_IMAGE,
-    method: 'post',
-    data
-  })
-}
-
-/**
- * 穿搭对话修改
- * @param {Object} data - 修改参数
- * @returns {Promise}
- */
-export function followUpOutfit(data) {
-  return request({
-    url: OUTFIT_API.FOLLOW_UP,
-    method: 'post',
-    data
-  })
-}
 
 /**
  * AI评论穿搭
@@ -142,26 +187,13 @@ export async function evaluateOutfit(params) {
 }
 
 /**
- * 获取用户穿搭推荐记录
- * @param {string} userId - 用户ID
- * @returns {Promise}
- */
-export function getOutfitRecommends(userId) {
-  return request({
-    url: OUTFIT_API.GET_RECOMMENDS,
-    method: 'get',
-    params: { userId }
-  })
-}
-
-/**
  * 获取AI穿搭评论
  * @param {string} userId - 用户ID
  * @returns {Promise}
  */
 export function getFashionEvaluations(userId) {
   return request({
-    url: OUTFIT_API.GET_EVALUATIONS,
+    url: '/style-ai-dress-aggregation-service/outfitApi/getFashionEvaluations',
     method: 'get',
     params: { userId }
   })

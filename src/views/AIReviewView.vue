@@ -108,7 +108,7 @@
         </div>
         
         <!-- 空状态提示 - 移到error之前，优先判断是否有数据 -->
-        <div v-else-if="evaluations.length === 0" class="empty-state">
+        <div v-else-if="outfit_evaluations.length === 0" class="empty-state">
           <div class="flex flex-col items-center justify-center h-full px-4 py-12">
             <i class="fas fa-tshirt text-6xl text-gray-300 mb-4"></i>
             <h3 class="text-lg font-medium text-gray-500 mb-2">暂无穿搭评价</h3>
@@ -134,7 +134,7 @@
         <div v-else class="reviews-list px-4 py-3">
           <!-- 评价记录列表，显示分页后的数据 -->
           <div 
-            v-for="review in evaluations" 
+            v-for="review in currentPageEvaluations" 
             :key="review.userId + review.imagePath"
             @click="viewEvaluation(review)" 
             class="review-card"
@@ -174,7 +174,7 @@
           </div>
           
           <!-- 全部加载完毕提示 -->
-          <div v-if="!hasMoreData && evaluations.length > pageSize" class="all-loaded py-4 text-center">
+          <div v-if="!hasMoreData && outfit_evaluations.length > pageSize" class="all-loaded py-4 text-center">
             <div class="text-sm text-gray-400">— 已显示全部评价 —</div>
           </div>
         </div>
@@ -193,6 +193,9 @@ import SubPageNavBar from '@/components/SubPageNavBar.vue'
 import { useOutfitStore } from '@/stores/outfitStore'
 import { useUserStore } from '@/stores/user'
 import { onMounted, onActivated, ref, computed, nextTick, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { evaluateOutfit, getFashionEvaluations } from '@/api/outfit'
+import { showToast } from 'vant'
 
 export default {
   name: 'AIReviewView',
@@ -202,149 +205,21 @@ export default {
   setup() {
     const outfitStore = useOutfitStore()
     const userStore = useUserStore()
+    const router = useRouter()
     
-    // 检查数据刷新需求的函数
-    const checkAndRefreshData = async () => {
-      console.log('检查 AI 评价数据是否需要刷新...')
-      
-      // 调用store中的评价获取方法，完整实现优先级顺序
-      // 1. pinia缓存 -> 2. 持久化存储 -> 3. API请求
-      await outfitStore.fetchEvaluations(false)
-      
-      console.log('数据加载完成，当前评价数量:', outfitStore.evaluations.length)
-    }
-    
-    // 页面首次加载
-    onMounted(async () => {
-      console.log('AIReviewView 组件已挂载，初始化数据')
-      await checkAndRefreshData()
-      
-      // 添加调试输出
-      console.log('挂载后评价数据:', outfitStore.evaluations)
-    })
-    
-    // 页面被激活时（从其他页面返回）
-    onActivated(async () => {
-      console.log('AIReviewView 组件被激活，检查数据更新')
-      await checkAndRefreshData()
-    })
-    
-    return {
-      outfitStore,
-      userStore,
-      refreshData: checkAndRefreshData
-    }
-  },
-  data() {
-    return {
-      // 添加分页相关状态
-      pageSize: 5,        // 每页显示数量
-      currentPage: 1,     // 当前页码
-      loading: false,     // 是否正在加载更多
-      hasMoreData: true,  // 是否还有更多数据
-      activeTab: 0,
-      showDetail: false,
-      currentReview: null,
-      // 用于检测滚动到底部的距理
-      bottomOffset: 200
-    }
-  },
-  computed: {
-    // 获取排序后的所有评价记录 
-    sortedEvaluations() {
-      // 按创建时间排序
-      return [...this.outfitStore.evaluations]
-        .sort((a, b) => {
-          // 使用createdAt字段，同时兼容其他可能的时间字段
-          const timeA = new Date(a.createdAt || a.createdTime || a.createTime || 0).getTime();
-          const timeB = new Date(b.createdAt || b.createdTime || b.createTime || 0).getTime();
-          // 降序排列 - 最新的在前面
-          return timeB - timeA;
-        });
-    },
-    
-    // 当前页显示的数据（虚拟分页）
-    evaluations() {
-      // 计算当前应该显示的记录
-      const end = this.currentPage * this.pageSize;
-      const paginatedData = this.sortedEvaluations.slice(0, end);
-      
-      // 更新是否还有更多数据
-      this.hasMoreData = end < this.sortedEvaluations.length;
-      
-      console.log(`显示前${end}条记录，共${this.sortedEvaluations.length}条`);
-      return paginatedData;
-    },
-    
-    // 判断是否有数据
-    hasEvaluations() {
-      return this.sortedEvaluations.length > 0
-    },
-    
-    // 格式化日期方法保持不变
-    loading() {
-      return this.outfitStore.loading
-    },
-    error() {
-      return this.outfitStore.error
-    }
-  },
-  methods: {
-    // 查看评价详情 - 修改为在当前页面显示详情
-    viewEvaluation(review) {
-      // 设置当前评价并显示详情视图
-      this.currentReview = {
-        ...review,
-        imagePath: review.imagePath || review.url || review.fileUrl,
-        
-        // 确保所有可能的评价字段都被考虑
-        // 图片描述可能的字段
-        description: review.description || review.imageDescription || review.content || '',
-        
-        // 优点可能的字段
-        advantages: review.advantages || review.pros || review.positivePoints || '',
-        
-        // 缺点可能的字段
-        disadvantages: review.disadvantages || review.cons || review.negativePoints || '',
-        
-        // 建议可能的字段
-        suggestions: review.suggestions || review.recommendations || review.advice || '',
-        
-        // 风格分析可能的字段
-        styleAnalysis: review.styleAnalysis || review.styleType || review.fashionStyle || '',
-        
-        // 整体评价可能的字段
-        overallEvaluation: review.overallEvaluation || review.conclusion || review.summary || ''
-      }
-      
-      // 打印评价详情，方便调试
-      console.log('当前查看的评价详情:', this.currentReview)
-      
-      this.showDetail = true
-      
-      // 滚动到顶部
-      window.scrollTo(0, 0)
-    },
-    
-    // 关闭详情视图
-    closeDetail() {
-      this.showDetail = false
-      this.currentReview = null
-    },
-    
-    // 上传新穿搭按钮
-    uploadNewOutfit() {
-      console.log('跳转到上传穿搭页面')
-      this.$router.push('/upload-outfit')
-    },
-    
-    async fetchEvaluations() {
-      // 调用store的方法刷新数据
-      await this.outfitStore.fetchEvaluations()
-    },
-    
-    // 格式化日期
-    formatDate(dateString) {
+    // 添加响应式变量
+    const loading = ref(false)
+    const error = ref('')
+    const outfit_evaluations = ref([])
+    const showDetail = ref(false)
+    const currentReview = ref(null)
+    const pageSize = ref(5)
+    const currentPage = ref(1)
+    const hasMoreData = ref(true)
+    const bottomOffset = ref(200)
+
+    // 格式化日期的方法
+    const formatDate = (dateString) => {
       if (!dateString) return '未知日期'
       
       try {
@@ -357,46 +232,284 @@ export default {
       } catch (e) {
         return '未知日期'
       }
-    },
-    
-    // 处理滚动事件，实现无限滚动加载
-    handleScroll() {
-      // 如果正在加载、没有更多数据或者在详情页，则不处理
-      if (this.loading || !this.hasMoreData || this.showDetail) return;
-      
-      // 检查是否滚动到底部附近
-      const scrollPosition = window.scrollY;
-      const windowHeight = window.innerHeight;
-      const documentHeight = document.documentElement.scrollHeight;
-      
-      // 当滚动到距离底部一定距离时加载更多
-      if (scrollPosition + windowHeight >= documentHeight - this.bottomOffset) {
-        this.loadMoreData();
+    }
+
+    // 计算属性
+    const sortedEvaluations = computed(() => {
+      return [...outfit_evaluations.value].sort((a, b) => {
+        const timeA = new Date(a.createdAt).getTime()
+        const timeB = new Date(b.createdAt).getTime()
+        return timeB - timeA
+      })
+    })
+
+    const currentPageEvaluations = computed(() => {
+      const end = currentPage.value * pageSize.value
+      const paginatedData = sortedEvaluations.value.slice(0, end)
+      hasMoreData.value = end < sortedEvaluations.value.length
+      return paginatedData
+    })
+
+    // 查看评价详情
+    const viewEvaluation = (review) => {
+      currentReview.value = {
+        ...review,
+        userId: review.userId,
+        reviewId: review.reviewId,
+        imagePath: review.imagePath,
+        description: review.description,
+        advantages: review.advantages,
+        disadvantages: review.disadvantages,
+        suggestions: review.suggestions,
+        score: review.score,
+        createdAt: review.createdAt
       }
-    },
-    
+      
+      console.log('当前查看的评价详情:', currentReview.value)
+      showDetail.value = true
+      window.scrollTo(0, 0)
+    }
+
+    // 关闭详情
+    const closeDetail = () => {
+      showDetail.value = false
+      currentReview.value = null
+    }
+
+    // 上传新穿搭
+    const uploadNewOutfit = () => {
+      console.log('跳转到上传穿搭页面')
+      router.push('/upload-outfit')
+    }
+
     // 加载更多数据
-    loadMoreData() {
-      if (this.loading || !this.hasMoreData) return;
+    const loadMoreData = () => {
+      if (loading.value || !hasMoreData.value) return
       
-      this.loading = true;
-      console.log('加载更多数据...');
+      loading.value = true
+      console.log('加载更多数据...')
       
-      // 模拟异步加载，实际上是增加页码来显示更多已加载的数据
       setTimeout(() => {
-        this.currentPage++;
-        this.loading = false;
-        console.log(`页码增加到 ${this.currentPage}，显示 ${this.pageSize * this.currentPage} 条记录`);
-      }, 500);
+        currentPage.value++
+        loading.value = false
+        console.log(`页码增加到 ${currentPage.value}，显示 ${pageSize.value * currentPage.value} 条记录`)
+      }, 500)
+    }
+
+    // 滚动处理
+    const handleScroll = () => {
+      if (loading.value || !hasMoreData.value || showDetail.value) return
+      
+      const scrollPosition = window.scrollY
+      const windowHeight = window.innerHeight
+      const documentHeight = document.documentElement.scrollHeight
+      
+      if (scrollPosition + windowHeight >= documentHeight - bottomOffset.value) {
+        loadMoreData()
+      }
+    }
+
+    // 检查数据刷新需求的函数
+    const checkAndRefreshData = async () => {
+      console.log('检查 AI 评价数据是否需要刷新...')
+      
+      // 1. 先检查数据是否过期 (使用store中现有的方法)
+      const needRefresh = outfitStore.needRefreshEvaluations()
+      if (needRefresh) {
+        console.log('数据已过期(超过30分钟)，从API获取最新数据')
+        await fetchFromAPI()
+        return
+      }
+      
+      // 2. 如果没过期但pinia store中有数据，直接使用
+      if (outfitStore.outfit_evaluations.length > 0) {
+        console.log('使用 pinia store 中的数据（未过期）')
+        outfit_evaluations.value = outfitStore.outfit_evaluations
+        return
+      }
+
+      // 3. 尝试从 session storage 恢复数据
+      const restored = outfitStore.loadFromSessionStorage()
+      if (restored) {
+        console.log('从 session storage 恢复数据成功')
+        outfit_evaluations.value = outfitStore.outfit_evaluations
+        return
+      }
+
+      // 4. 如果都没有数据，则从API获取
+      console.log('无本地数据，从API获取最新数据')
+      await fetchFromAPI()
+    }
+
+    // 从API获取数据
+    const fetchFromAPI = async () => {
+      loading.value = true
+      error.value = ''
+      
+      try {
+        if (!userStore.isLoggedIn) {
+          throw new Error('用户未登录')
+        }
+        
+        const userId = userStore.userInfo?.userId
+        if (!userId) {
+          throw new Error('无法获取用户ID')
+        }
+        
+        console.log('从API获取评价数据，userId:', userId)
+        
+        // 调用API获取评价列表
+        const response = await getFashionEvaluations(userId)
+        console.log('API返回数据类型:', Array.isArray(response) ? 'Array' : typeof response)
+        
+        // 处理返回的数据 - 保持与API返回的字段名一致
+        if (Array.isArray(response)) {
+          // 直接使用返回的数组数据
+          outfit_evaluations.value = response
+          outfitStore.outfit_evaluations = [...response] // 创建新数组，避免引用问题
+          // 更新最后获取时间
+          outfitStore.lastEvaluationFetchTime = Date.now()
+          const saveResult = outfitStore.saveToSessionStorage()
+          console.log('保存到SessionStorage结果:', saveResult ? '成功' : '失败', '最后获取时间:', new Date(outfitStore.lastEvaluationFetchTime).toLocaleString())
+          console.log('成功获取并保存评价数据，条目数:', response.length)
+        } else if (response && Array.isArray(response.data)) {
+          // 如果数据在 response.data 中
+          outfit_evaluations.value = response.data
+          outfitStore.outfit_evaluations = [...response.data] // 创建新数组，避免引用问题
+          // 更新最后获取时间
+          outfitStore.lastEvaluationFetchTime = Date.now()
+          const saveResult = outfitStore.saveToSessionStorage()
+          console.log('保存到SessionStorage结果:', saveResult ? '成功' : '失败', '最后获取时间:', new Date(outfitStore.lastEvaluationFetchTime).toLocaleString())
+          console.log('成功获取并保存评价数据，条目数:', response.data.length)
+        } else {
+          throw new Error('获取评价记录失败：数据格式错误')
+        }
+      } catch (error) {
+        console.error('获取评价失败:', error)
+        error.value = error.message || '获取评价记录失败'
+        showToast(error.value)
+      } finally {
+        loading.value = false
+      }
+    }
+
+    // 手动刷新数据
+    const refreshData = async () => {
+      console.log('手动刷新数据')
+      await fetchFromAPI()
+    }
+
+    // 生命周期钩子
+    onMounted(() => {
+      window.addEventListener('scroll', handleScroll)
+      checkAndRefreshData()
+    })
+
+    // 添加onActivated钩子，确保每次激活组件时都检查数据新鲜度
+    onActivated(() => {
+      console.log('组件激活，检查数据新鲜度')
+      checkAndRefreshData()
+    })
+
+    onUnmounted(() => {
+      window.removeEventListener('scroll', handleScroll)
+    })
+
+    return {
+      // 状态
+      loading,
+      error,
+      outfit_evaluations,
+      showDetail,
+      currentReview,
+      pageSize,
+      currentPage,
+      hasMoreData,
+      
+      // 计算属性
+      sortedEvaluations,
+      currentPageEvaluations,
+      
+      // 方法
+      formatDate,
+      viewEvaluation,
+      closeDetail,
+      uploadNewOutfit,
+      loadMoreData,
+      refreshData, // 暴露手动刷新方法
+      
+      // Store
+      outfitStore,
+      userStore
     }
   },
-  mounted() {
-    // 添加滚动事件监听
-    window.addEventListener('scroll', this.handleScroll);
+  data() {
+    return {
+      // 添加分页相关状态
+      activeTab: 0
+    }
   },
-  beforeUnmount() {
-    // 移除滚动事件监听，防止内存泄漏
-    window.removeEventListener('scroll', this.handleScroll);
+  methods: {
+    // 获取评价列表
+    async fetchEvaluations() {
+      this.loading = true
+      this.error = ''
+      
+      try {
+        if (!this.userStore.isLoggedIn) {
+          throw new Error('用户未登录')
+        }
+        
+        const userId = this.userStore.userInfo?.userId
+        if (!userId) {
+          throw new Error('无法获取用户ID')
+        }
+        
+        console.log('正在获取用户评价，userId:', userId)
+        
+        // 调用API获取评价列表
+        const response = await getFashionEvaluations(userId)
+        
+        // 处理返回的数据
+        if (Array.isArray(response)) {
+          // 直接处理返回的数组
+          this.outfit_evaluations = response.map(item => ({
+            userId: item.userId,
+            reviewId: item.reviewId,
+            imagePath: item.imagePath,
+            description: item.description || '',
+            advantages: item.advantages || '',
+            disadvantages: item.disadvantages || '',
+            suggestions: item.suggestions || '',
+            score: item.score || 0,
+            createdAt: item.createdAt || new Date().toISOString()
+          }))
+          console.log('成功获取评价数据:', this.outfit_evaluations)
+        } else if (response && Array.isArray(response.data)) {
+          // 如果数据在 response.data 中
+          this.outfit_evaluations = response.data.map(item => ({
+            userId: item.userId,
+            reviewId: item.reviewId,
+            imagePath: item.imagePath,
+            description: item.description || '',
+            advantages: item.advantages || '',
+            disadvantages: item.disadvantages || '',
+            suggestions: item.suggestions || '',
+            score: item.score || 0,
+            createdAt: item.createdAt || new Date().toISOString()
+          }))
+          console.log('成功获取评价数据:', this.outfit_evaluations)
+        } else {
+          throw new Error('获取评价记录失败：数据格式错误')
+        }
+      } catch (error) {
+        console.error('获取评价失败:', error)
+        this.error = error.message || '获取评价记录失败'
+        showToast(this.error)
+      } finally {
+        this.loading = false
+      }
+    },
   }
 }
 </script>

@@ -118,13 +118,12 @@
 
 <script>
 import SubPageNavBar from '@/components/SubPageNavBar.vue'
-import { getOutfitRecommend } from '@/api/outfit'
+import { recommendOutfit } from '@/api/outfit'
 import { useUserStore } from '@/stores/user'
 import { useExternalDataStore } from '@/stores/externalData'
 import { computed, onMounted, ref } from 'vue'
 import { useOutfitResultStore } from '@/stores/outfitResult'
 import { useRouter } from 'vue-router'
-import { recommendOutfit } from '@/api/outfitResult'
 import { OUTFIT_API } from '@/api/config'
 
 export default {

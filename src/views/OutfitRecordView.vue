@@ -234,7 +234,7 @@ import { useOutfitRecordStore } from '@/stores/outfitRecord'
 import { useExternalDataStore } from '@/stores/externalData'
 import { showToast, showConfirmDialog } from 'vant'
 import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
-import { getOutfitRecords, deleteOutfitRecord } from '@/api/outfitRecord'
+import { getOutfitRecords, getOutfitDetail, deleteOutfitRecord } from '@/api/outfit'
 
 // 用户store
 const userStore = useUserStore()
@@ -258,34 +258,39 @@ const showEvaluationForm = ref(false)
 const newEvaluation = ref({ score: 0, comment: '' })
 
 // 获取穿搭记录
-const fetchOutfitRecords = async () => {
-  if (!userStore.isLoggedIn) {
-    console.error('用户未登录 (isLoggedIn 检查)')
-    showToast('请先登录')
-    return
-  }
-  
-  loading.value = true
+const fetchOutfits = async () => {
   try {
-    const userId = userStore.userInfo.userId
-    const response = await getOutfitRecords(userId)
-    
-    if (response && response.data) {
-      outfitRecordStore.records = response.data.map(item => ({
-        ...item,
-        // 确保日期格式化正确
-        createTime: new Date(item.createTime || item.createdAt).toISOString()
-      }))
-      console.log('获取到穿搭记录:', outfitRecordStore.records.length)
-    } else {
-      console.log('没有穿搭记录或返回格式不正确')
-      outfitRecordStore.records = []
+    loading.value = true
+    const userId = userStore.userInfo?.id
+    if (!userId) {
+      throw new Error('用户未登录')
     }
-  } catch (err) {
-    console.error('获取穿搭记录失败:', err)
-    showToast('获取数据失败，请稍后再试')
+
+    const response = await getOutfitRecords(userId)
+    outfits.value = response.data || []
+    
+    console.log('获取到的穿搭记录:', outfits.value)
+  } catch (error) {
+    console.error('获取穿搭记录失败', error)
+    showToast('获取穿搭记录失败')
   } finally {
     loading.value = false
+  }
+}
+
+// 获取穿搭详情
+const fetchOutfitDetail = async (outfitId) => {
+  try {
+    loadingDetail.value = true
+    const response = await getOutfitDetail(outfitId)
+    currentOutfit.value = response.data
+    return response.data
+  } catch (error) {
+    console.error('获取穿搭详情失败', error)
+    showToast('获取穿搭详情失败')
+    return null
+  } finally {
+    loadingDetail.value = false
   }
 }
 
@@ -310,7 +315,7 @@ const handleDeleteOutfit = async (outfit) => {
       await deleteOutfitRecord(outfit.id)
       showToast('删除成功')
       // 重新加载数据
-      fetchOutfitRecords()
+      fetchOutfits()
     } catch (err) {
       console.error('删除失败:', err)
       showToast('删除失败，请稍后再试')
@@ -379,7 +384,7 @@ const deleteOutfit = async (outfitId) => {
       
       showToast('穿搭记录已删除')
       // 重新加载数据
-      fetchOutfitRecords()
+      fetchOutfits()
     } catch (error) {
       console.error('删除记录失败', error)
       showToast('删除失败，请稍后再试')
@@ -499,7 +504,7 @@ onMounted(() => {
   // 如果本地没有数据或数据为空，从API获取
   if (!restored || outfitRecordStore.records.length === 0) {
     if (userStore.isLoggedIn) {
-      fetchOutfitRecords()
+      fetchOutfits()
     }
   }
 })
