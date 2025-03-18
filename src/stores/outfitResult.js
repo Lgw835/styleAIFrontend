@@ -55,6 +55,7 @@ export const useOutfitResultStore = defineStore('outfitResult', {
         readablePlan: data.readablePlan || '',
         imagePrompt: data.imagePrompt || '',
         summary: data.summary || '',
+        outfitImage: data.outfitImage || '',
         timestamp: new Date().toISOString(),
         description: '初始推荐方案'
       }
@@ -103,6 +104,7 @@ export const useOutfitResultStore = defineStore('outfitResult', {
               readablePlan: parsedData.readablePlan || '',
               imagePrompt: parsedData.imagePrompt || '',
               summary: parsedData.summary || '',
+              outfitImage: parsedData.outfitImage || '',
               timestamp: new Date().toISOString(),
               description: '从旧格式恢复的方案'
             }
@@ -165,6 +167,7 @@ export const useOutfitResultStore = defineStore('outfitResult', {
         readablePlan: data.readablePlan || '',
         imagePrompt: data.imagePrompt || '',
         summary: data.summary || '',
+        outfitImage: data.outfitImage || '',
         timestamp: new Date().toISOString(),
         description: comment || `版本 ${newVersionNumber}`
       }
@@ -188,6 +191,14 @@ export const useOutfitResultStore = defineStore('outfitResult', {
       
       // 更新当前版本索引
       this.currentVersionIndex = versionIndex
+      
+      // 同时更新全局图片变量，使其显示当前版本的图片
+      const currentVersion = this.versionHistory[versionIndex]
+      if (currentVersion && currentVersion.outfitImage) {
+        this.outfitImage = currentVersion.outfitImage
+      } else {
+        this.outfitImage = '' // 如果当前版本没有图片，清空图片显示
+      }
       
       // 保存到会话存储
       this.saveToSession()
@@ -228,7 +239,15 @@ export const useOutfitResultStore = defineStore('outfitResult', {
     
     // 设置图片URL
     setOutfitImage(imageUrl) {
+      // 存储到全局变量（为了兼容现有代码）
       this.outfitImage = imageUrl
+      
+      // 同时更新当前版本的图片
+      if (this.versionHistory.length > 0 && this.currentVersionIndex >= 0) {
+        this.versionHistory[this.currentVersionIndex].outfitImage = imageUrl
+      }
+      
+      // 保存到会话存储
       this.saveToSession()
     },
     
@@ -282,7 +301,8 @@ export const useOutfitResultStore = defineStore('outfitResult', {
       this.addVersion({
         readablePlan: response.readablePlan || response.data?.readablePlan,
         imagePrompt: response.imagePrompt || response.data?.imagePrompt,
-        summary: response.summary || response.data?.summary
+        summary: response.summary || response.data?.summary,
+        outfitImage: response.outfitImage || response.data?.outfitImage
       }, userMessage)
       
       return response

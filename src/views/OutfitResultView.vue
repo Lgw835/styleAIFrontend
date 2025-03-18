@@ -74,7 +74,7 @@
         <div class="bg-white rounded-xl p-4 shadow-sm">
           <div class="flex justify-between items-center mb-3">
             <h3 class="text-lg font-medium">穿搭效果图</h3>
-            <div class="flex space-x-2" v-if="outfitImage">
+            <div class="flex space-x-2" v-if="getCurrentVersionImage">
               <button class="text-gray-600 hover:text-blue-500" @click="regenerateImage">
                 <i class="fas fa-redo"></i>
                 <span class="text-sm ml-1">重新生成</span>
@@ -86,8 +86,8 @@
             </div>
           </div>
           
-          <!-- 生成按钮 -->
-          <div v-if="!isGenerating && !outfitImage" 
+          <!-- 生成按钮 - 使用getCurrentVersionImage作为判断条件 -->
+          <div v-if="!isGenerating && !getCurrentVersionImage" 
                @click="generateImage"
                class="w-full py-4 bg-blue-500 hover:bg-blue-600 text-white rounded-lg flex items-center justify-center transition-colors">
             <i class="fas fa-magic text-xl mr-2"></i>
@@ -107,8 +107,8 @@
           </div>
 
           <!-- 图片展示 -->
-          <div v-if="outfitImage" class="aspect-w-1 aspect-h-1 bg-gray-100 rounded-lg overflow-hidden">
-            <img :src="formatImageSource(outfitImage)" alt="穿搭效果图" class="w-full h-auto object-cover">
+          <div v-if="getCurrentVersionImage" class="aspect-w-1 aspect-h-1 bg-gray-100 rounded-lg overflow-hidden">
+            <img :src="getCurrentVersionImage" alt="穿搭效果图" class="w-full h-auto object-cover">
             <div class="absolute top-2 right-2">
               <button @click="debugImageData" class="bg-gray-800 bg-opacity-50 text-white p-1 rounded text-xs">
                 <i class="fas fa-bug"></i>
@@ -499,7 +499,7 @@ export default {
       outfitResultStore.addToVersionHistory('初始方案', '默认推荐方案')
     }
     
-    // 修改generateImage方法以正确处理返回的base64数据
+    // 修改generateImage方法以正确处理返回的base64数据并更新当前版本
     const generateImage = async () => {
       if (loading.value) return
       
@@ -528,8 +528,23 @@ export default {
         // 获取图片URL或base64数据
         let imageUrl = imageData.imageUrl || imageData.url || imageData;
         
-        // 将图片数据存储到store
-        outfitResultStore.setOutfitImage(imageUrl)
+        // 格式化图片源（确保base64数据正确）
+        const formattedImageUrl = formatImageSource(imageUrl);
+        
+        // 将图片数据存储到当前版本
+        if (outfitResultStore.versionHistory.length > 0) {
+          // 获取当前版本索引
+          const currentIndex = outfitResultStore.currentVersionIndex;
+          
+          // 直接更新版本历史中的图片
+          if (currentIndex >= 0 && currentIndex < outfitResultStore.versionHistory.length) {
+            // 这将通过引用更新存储中的数据
+            outfitResultStore.versionHistory[currentIndex].outfitImage = formattedImageUrl;
+            
+            // 同时更新全局图片状态以保持兼容性
+            outfitResultStore.setOutfitImage(formattedImageUrl);
+          }
+        }
         
         // 成功提示
         showToast('图片生成成功')
@@ -550,24 +565,25 @@ export default {
       }
     }
 
-    // 下载图片
+    // 修改下载图片方法以使用当前版本的图片
     const downloadImage = () => {
-      if (!outfitImage.value) return
+      const imageToDownload = getCurrentVersionImage.value;
+      if (!imageToDownload) return;
       
       try {
         // 创建临时链接并触发下载
-        const link = document.createElement('a')
-        link.href = outfitImage.value
-        link.download = `穿搭效果图_${new Date().toISOString().slice(0, 10)}.jpg`
-        link.target = '_blank'
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
+        const link = document.createElement('a');
+        link.href = imageToDownload;
+        link.download = `穿搭效果图_${currentVersion.value}_${new Date().toISOString().slice(0, 10)}.jpg`;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
         
-        showToast('图片已开始下载', 'success')
+        showToast('图片已开始下载', 'success');
       } catch (error) {
-        console.error('下载图片失败', error)
-        showToast('下载图片失败', 'error')
+        console.error('下载图片失败', error);
+        showToast('下载图片失败', 'error');
       }
     }
 
@@ -1047,6 +1063,22 @@ export default {
       }
     }
 
+    // 获取当前版本的图片或全局图片
+    const getCurrentVersionImage = computed(() => {
+      if (outfitResultStore.versionHistory.length === 0) return '';
+      
+      const currentVersionIndex = outfitResultStore.currentVersionIndex;
+      const currentVersion = outfitResultStore.versionHistory[currentVersionIndex];
+      
+      // 优先返回版本中存储的图片
+      if (currentVersion && currentVersion.outfitImage) {
+        return formatImageSource(currentVersion.outfitImage);
+      }
+      
+      // 如果版本中没有图片，回退到全局图片
+      return formatImageSource(outfitImage.value || '');
+    });
+
     return {
       // 使用computed引用store的状态
       readablePlan,
@@ -1102,7 +1134,10 @@ export default {
       formatImageSource,
       
       // 新增的debugImageData方法
-      debugImageData
+      debugImageData,
+      
+      // 新增的getCurrentVersionImage方法
+      getCurrentVersionImage
     }
   }
 }
