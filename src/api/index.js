@@ -17,6 +17,9 @@ export * from './virtualTry'
 // 导出用户画像相关API
 export * from './userPortrait'
 
+// 导出日程相关API
+export * from './schedule'
+
 // 导出所有API URLs配置
 export * from './config'
 

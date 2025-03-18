@@ -29,15 +29,14 @@
           <!-- 日程列表项 -->
           <router-link 
             v-for="event in dayEvents" 
-            :key="event.id" 
-            :to="`/schedule-detail/${event.id}`" 
+            :key="event.scheduleId" 
+            :to="`/schedule-detail/${event.scheduleId}`" 
             class="event-link"
           >
             <div class="event-card">
-              <div class="time">{{ event.time }}</div>
-              <div class="title">{{ event.title }}</div>
-              <div class="description">{{ event.description }}</div>
-              <div v-if="event.hasReminder" class="reminder">
+              <div class="title">{{ event.eventDescribe }}</div>
+              <div class="description">{{ event.notes }}</div>
+              <div v-if="event.reminder === 1" class="reminder">
                 <i class="fas fa-bell"></i>
                 <span>提醒已开启</span>
               </div>
@@ -114,51 +113,33 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { useUserStore } from '@/stores/user'
+import { useScheduleStore } from '@/stores/schedule' 
 import SubPageNavBar from '@/components/SubPageNavBar.vue'
 
 const router = useRouter()
+const route = useRoute()
+const userStore = useUserStore()
+const scheduleStore = useScheduleStore()
 
 // 状态变量
-const currentDate = ref(new Date(2025, 2, 8)) // JavaScript月份是0-11，所以3月是2
-const selectedDate = ref(new Date(2025, 2, 8))
+const currentDate = ref(new Date())
 const isCalendarVisible = ref(false)
 const calendarDays = ref([])
 
-// 示例事件数据
-const events = {
-  '2025-03-07': [
-    { id: 101, time: '上午 09:00', title: '季度规划会议', description: '讨论下一季度的产品规划和发展方向', hasReminder: true },
-    { id: 102, time: '下午 15:00', title: '团队建设活动', description: '参加公司组织的团队拓展训练', hasReminder: true }
-  ],
-  '2025-03-08': [
-    { id: 103, time: '上午 10:30', title: '产品发布会', description: '参加新品发布会，负责技术演示环节', hasReminder: true },
-    { id: 104, time: '下午 14:00', title: '客户洽谈', description: '与潜在客户讨论合作方案', hasReminder: false },
-    { id: 105, time: '晚上 18:30', title: '家庭聚餐', description: '和家人在喜欢的餐厅共进晚餐', hasReminder: true }
-  ],
-  '2025-03-09': [
-    { id: 106, time: '全天', title: '周末出游', description: '带家人去郊外度假，放松心情', hasReminder: true }
-  ],
-  '2025-03-10': [
-    { id: 107, time: '上午 11:00', title: '项目评审', description: '第一季度项目成果评审会议', hasReminder: true }
-  ],
-  '2025-03-15': [
-    { id: 108, time: '下午 16:30', title: '健身课程', description: '参加健身房的有氧运动课程', hasReminder: false }
-  ]
-}
-
 // 计算属性
+const selectedDate = computed(() => scheduleStore.selectedDate)
+
 const formatSelectedDate = computed(() => {
-  const year = selectedDate.value.getFullYear()
-  const month = selectedDate.value.getMonth() + 1
-  const day = selectedDate.value.getDate()
-  return `${year}年${month}月${day}日`
+  const date = scheduleStore.selectedDate
+  return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`
 })
 
 const formatWeekday = computed(() => {
-  const weekdays = ['日', '一', '二', '三', '四', '五', '六']
-  return `周${weekdays[selectedDate.value.getDay()]}`
+  const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
+  return weekdays[scheduleStore.selectedDate.getDay()]
 })
 
 const formatCurrentMonth = computed(() => {
@@ -168,40 +149,35 @@ const formatCurrentMonth = computed(() => {
 })
 
 const dayEvents = computed(() => {
-  const dateStr = formatDate(selectedDate.value)
-  return events[dateStr] || []
+  return scheduleStore.schedules
 })
 
 // 方法
-function showCalendarPopup() {
-  isCalendarVisible.value = true
-  renderCalendar()
+// 格式化日期为 YYYY-MM-DD 格式
+function formatDateToString(date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
-function hideCalendarPopup() {
-  isCalendarVisible.value = false
+// 获取日程列表
+async function fetchSchedules() {
+  if (!userStore.userInfo?.userId) return
+  
+  try {
+    const date = scheduleStore.selectedDate
+    // 使用格式化后的日期字符串
+    await scheduleStore.fetchSchedulesByDate(
+      userStore.userInfo.userId, 
+      formatDateToString(date)
+    )
+  } catch (error) {
+    console.error('获取日程失败:', error)
+  }
 }
 
-function prevMonth() {
-  currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() - 1, 1)
-  renderCalendar()
-}
-
-function nextMonth() {
-  currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1, 1)
-  renderCalendar()
-}
-
-function confirmDate() {
-  hideCalendarPopup()
-}
-
-function goToToday() {
-  selectedDate.value = new Date()
-  currentDate.value = new Date(selectedDate.value.getFullYear(), selectedDate.value.getMonth(), 1)
-  renderCalendar()
-}
-
+// 渲染日历
 function renderCalendar() {
   const year = currentDate.value.getFullYear()
   const month = currentDate.value.getMonth()
@@ -211,88 +187,125 @@ function renderCalendar() {
   const lastDay = new Date(year, month + 1, 0)
   
   // 获取当月第一天是星期几
-  const firstDayIndex = firstDay.getDay()
-  
-  // 获取上个月的最后几天
-  const prevLastDay = new Date(year, month, 0)
-  const daysInPrevMonth = prevLastDay.getDate()
-  
-  // 计算需要显示的日期总数
-  const daysInMonth = lastDay.getDate()
+  const firstDayOfWeek = firstDay.getDay()
   
   const days = []
   
-  // 上个月的日期
-  for (let i = firstDayIndex; i > 0; i--) {
-    const day = daysInPrevMonth - i + 1
-    const date = new Date(year, month - 1, day)
-    const dateStr = formatDate(date)
-    
+  // 添加上个月的日期
+  for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+    const date = new Date(year, month, -i)
     days.push({
-      day,
       date,
+      day: date.getDate(),
       isOtherMonth: true,
       isToday: isSameDay(date, new Date()),
       isSelected: isSameDay(date, selectedDate.value),
-      hasEvent: !!events[dateStr]
+      hasEvent: false // 可以根据实际日程判断
     })
   }
   
-  // 当月的日期
-  for (let i = 1; i <= daysInMonth; i++) {
+  // 添加当月的日期
+  for (let i = 1; i <= lastDay.getDate(); i++) {
     const date = new Date(year, month, i)
-    const dateStr = formatDate(date)
-    
     days.push({
-      day: i,
       date,
+      day: i,
       isOtherMonth: false,
       isToday: isSameDay(date, new Date()),
       isSelected: isSameDay(date, selectedDate.value),
-      hasEvent: !!events[dateStr]
+      hasEvent: false // 可以根据实际日程判断
     })
   }
   
-  // 下个月的日期
-  const nextDays = 42 - days.length
-  for (let i = 1; i <= nextDays; i++) {
+  // 添加下个月的日期
+  const remainingDays = 42 - days.length // 保持6行
+  for (let i = 1; i <= remainingDays; i++) {
     const date = new Date(year, month + 1, i)
-    const dateStr = formatDate(date)
-    
     days.push({
-      day: i,
       date,
+      day: i,
       isOtherMonth: true,
       isToday: isSameDay(date, new Date()),
       isSelected: isSameDay(date, selectedDate.value),
-      hasEvent: !!events[dateStr]
+      hasEvent: false // 可以根据实际日程判断
     })
   }
   
   calendarDays.value = days
 }
 
-function selectDate(date) {
-  selectedDate.value = date
-  renderCalendar()
-}
-
-// 辅助函数
-function formatDate(date) {
-  const year = date.getFullYear()
-  const month = (date.getMonth() + 1).toString().padStart(2, '0')
-  const day = date.getDate().toString().padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
+// 判断两个日期是否是同一天
 function isSameDay(date1, date2) {
   return date1.getFullYear() === date2.getFullYear() &&
          date1.getMonth() === date2.getMonth() &&
          date1.getDate() === date2.getDate()
 }
 
-// 生命周期钩子
+// 选择日期
+function selectDate(date) {
+  currentDate.value = new Date(date)
+  calendarDays.value = calendarDays.value.map(day => ({
+    ...day,
+    isSelected: isSameDay(day.date, currentDate.value)
+  }))
+}
+
+// 显示日历弹窗
+function showCalendarPopup() {
+  isCalendarVisible.value = true
+  currentDate.value = new Date(scheduleStore.selectedDate)
+  renderCalendar()
+}
+
+// 隐藏日历弹窗
+function hideCalendarPopup() {
+  isCalendarVisible.value = false
+}
+
+// 上个月
+function prevMonth() {
+  currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() - 1, 1)
+  renderCalendar()
+}
+
+// 下个月
+function nextMonth() {
+  currentDate.value = new Date(currentDate.value.getFullYear(), currentDate.value.getMonth() + 1, 1)
+  renderCalendar()
+}
+
+// 确认选择日期
+async function confirmDate() {
+  const selectedDate = new Date(currentDate.value)
+  // 设置时间为当天的 00:00:00
+  selectedDate.setHours(0, 0, 0, 0)
+  scheduleStore.selectedDate = selectedDate
+  hideCalendarPopup()
+  await fetchSchedules()
+}
+
+// 跳转到今天
+async function goToToday() {
+  const today = new Date()
+  // 设置时间为当天的 00:00:00
+  today.setHours(0, 0, 0, 0)
+  scheduleStore.selectedDate = today
+  await fetchSchedules()
+}
+
+// 监听路由变化，重新获取数据
+watch(
+  () => route.path,
+  () => {
+    if (route.path === '/schedule') {
+      fetchSchedules()
+    }
+  }
+)
+
+// 初始化
 onMounted(() => {
+  fetchSchedules()
   renderCalendar()
 })
 </script>
@@ -304,8 +317,8 @@ onMounted(() => {
 }
 
 .schedule-container {
-  padding-top: 56px; /* 与顶部导航栏高度相同 */
-  padding-bottom: 72px; /* 为底部添加按钮留出空间 */
+  padding-top: 56px;
+  padding-bottom: 72px;
   width: 100%;
   max-width: 640px;
   margin: 0 auto;
@@ -367,11 +380,6 @@ onMounted(() => {
   border-radius: 12px;
   padding: 16px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-}
-
-.event-card .time {
-  font-size: 12px;
-  color: #6B7280;
 }
 
 .event-card .title {
@@ -609,5 +617,10 @@ onMounted(() => {
   font-size: 18px;
   padding: 8px;
   cursor: pointer;
+}
+
+/* 移除时间相关样式,其他样式保持不变 */
+.time {
+  display: none;
 }
 </style> 

@@ -12,41 +12,26 @@
 
     <div class="schedule-edit-container">
       <div class="edit-form">
-        <!-- 标题输入 -->
+        <!-- 事件描述输入 -->
         <div class="form-group">
-          <label class="form-label" for="title">标题</label>
+          <label class="form-label" for="eventDescribe">事件描述</label>
           <input 
             type="text" 
-            id="title" 
+            id="eventDescribe" 
             class="form-input" 
-            placeholder="请输入日程标题" 
-            v-model="formData.title"
+            placeholder="请输入事件描述" 
+            v-model="formData.eventDescribe"
           >
         </div>
 
         <!-- 日期选择 -->
-        <div class="form-group" @click="showDatePicker">
-          <label class="form-label">日期</label>
-          <div class="picker-input">
-            <span>{{ formatDate }}</span>
-            <i class="fas fa-chevron-right"></i>
-          </div>
-        </div>
-
-        <!-- 时间选择 -->
         <div class="form-group">
-          <label class="form-label">时间</label>
-          <div class="time-options">
-            <button 
-              v-for="timeOption in timeOptions" 
-              :key="timeOption.value"
-              class="time-option"
-              :class="{ 'active': formData.time === timeOption.value }"
-              @click="formData.time = timeOption.value"
-            >
-              {{ timeOption.label }}
-            </button>
-          </div>
+          <label class="form-label">日期</label>
+          <input 
+            type="date" 
+            class="form-input"
+            v-model="formData.date"
+          >
         </div>
 
         <!-- 提醒设置 -->
@@ -58,94 +43,23 @@
             </div>
             <div class="switch-container">
               <label class="switch">
-                <input type="checkbox" v-model="formData.hasReminder">
+                <input type="checkbox" v-model="formData.reminder">
                 <span class="slider round"></span>
               </label>
             </div>
           </div>
-          <div v-if="formData.hasReminder" class="reminder-time-options">
-            <button 
-              v-for="reminderOption in reminderOptions" 
-              :key="reminderOption.value"
-              class="reminder-option"
-              :class="{ 'active': formData.reminderTime === reminderOption.value }"
-              @click="formData.reminderTime = reminderOption.value"
-            >
-              {{ reminderOption.label }}
-            </button>
-          </div>
         </div>
 
-        <!-- 地点输入 -->
+        <!-- 备注输入 -->
         <div class="form-group">
-          <label class="form-label" for="location">地点</label>
-          <input 
-            type="text" 
-            id="location" 
-            class="form-input" 
-            placeholder="请输入地点（选填）" 
-            v-model="formData.location"
-          >
-        </div>
-
-        <!-- 描述输入 -->
-        <div class="form-group">
-          <label class="form-label" for="description">描述</label>
+          <label class="form-label" for="notes">备注</label>
           <textarea 
-            id="description" 
+            id="notes" 
             class="form-textarea" 
-            placeholder="请输入日程描述（选填）" 
-            v-model="formData.description"
+            placeholder="请输入备注(选填)" 
+            v-model="formData.notes"
             rows="4"
           ></textarea>
-        </div>
-
-        <!-- 参与人员选择 -->
-        <div class="form-group">
-          <div class="section-header">
-            <label class="form-label">参与人员</label>
-            <button class="add-btn" @click="addParticipant">
-              <i class="fas fa-plus"></i> 添加
-            </button>
-          </div>
-          <div class="participants-list" v-if="formData.participants && formData.participants.length > 0">
-            <div v-for="(person, index) in formData.participants" :key="index" class="participant-item">
-              <div class="participant-info">
-                <div class="avatar">{{ person.avatar || person.name.charAt(0) }}</div>
-                <span>{{ person.name }}</span>
-              </div>
-              <button class="remove-btn" @click="removeParticipant(index)">
-                <i class="fas fa-times"></i>
-              </button>
-            </div>
-          </div>
-          <div v-else class="empty-participants">
-            <p>暂无参与人员</p>
-          </div>
-        </div>
-
-        <!-- 附件管理 -->
-        <div class="form-group">
-          <div class="section-header">
-            <label class="form-label">附件</label>
-            <button class="add-btn" @click="uploadAttachment">
-              <i class="fas fa-plus"></i> 添加
-            </button>
-          </div>
-          <div class="attachments-list" v-if="formData.attachments && formData.attachments.length > 0">
-            <div v-for="(attachment, index) in formData.attachments" :key="index" class="attachment-item">
-              <div class="attachment-info">
-                <i :class="getAttachmentIcon(attachment.type)"></i>
-                <span>{{ attachment.name }}</span>
-              </div>
-              <button class="remove-btn" @click="removeAttachment(index)">
-                <i class="fas fa-times"></i>
-              </button>
-            </div>
-          </div>
-          <div v-else class="empty-attachments">
-            <p>暂无附件</p>
-          </div>
         </div>
       </div>
     </div>
@@ -204,26 +118,27 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useUserStore } from '@/stores/user'
+import { useScheduleStore } from '@/stores/schedule'
 import SubPageNavBar from '@/components/SubPageNavBar.vue'
 
 const route = useRoute()
 const router = useRouter()
-const eventId = route.params.id ? parseInt(route.params.id) : null
+const userStore = useUserStore()
+const scheduleStore = useScheduleStore()
+
+const eventId = route.params.id
 const isEdit = computed(() => !!eventId)
 
 // 表单数据
 const formData = ref({
-  title: '',
-  date: new Date(),
-  time: '上午 10:00',
-  hasReminder: false,
-  reminderTime: '10分钟前',
-  location: '',
-  description: '',
-  participants: [],
-  attachments: []
+  eventDescribe: '',
+  date: new Date().toISOString().split('T')[0],
+  reminder: false,
+  notes: '',
+  userId: userStore.userInfo?.userId
 })
 
 // 日期选择器状态
@@ -247,78 +162,6 @@ const formatCurrentMonth = computed(() => {
   return `${year}年${month}月`
 })
 
-// 配置选项
-const timeOptions = [
-  { label: '上午 08:00', value: '上午 08:00' },
-  { label: '上午 09:00', value: '上午 09:00' },
-  { label: '上午 10:00', value: '上午 10:00' },
-  { label: '上午 11:00', value: '上午 11:00' },
-  { label: '下午 12:00', value: '下午 12:00' },
-  { label: '下午 13:00', value: '下午 13:00' },
-  { label: '下午 14:00', value: '下午 14:00' },
-  { label: '下午 15:00', value: '下午 15:00' },
-  { label: '下午 16:00', value: '下午 16:00' },
-  { label: '下午 17:00', value: '下午 17:00' },
-  { label: '下午 18:00', value: '下午 18:00' },
-  { label: '晚上 19:00', value: '晚上 19:00' },
-  { label: '晚上 20:00', value: '晚上 20:00' },
-  { label: '全天', value: '全天' }
-]
-
-const reminderOptions = [
-  { label: '准时', value: '准时' },
-  { label: '5分钟前', value: '5分钟前' },
-  { label: '10分钟前', value: '10分钟前' },
-  { label: '15分钟前', value: '15分钟前' },
-  { label: '30分钟前', value: '30分钟前' },
-  { label: '1小时前', value: '1小时前' },
-  { label: '2小时前', value: '2小时前' },
-  { label: '1天前', value: '1天前' }
-]
-
-// 示例事件数据
-const events = {
-  '2025-03-07': [
-    { id: 101, time: '上午 09:00', title: '季度规划会议', description: '讨论下一季度的产品规划和发展方向', hasReminder: true },
-    { id: 102, time: '下午 15:00', title: '团队建设活动', description: '参加公司组织的团队拓展训练', hasReminder: true }
-  ],
-  '2025-03-08': [
-    { id: 103, time: '上午 10:30', title: '产品发布会', description: '参加新品发布会，负责技术演示环节', hasReminder: true, location: '公司会议厅', participants: [
-      { id: 1, name: '张经理', avatar: 'Z' },
-      { id: 2, name: '李工程师', avatar: 'L' },
-      { id: 3, name: '王设计师', avatar: 'W' }
-    ] },
-    { id: 104, time: '下午 14:00', title: '客户洽谈', description: '与潜在客户讨论合作方案', hasReminder: false, location: '星巴克咖啡厅', participants: [
-      { id: 4, name: '陈总', avatar: 'C' }
-    ] },
-    { id: 105, time: '晚上 18:30', title: '家庭聚餐', description: '和家人在喜欢的餐厅共进晚餐', hasReminder: true, location: '海底捞火锅', participants: [
-      { id: 5, name: '妻子', avatar: '妻' },
-      { id: 6, name: '儿子', avatar: '儿' }
-    ] }
-  ],
-  '2025-03-09': [
-    { id: 106, time: '全天', title: '周末出游', description: '带家人去郊外度假，放松心情', hasReminder: true, location: '青山湖景区', attachments: [
-      { id: 1, name: '门票预订.pdf', type: 'pdf' },
-      { id: 2, name: '行程安排.docx', type: 'doc' }
-    ] }
-  ],
-  '2025-03-10': [
-    { id: 107, time: '上午 11:00', title: '项目评审', description: '第一季度项目成果评审会议', hasReminder: true, location: '公司大会议室', attachments: [
-      { id: 3, name: '项目报告.pptx', type: 'ppt' },
-      { id: 4, name: '财务数据.xlsx', type: 'excel' }
-    ] }
-  ],
-  '2025-03-15': [
-    { id: 108, time: '下午 16:30', title: '健身课程', description: '参加健身房的有氧运动课程', hasReminder: false, location: '健身工厂' }
-  ]
-}
-
-// 方法
-function showDatePicker() {
-  isDatePickerVisible.value = true
-  currentDate.value = new Date(formData.value.date)
-  renderCalendar()
-}
 
 function hideDatePicker() {
   isDatePickerVisible.value = false
@@ -334,13 +177,53 @@ function nextMonth() {
   renderCalendar()
 }
 
+function confirmDate() {
+  hideDatePicker()
+}
+
 function selectDate(date) {
   formData.value.date = date
   renderCalendar()
 }
 
-function confirmDate() {
-  hideDatePicker()
+// 从日程对象设置表单数据
+function setFormDataFromEvent(event) {
+  const eventDate = new Date(event.date)
+  
+  formData.value = {
+    eventDescribe: event.eventDescribe,
+    date: eventDate.toISOString().split('T')[0],
+    reminder: event.reminder === 1,
+    notes: event.notes || '',
+    userId: event.userId
+  }
+}
+
+// 保存日程
+async function saveEvent() {
+  if (!formData.value.eventDescribe) {
+    alert('请输入事件描述')
+    return
+  }
+
+  try {
+    const data = {
+      ...formData.value,
+      reminder: formData.value.reminder ? 1 : 0
+    }
+
+    if (isEdit.value) {
+      data.schedule_id = eventId
+      await scheduleStore.updateSchedule(data)
+    } else {
+      await scheduleStore.createSchedule(data)
+    }
+
+    router.push('/schedule')
+  } catch (error) {
+    console.error('保存日程失败:', error)
+    alert('保存失败')
+  }
 }
 
 function renderCalendar() {
@@ -407,103 +290,6 @@ function renderCalendar() {
   calendarDays.value = days
 }
 
-function addParticipant() {
-  if (!formData.value.participants) {
-    formData.value.participants = []
-  }
-
-  // 这里应该弹出选择联系人的界面，目前简单模拟添加
-  const newParticipant = {
-    id: Date.now(),
-    name: `联系人${formData.value.participants.length + 1}`,
-    avatar: (formData.value.participants.length + 1).toString()
-  }
-  
-  formData.value.participants.push(newParticipant)
-}
-
-function removeParticipant(index) {
-  formData.value.participants.splice(index, 1)
-}
-
-function uploadAttachment() {
-  if (!formData.value.attachments) {
-    formData.value.attachments = []
-  }
-
-  // 这里应该弹出文件选择器，目前简单模拟添加
-  const fileTypes = ['pdf', 'doc', 'excel', 'ppt', 'image']
-  const randomType = fileTypes[Math.floor(Math.random() * fileTypes.length)]
-  const fileNames = {
-    'pdf': '文档.pdf',
-    'doc': '报告.docx',
-    'excel': '数据.xlsx',
-    'ppt': '演示.pptx',
-    'image': '图片.jpg'
-  }
-  
-  const newAttachment = {
-    id: Date.now(),
-    name: fileNames[randomType],
-    type: randomType
-  }
-  
-  formData.value.attachments.push(newAttachment)
-}
-
-function removeAttachment(index) {
-  formData.value.attachments.splice(index, 1)
-}
-
-function getAttachmentIcon(type) {
-  const iconMap = {
-    'pdf': 'fas fa-file-pdf',
-    'doc': 'fas fa-file-word',
-    'excel': 'fas fa-file-excel',
-    'ppt': 'fas fa-file-powerpoint',
-    'image': 'fas fa-file-image',
-    'video': 'fas fa-file-video'
-  }
-  return iconMap[type] || 'fas fa-file'
-}
-
-function saveEvent() {
-  if (!formData.value.title.trim()) {
-    alert('请输入日程标题')
-    return
-  }
-
-  // 这里应该有保存日程的实际逻辑
-  console.log('保存日程', formData.value)
-  
-  // 保存后返回列表页或详情页
-  if (isEdit.value) {
-    router.push(`/schedule-detail/${eventId}`)
-  } else {
-    router.push('/schedule')
-  }
-}
-
-function findEvent(id) {
-  for (const date in events) {
-    const foundEvent = events[date].find(e => e.id === id)
-    if (foundEvent) {
-      return foundEvent
-    }
-  }
-  return null
-}
-
-function findEventDate(id) {
-  for (const date in events) {
-    const foundEvent = events[date].find(e => e.id === id)
-    if (foundEvent) {
-      return date
-    }
-  }
-  return null
-}
-
 // 辅助函数
 function isSameDay(date1, date2) {
   return date1.getFullYear() === date2.getFullYear() &&
@@ -513,32 +299,20 @@ function isSameDay(date1, date2) {
 
 // 生命周期钩子
 onMounted(() => {
-  if (isEdit.value) {
-    // 获取事件详情
-    const foundEvent = findEvent(eventId)
-    if (foundEvent) {
-      // 填充表单数据
-      formData.value.title = foundEvent.title
-      formData.value.time = foundEvent.time
-      formData.value.hasReminder = foundEvent.hasReminder
-      formData.value.reminderTime = foundEvent.reminderTime || '10分钟前'
-      formData.value.description = foundEvent.description || ''
-      formData.value.location = foundEvent.location || ''
-      formData.value.participants = foundEvent.participants ? [...foundEvent.participants] : []
-      formData.value.attachments = foundEvent.attachments ? [...foundEvent.attachments] : []
-      
-      // 设置日期
-      const eventDate = findEventDate(eventId)
-      if (eventDate) {
-        formData.value.date = new Date(eventDate)
-        currentDate.value = new Date(eventDate)
+  renderCalendar()
+  
+  if (isEdit.value && scheduleStore.schedules.length > 0) {
+    const event = scheduleStore.schedules.find(e => e.schedule_id === eventId)
+    if (event) {
+      formData.value = {
+        eventDescribe: event.eventDescribe,
+        date: new Date(event.date).toISOString().split('T')[0],
+        reminder: event.reminder === 1,
+        notes: event.notes,
+        userId: event.userId
       }
-    } else {
-      router.push('/schedule')
     }
   }
-  
-  renderCalendar()
 })
 </script>
 
@@ -549,7 +323,7 @@ onMounted(() => {
 }
 
 .schedule-edit-container {
-  padding-top: 56px; /* 与顶部导航栏高度相同 */
+  padding-top: 56px;
   width: 100%;
   max-width: 640px;
   margin: 0 auto;
@@ -557,75 +331,62 @@ onMounted(() => {
 }
 
 .edit-form {
+  margin: 16px;
+  background: white;
+  border-radius: 12px;
   padding: 16px;
 }
 
 .form-group {
-  background: white;
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 12px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  margin-bottom: 20px;
 }
 
 .form-label {
-  font-size: 15px;
-  font-weight: 500;
-  color: #374151;
-  margin-bottom: 8px;
   display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #4B5563;
+  margin-bottom: 8px;
 }
 
 .form-desc {
-  font-size: 13px;
-  color: #6B7280;
-  margin-top: 2px;
+  font-size: 12px;
+  color: #9CA3AF;
+  margin-top: 4px;
 }
 
 .form-input, .form-textarea {
   width: 100%;
-  padding: 10px 0;
-  border: none;
-  border-bottom: 1px solid #E5E7EB;
+  padding: 12px;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
   font-size: 15px;
-  color: #1F2937;
-  background: none;
-  outline: none;
+  color: #111827;
 }
 
 .form-textarea {
   resize: none;
-  line-height: 1.5;
-}
-
-.form-input:focus, .form-textarea:focus {
-  border-bottom-color: #2563EB;
 }
 
 .picker-input {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid #E5E7EB;
-  cursor: pointer;
-}
-
-.picker-input span {
+  padding: 12px;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
   font-size: 15px;
-  color: #1F2937;
+  color: #111827;
 }
 
 .picker-input i {
   color: #9CA3AF;
-  font-size: 12px;
 }
 
 .time-options {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 12px;
 }
 
 .time-option {
@@ -703,119 +464,6 @@ input:checked + .slider:before {
 
 .slider.round:before {
   border-radius: 50%;
-}
-
-.reminder-time-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 16px;
-}
-
-.reminder-option {
-  padding: 6px 10px;
-  background-color: #F3F4F6;
-  border-radius: 6px;
-  font-size: 13px;
-  color: #4B5563;
-  border: none;
-  cursor: pointer;
-}
-
-.reminder-option.active {
-  background-color: #EBF5FF;
-  color: #2563EB;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.add-btn {
-  display: flex;
-  align-items: center;
-  background: none;
-  border: none;
-  color: #2563EB;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.add-btn i {
-  margin-right: 4px;
-  font-size: 12px;
-}
-
-.participants-list, .attachments-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.participant-item, .attachment-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px;
-  background-color: #F3F4F6;
-  border-radius: 8px;
-}
-
-.participant-info {
-  display: flex;
-  align-items: center;
-}
-
-.avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background-color: #D1D5DB;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #4B5563;
-  font-weight: 500;
-  margin-right: 8px;
-  font-size: 14px;
-}
-
-.participant-info span, .attachment-info span {
-  font-size: 14px;
-  color: #374151;
-}
-
-.attachment-info {
-  display: flex;
-  align-items: center;
-}
-
-.attachment-info i {
-  color: #4B5563;
-  margin-right: 8px;
-  font-size: 16px;
-}
-
-.remove-btn {
-  background: none;
-  border: none;
-  color: #9CA3AF;
-  cursor: pointer;
-  padding: 4px;
-}
-
-.empty-participants, .empty-attachments {
-  display: flex;
-  justify-content: center;
-  padding: 12px;
-}
-
-.empty-participants p, .empty-attachments p {
-  font-size: 14px;
-  color: #9CA3AF;
 }
 
 .date-picker-popup {
