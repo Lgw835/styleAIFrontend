@@ -14,6 +14,9 @@ export * from './wardrobe'
 // 导出所有虚拟试穿相关API
 export * from './virtualTry'
 
+// 导出用户画像相关API
+export * from './userPortrait'
+
 // 导出所有API URLs配置
 export * from './config'
 

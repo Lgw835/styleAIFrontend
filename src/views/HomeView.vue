@@ -146,6 +146,26 @@
       </div>
     </div>
 
+    <!-- 添加底部导航栏 -->
+    <div class="bottom-nav">
+      <router-link to="/" class="nav-item active">
+        <i class="fas fa-home"></i>
+        <span>首页</span>
+      </router-link>
+      <router-link to="/wardrobe" class="nav-item">
+        <i class="fas fa-tshirt"></i>
+        <span>衣柜</span>
+      </router-link>
+      <router-link to="/plaza" class="nav-item">
+        <i class="fas fa-compass"></i>
+        <span>广场</span>
+      </router-link>
+      <router-link to="/profile" class="nav-item">
+        <i class="fas fa-user"></i>
+        <span>我的</span>
+      </router-link>
+    </div>
+
   </div>
 </template>
 
@@ -841,5 +861,49 @@ export default {
 
 .empty-schedule p {
   margin: 0;
+}
+
+/* 底部导航栏样式 */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background-color: white;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  box-shadow: 0 -1px 5px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  text-decoration: none;
+  padding: 8px 0;
+  width: 25%;
+}
+
+.nav-item i {
+  font-size: 1.2rem;
+  margin-bottom: 4px;
+}
+
+.nav-item span {
+  font-size: 0.75rem;
+}
+
+.nav-item.active {
+  color: #3B82F6;
+}
+
+/* 确保内容区域不被底部导航栏覆盖 */
+.content {
+  padding-bottom: 70px;
 }
 </style> 

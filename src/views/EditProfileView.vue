@@ -92,11 +92,14 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import SubPageNavBar from '@/components/SubPageNavBar.vue'
+import { useUserStore } from '@/stores/user'
+import { showToast } from 'vant'
 
 const router = useRouter()
+const userStore = useUserStore()
 const fileInput = ref(null)
 const avatarPreview = ref('')
 const nicknameInput = ref(null)
@@ -110,6 +113,20 @@ const profileData = ref({
   gender: 'female',
   birthday: '2000-01-01',
   phone: '13888888888'
+})
+
+// 在组件挂载时加载用户信息
+onMounted(() => {
+  // 从用户存储中获取信息
+  if (userStore.userInfo) {
+    profileData.value = {
+      avatar: userStore.userInfo.avatar || '',
+      nickname: userStore.userInfo.nickname || userStore.userInfo.username || '时尚达人',
+      gender: userStore.userInfo.gender || 'female',
+      birthday: userStore.userInfo.birthday || '2000-01-01',
+      phone: userStore.userInfo.phone || '13888888888'
+    }
+  }
 })
 
 // 聚焦指定输入框
@@ -126,8 +143,7 @@ const focusInput = (inputName) => {
 // 处理手机号编辑
 const handlePhoneEdit = () => {
   // 这里可以实现验证手机号的逻辑
-  // 例如弹出一个模态框验证身份后再修改手机号
-  alert('修改手机号需要验证身份，此功能正在开发中...')
+  showToast('修改手机号需要验证身份，此功能正在开发中...')
 }
 
 // 触发文件选择
@@ -144,9 +160,6 @@ const handleFileChange = (event) => {
     
     // 这里可以添加文件上传到服务器的逻辑
     // 例如使用FormData和fetch/axios进行上传
-    // const formData = new FormData()
-    // formData.append('avatar', file)
-    // 上传代码...
   }
 }
 
@@ -158,8 +171,23 @@ const formatPhone = (phone) => {
 
 // 保存个人资料
 const saveProfile = () => {
-  // 这里应该添加保存逻辑，如API请求等
-  console.log('保存个人资料:', profileData.value)
+  if (!profileData.value.nickname) {
+    showToast('请输入昵称')
+    return
+  }
+  
+  // 更新用户信息
+  const updatedUserInfo = {
+    ...userStore.userInfo,
+    avatar: avatarPreview.value || profileData.value.avatar,
+    nickname: profileData.value.nickname,
+    gender: profileData.value.gender,
+    birthday: profileData.value.birthday
+    // 不更新手机号，因为需要特殊验证
+  }
+  
+  userStore.setUserInfo(updatedUserInfo)
+  showToast('保存成功')
   
   // 保存成功后返回个人页面
   router.push('/profile')

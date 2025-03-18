@@ -19,15 +19,15 @@
               <h1 class="username">时尚达人</h1>
               <div class="stats-grid">
                 <router-link to="/followers" class="stat-item">
-                  <p class="stat-value">128</p>
+                  <p class="stat-value">0</p>
                   <p class="stat-label">关注</p>
                 </router-link>
                 <router-link to="/fans" class="stat-item">
-                  <p class="stat-value">256</p>
+                  <p class="stat-value">0</p>
                   <p class="stat-label">粉丝</p>
                 </router-link>
                 <div class="stat-item">
-                  <p class="stat-value">1024</p>
+                  <p class="stat-value">0</p>
                   <p class="stat-label">获赞</p>
                 </div>
               </div>
@@ -74,11 +74,28 @@
           <button class="logout-btn" @click="handleLogout">
             退出登录
           </button>
-
-          <!-- 用户资料页面可能有穿搭记录的入口 -->
-          <div @click="$router.push('/outfit-records')">我的穿搭记录</div>
         </div>
       </div>
+    </div>
+    
+    <!-- 添加底部导航栏 -->
+    <div class="bottom-nav">
+      <router-link to="/" class="nav-item">
+        <i class="fas fa-home"></i>
+        <span>首页</span>
+      </router-link>
+      <router-link to="/wardrobe" class="nav-item">
+        <i class="fas fa-tshirt"></i>
+        <span>衣柜</span>
+      </router-link>
+      <router-link to="/plaza" class="nav-item">
+        <i class="fas fa-compass"></i>
+        <span>广场</span>
+      </router-link>
+      <router-link to="/profile" class="nav-item active">
+        <i class="fas fa-user"></i>
+        <span>我的</span>
+      </router-link>
     </div>
   </div>
 </template>
@@ -87,8 +104,22 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import TopNavBar from '@/components/TopNavBar.vue'
+// 引入所有需要清理的 store
+import { useUserStore } from '@/stores/user'
+import { useOutfitRecordStore } from '@/stores/outfitRecord'
+import { useExternalDataStore } from '@/stores/externalData'
+import { useOutfitResultStore } from '@/stores/outfitResult'
+import { useOutfitStore } from '@/stores/outfitStore'
+import { useScheduleStore } from '@/stores/schedule'
 
 const router = useRouter()
+// 初始化所有 store
+const userStore = useUserStore()
+const outfitRecordStore = useOutfitRecordStore()
+const externalDataStore = useExternalDataStore()
+const outfitResultStore = useOutfitResultStore()
+const outfitStore = useOutfitStore()
+const scheduleStore = useScheduleStore()
 
 const basicMenuItems = ref([
   {
@@ -131,8 +162,15 @@ const otherMenuItems = ref([
 ])
 
 const handleLogout = () => {
-  // 实现登出逻辑
-  router.push('/login')
+  // 1. 清空所有 sessionStorage
+  sessionStorage.clear()
+  localStorage.clear() // 同时清除本地存储，以防万一
+  
+  console.log('已清空所有会话数据')
+  
+  // 2. 使用 location.href 跳转到登录页，这会触发完整的页面刷新
+  // 这样所有 Pinia store 都会被重置为初始状态
+  window.location.href = '/login'
 }
 </script>
 
@@ -307,5 +345,44 @@ const handleLogout = () => {
 
 .logout-btn:hover {
   background: #F9FAFB;
+}
+
+/* 底部导航栏样式 */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background-color: white;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  box-shadow: 0 -1px 5px rgba(0, 0, 0, 0.1);
+  z-index: 100;
+}
+
+.nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  text-decoration: none;
+  padding: 8px 0;
+  width: 25%;
+}
+
+.nav-item i {
+  font-size: 1.2rem;
+  margin-bottom: 4px;
+}
+
+.nav-item span {
+  font-size: 0.75rem;
+}
+
+.nav-item.active {
+  color: #3B82F6;
 }
 </style> 
