@@ -46,36 +46,6 @@
         </div>
       </div>
 
-      <!-- 性别 -->
-      <div class="form-item" @click="focusInput('gender')">
-        <div class="form-item-content">
-          <span class="item-label">性别</span>
-          <div class="item-value">
-            <select v-model="profileData.gender" class="select-input" ref="genderInput">
-              <option value="female">女</option>
-              <option value="male">男</option>
-              <option value="secret">保密</option>
-            </select>
-            <i class="fas fa-chevron-right arrow"></i>
-          </div>
-        </div>
-      </div>
-
-      <!-- 生日 -->
-      <div class="form-item" @click="focusInput('birthday')">
-        <div class="form-item-content">
-          <span class="item-label">生日</span>
-          <div class="item-value">
-            <input 
-              type="date" 
-              v-model="profileData.birthday" 
-              class="date-input"
-              ref="birthdayInput"
-            >
-            <i class="fas fa-chevron-right arrow"></i>
-          </div>
-        </div>
-      </div>
 
       <!-- 手机号 -->
       <div class="form-item" @click="handlePhoneEdit">
@@ -97,6 +67,8 @@ import { useRouter } from 'vue-router'
 import SubPageNavBar from '@/components/SubPageNavBar.vue'
 import { useUserStore } from '@/stores/user'
 import { showToast } from 'vant'
+import request from '@/utils/request'
+import { updateProfile, uploadFile } from '@/api/user'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -105,25 +77,21 @@ const avatarPreview = ref('')
 const nicknameInput = ref(null)
 const genderInput = ref(null)
 const birthdayInput = ref(null)
+const selectedFile = ref(null)
 
 // 个人资料数据
 const profileData = ref({
   avatar: '',
   nickname: '时尚达人',
-  gender: 'female',
-  birthday: '2000-01-01',
-  phone: '13888888888'
+  phone: '13888888888' // 保留显示但不可编辑
 })
 
 // 在组件挂载时加载用户信息
 onMounted(() => {
-  // 从用户存储中获取信息
   if (userStore.userInfo) {
     profileData.value = {
-      avatar: userStore.userInfo.avatar || '',
-      nickname: userStore.userInfo.nickname || userStore.userInfo.username || '时尚达人',
-      gender: userStore.userInfo.gender || 'female',
-      birthday: userStore.userInfo.birthday || '2000-01-01',
+      avatar: userStore.userInfo.imagePath || '',
+      nickname: userStore.userInfo.username || '时尚达人',
       phone: userStore.userInfo.phone || '13888888888'
     }
   }
@@ -151,15 +119,14 @@ const triggerFileInput = () => {
   fileInput.value.click()
 }
 
-// 处理文件选择
+// 处理文件选择 - 只做本地预览
 const handleFileChange = (event) => {
   const file = event.target.files[0]
   if (file) {
-    // 创建临时URL用于预览
+    // 创建本地预览，但不上传
     avatarPreview.value = URL.createObjectURL(file)
-    
-    // 这里可以添加文件上传到服务器的逻辑
-    // 例如使用FormData和fetch/axios进行上传
+    // 保存文件对象供后续上传使用
+    selectedFile.value = file
   }
 }
 
@@ -169,28 +136,68 @@ const formatPhone = (phone) => {
   return phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')
 }
 
-// 保存个人资料
-const saveProfile = () => {
+// 保存个人资料函数
+const saveProfile = async () => {
   if (!profileData.value.nickname) {
     showToast('请输入昵称')
     return
   }
   
-  // 更新用户信息
-  const updatedUserInfo = {
-    ...userStore.userInfo,
-    avatar: avatarPreview.value || profileData.value.avatar,
-    nickname: profileData.value.nickname,
-    gender: profileData.value.gender,
-    birthday: profileData.value.birthday
-    // 不更新手机号，因为需要特殊验证
+  try {
+    let imageUrl = profileData.value.avatar
+    
+    // 如果选择了新图片，先上传
+    if (selectedFile.value) {
+      showToast('正在上传头像...')
+      const formData = new FormData()
+      formData.append('file', selectedFile.value)
+      formData.append('userId', userStore.userInfo.userId)
+      
+      console.log('开始上传文件...')
+      const response = await uploadFile(formData)
+      console.log('文件上传响应:', response)
+      
+      // 文件上传接口直接返回 {fileUrl, fileType} 结构
+      if (response && response.fileUrl) {
+        imageUrl = response.fileUrl
+        console.log('获取到服务器返回的图片URL:', imageUrl)
+      } else {
+        console.error('无法获取上传的图片URL:', response)
+        showToast('头像上传失败')
+        return
+      }
+    }
+    
+    // 释放本地预览URL
+    if (avatarPreview.value && avatarPreview.value.startsWith('blob:')) {
+      URL.revokeObjectURL(avatarPreview.value)
+      avatarPreview.value = ''
+    }
+    
+    // 准备用户信息更新参数
+    const updatedUserInfo = {
+      userId: userStore.userInfo.userId,
+      username: profileData.value.nickname,
+      imagePath: imageUrl
+    }
+    
+    console.log('发送用户信息更新请求:', updatedUserInfo)
+    const updateResponse = await updateProfile(updatedUserInfo)
+    console.log('用户信息更新响应:', updateResponse)
+    
+    // 更新用户信息接口返回 boolean
+    if (updateResponse === true || updateResponse.data === true) {
+      // 更新本地存储
+      userStore.setUserInfo(updatedUserInfo)
+      showToast('保存成功')
+      router.push('/profile')
+    } else {
+      showToast('保存失败')
+    }
+  } catch (error) {
+    console.error('保存过程中发生错误:', error)
+    showToast('保存失败')
   }
-  
-  userStore.setUserInfo(updatedUserInfo)
-  showToast('保存成功')
-  
-  // 保存成功后返回个人页面
-  router.push('/profile')
 }
 </script>
 

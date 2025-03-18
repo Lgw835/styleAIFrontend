@@ -9,14 +9,18 @@
           <div class="user-info">
             <div class="avatar-container">
               <div class="avatar">
-                <span>用户头像</span>
-                <button class="camera-btn">
+                <img 
+                  :src="userStore.userInfo?.imagePath || 'https://i.pravatar.cc/80?img=5'" 
+                  :alt="userStore.userInfo?.username || '时尚达人'"
+                  class="avatar-image"
+                >
+                <button class="camera-btn" @click="goToEditProfile">
                   <i class="fas fa-camera"></i>
                 </button>
               </div>
             </div>
             <div class="user-stats">
-              <h1 class="username">时尚达人</h1>
+              <h1 class="username">{{ userStore.userInfo?.username || '时尚达人' }}</h1>
               <div class="stats-grid">
                 <router-link to="/followers" class="stat-item">
                   <p class="stat-value">0</p>
@@ -172,6 +176,11 @@ const handleLogout = () => {
   // 这样所有 Pinia store 都会被重置为初始状态
   window.location.href = '/login'
 }
+
+// 添加跳转到编辑资料的方法
+const goToEditProfile = () => {
+  router.push('/edit-profile')
+}
 </script>
 
 <style scoped>
@@ -210,12 +219,15 @@ const handleLogout = () => {
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: white;
-  font-size: 14px;
+  position: relative;
+  overflow: hidden; /* 确保图片不会超出圆形边界 */
+}
+
+/* 添加头像图片样式 */
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* 确保图片填充整个容器并保持比例 */
 }
 
 .camera-btn {
@@ -224,7 +236,7 @@ const handleLogout = () => {
   right: -4px;
   width: 24px;
   height: 24px;
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(0, 0, 0, 0.5); /* 稍微调深背景色以提高可见度 */
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -232,6 +244,12 @@ const handleLogout = () => {
   color: white;
   font-size: 12px;
   border: none;
+  cursor: pointer;
+  z-index: 1; /* 确保按钮在图片上层 */
+}
+
+.camera-btn:hover {
+  background: rgba(0, 0, 0, 0.7);
 }
 
 .user-stats {

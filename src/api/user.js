@@ -55,12 +55,12 @@ export function loginWithPhone(data) {
 
 /**
  * 更新用户信息
- * @param {Object} data - 用户信息 {id, username, nickname, avatar, gender, birthday}
+ * @param {Object} data - 用户信息 {userId, username, imagePath}
  * @returns {Promise}
  */
 export function updateProfile(data) {
   return request({
-    url: USER_API.PROFILE,
+    url: USER_API.UPDATE_INFO,
     method: 'post',
     data
   })
@@ -89,5 +89,21 @@ export function resetPassword(data) {
     url: USER_API.RESET_PASSWORD,
     method: 'post',
     data
+  })
+}
+
+/**
+ * 上传文件
+ * @param {FormData} formData - 包含 file 和 userId 的表单数据
+ * @returns {Promise}
+ */
+export function uploadFile(formData) {
+  return request({
+    url: USER_API.UPLOAD_FILE,
+    method: 'post',
+    data: formData,
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
   })
 } 

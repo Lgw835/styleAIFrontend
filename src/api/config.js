@@ -25,13 +25,13 @@ export const USER_API = {
   REGISTER: `/${USER_SERVICE}/userApi/register`,          // 用户注册
   LOGIN: `/${USER_SERVICE}/userApi/login`,                // 用户登录
   LOGIN_PHONE: `/${USER_SERVICE}/userApi/login/sms`,      // 手机验证码登录
-  PROFILE: `/${USER_SERVICE}/userApi/profile`,            // 提交用户信息/用户画像
+  PROFILE: `/${USER_SERVICE}/userApi/profile`,            // 用户信息
   UPDATE_PASSWORD: `/${USER_SERVICE}/userApi/password/update`, // 修改密码
   RESET_PASSWORD: `/${USER_SERVICE}/userApi/password/reset`,   // 重置密码
   LOGIN_SMS: `/${USER_SERVICE}/userApi/login/sms`,        // 短信登录
-  INFO_UPDATE: `/${USER_SERVICE}/userApi/info/update`,     // 修改用户信息
-  RECORD_WEATHER: `${SERVICE_PREFIX.USER}/scheduleApi/recordWeather`
-  // 注意：用户画像使用 PROFILE 接口
+  UPDATE_INFO: `/${USER_SERVICE}/userApi/info/update`,     // 修改用户信息
+  UPLOAD_FILE: `/${USER_SERVICE}/fileApi/upload`,         // 文件上传
+  RECORD_WEATHER: `${SERVICE_PREFIX.USER}/scheduleApi/recordWeather` // 记录天气
 }
 
 // 穿搭相关接口

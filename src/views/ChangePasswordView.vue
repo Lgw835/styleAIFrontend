@@ -95,31 +95,68 @@
 <script setup>
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useUserStore } from '@/stores/user'
+import { showToast } from 'vant'
+import { getSmsCode, updatePassword } from '@/api/user'
 import SubPageNavBar from '@/components/SubPageNavBar.vue'
 
 const router = useRouter()
+const userStore = useUserStore()
+
+// 格式化手机号显示 (隐藏中间4位)
+const formatPhone = (phone) => {
+  if (!phone) return ''
+  return phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')
+}
 
 // 表单数据
-const phoneNumber = ref('138****8888')
+const phoneNumber = computed(() => {
+  return formatPhone(userStore.userInfo?.phone || '')
+})
 const verificationCode = ref('')
 const newPassword = ref('')
 const confirmPassword = ref('')
 const showPassword = ref(false)
 const showConfirmPassword = ref(false)
 const countDown = ref(0)
+const smsId = ref('')
 
 // 验证码倒计时
-const getVerificationCode = () => {
+const getVerificationCode = async () => {
   if (countDown.value > 0) return
   
-  // 模拟发送验证码
-  countDown.value = 60
-  const timer = setInterval(() => {
-    countDown.value--
-    if (countDown.value <= 0) {
-      clearInterval(timer)
-    }
-  }, 1000)
+  const phone = userStore.userInfo?.phone
+  if (!phone) {
+    showToast('无法获取手机号')
+    return
+  }
+  
+  try {
+    const res = await getSmsCode({ phone })
+    smsId.value = res.code
+    
+    showToast('验证码已发送')
+    
+    countDown.value = 60
+    const timer = setInterval(() => {
+      countDown.value--
+      if (countDown.value <= 0) {
+        clearInterval(timer)
+      }
+    }, 1000)
+  } catch (error) {
+    console.error('获取验证码失败:', error)
+    showToast('获取验证码失败，请稍后再试')
+  }
+}
+
+// 在前端验证验证码
+const verifyCode = () => {
+  if (!smsId.value || !verificationCode.value) {
+    return false
+  }
+  
+  return smsId.value === verificationCode.value
 }
 
 // 表单验证
@@ -135,21 +172,40 @@ const isFormValid = computed(() => {
 })
 
 // 提交表单
-const submitForm = () => {
+const submitForm = async () => {
   if (!isFormValid.value) return
   
-  // 模拟API调用
-  console.log('修改密码', {
-    phoneNumber: phoneNumber.value,
-    verificationCode: verificationCode.value,
-    newPassword: newPassword.value
-  })
+  const phone = userStore.userInfo?.phone
+  const userId = userStore.userInfo?.userId
+  if (!phone || !userId) {
+    showToast('无法获取用户信息')
+    return
+  }
   
-  // 假设修改成功，返回个人中心
-  setTimeout(() => {
-    alert('密码修改成功')
-    router.push('/profile')
-  }, 1000)
+  // 在提交前先验证验证码
+  if (!verifyCode()) {
+    showToast('验证码错误,请重新输入')
+    return
+  }
+  
+  try {
+    const res = await updatePassword({
+      phone,
+      code: verificationCode.value,
+      userId,
+      newPassword: newPassword.value
+    })
+    
+    if (res === true) {
+      showToast('密码修改成功')
+      router.push('/profile')
+    } else {
+      showToast('密码修改失败')
+    }
+  } catch (error) {
+    console.error('密码修改失败:', error)
+    showToast('密码修改失败: ' + (error.message || '未知错误'))
+  }
 }
 </script>
 
