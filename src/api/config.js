@@ -95,10 +95,11 @@ export const SQUARE_API = {
   LIKE: `/${USER_SERVICE}/squareApi/like`,                     // 点赞帖子
   UNLIKE: `/${USER_SERVICE}/squareApi/unlike`,                 // 取消点赞
   COMMENT_CREATE: `/${USER_SERVICE}/squareApi/comment/create`, // 发布评论
-  POST_COMMENTS: `/${USER_SERVICE}/squareApi/post/getComments/`, // 获取评论列表，使用时需要拼接articleId
+  POST_COMMENTS: `/${USER_SERVICE}/squareApi/post/getComments/{articleId}`, // 获取帖子评论列表
   MY_POSTS: `/${USER_SERVICE}/squareApi/myPosts/`,             // 获取用户帖子列表，使用时需要拼接userId
   POST_DELETE: `/${USER_SERVICE}/squareApi/post/`,             // 删除帖子，使用时需要拼接postId
-  COMMENT_DELETE: `/${USER_SERVICE}/squareApi/comment/`        // 删除评论，使用时需要拼接commentId
+  COMMENT_DELETE: `/${USER_SERVICE}/squareApi/comment/`,        // 删除评论，使用时需要拼接commentId
+  POST_DETAIL: `/${USER_SERVICE}/squareApi/post/detail/`         // 获取帖子详情
 }
 
 // 需要新增的日程接口配置

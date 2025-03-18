@@ -94,8 +94,8 @@ export function resetPassword(data) {
 
 /**
  * 上传文件
- * @param {FormData} formData - 包含 file 和 userId 的表单数据
- * @returns {Promise}
+ * @param {FormData} formData - 包含 file 的表单数据
+ * @returns {Promise<{fileUrl: string, fileType: string}>}
  */
 export function uploadFile(formData) {
   return request({

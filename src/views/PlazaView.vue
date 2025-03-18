@@ -1,63 +1,172 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted, computed } from 'vue';
+import { useRouter } from 'vue-router';
+import { useUserStore } from '@/stores/user'; // 引入用户store
+import { useExternalDataStore } from '@/stores/externalData'; // 引入 externalDataStore
 import TopNavBar from '@/components/TopNavBar.vue'
 import PostPublisher from '@/components/PostPublisher.vue'
+import { SQUARE_API, USER_API } from '@/api/config';
+import request from '@/utils/request';
+import { uploadFile } from '@/api/user';
+import { getPosts, likePost, unlikePost, createPost } from '@/api/community';
+import { usePostsStore } from '@/stores/posts';
+
+const router = useRouter();
+const userStore = useUserStore(); // 初始化用户store
+const externalDataStore = useExternalDataStore(); // 初始化 externalDataStore
+const postsStore = usePostsStore(); // 使用帖子 store
 
 // 当前激活的标签
-const activeTab = ref('follow'); // 'follow' 或 'recommend'
+const activeTab = ref('recommend'); // 'recommend' 或 'follow'
 
 // 显示发布帖子组件
 const showPublisher = ref(false);
 
-// 模拟的帖子数据
-const posts = ref([
-  {
-    id: 1,
-    author: 'Sarah',
-    avatar: 'https://i.pravatar.cc/40?img=5',
-    location: '北京',
-    content: '今日穿搭分享 ✨ 简约知性风，适合日常通勤。上衣选择了米色针织开衫，内搭白色丝质衬衫，下装是高腰直筒西装裤，整体搭配既正式又不失温柔感。',
-    images: [
-      'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=200&h=200&fit=crop',
-      'https://images.unsplash.com/photo-1539109136881-3be0616acf4b?w=200&h=200&fit=crop',
-      'https://images.unsplash.com/photo-1485968579580-b6d095142e6e?w=200&h=200&fit=crop'
-    ],
-    likes: '1.2k',
-    comments: '368',
-    views: '5.6k',
-    isFollowing: false
-  },
-  {
-    id: 2,
-    author: 'Michael',
-    avatar: 'https://i.pravatar.cc/40?img=8',
-    location: '上海',
-    content: '分享一套休闲运动风穿搭 🏃 灰色连帽卫衣搭配黑色运动裤，既舒适又时尚。最近天气转凉，这样搭配运动或者周末出街都很合适。',
-    images: [
-      'https://images.unsplash.com/photo-1483721310020-03333e577078?w=200&h=200&fit=crop',
-      'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=200&h=200&fit=crop'
-    ],
-    likes: '856',
-    comments: '234',
-    views: '3.2k',
-    isFollowing: true
+// 帖子数据
+const posts = computed(() => {
+  return postsStore.posts;
+});
+const loading = ref(false);
+const pageInfo = ref({
+  currentPage: 0,
+  size: 5,
+  total: 0,
+  totalPages: 0
+});
+
+// 获取当前用户信息
+const currentUser = computed(() => {
+  return userStore.userInfo || {};
+});
+
+// 确保用户已登录
+const checkUserLogin = () => {
+  if (!currentUser.value?.userId) {
+    router.push('/login');
+    return false;
   }
-]);
+  return true;
+};
+
+// 搜索关键词
+const searchKeyword = ref('');
+// 标签筛选
+const selectedTag = ref('');
+
+// 加载帖子列表
+const loadPosts = async (reset = false) => {
+  if (loading.value) return;
+  
+  // 检查用户是否登录
+  if (!checkUserLogin()) return;
+  
+  loading.value = true;
+  
+  if (reset) {
+    postsStore.resetState();
+    pageInfo.value = {
+      currentPage: 0,
+      size: 5,
+      total: 0,
+      totalPages: 0
+    };
+  }
+  
+  try {
+    const mode = activeTab.value === 'follow' ? 2 : 1;
+    
+    const response = await getPosts({
+      userId: currentUser.value.userId,
+      mode: mode,
+      keyword: searchKeyword.value,
+      tag: selectedTag.value,
+      page: pageInfo.value.currentPage,
+      size: pageInfo.value.size
+    });
+    
+    if (response.posts && Array.isArray(response.posts)) {
+      if (reset) {
+        postsStore.setPosts(response.posts);
+      } else {
+        postsStore.addPosts(response.posts);
+      }
+      
+      // 从响应更新本地状态
+      pageInfo.value.total = response.total || 0;
+      pageInfo.value.totalPages = response.totalPages || 0;
+      pageInfo.value.currentPage = response.currentPage || 0;
+      
+      // 更新 store 中的分页信息
+      postsStore.setPagination(pageInfo.value);
+    }
+  } catch (error) {
+    console.error('加载帖子失败:', error);
+  } finally {
+    loading.value = false;
+  }
+};
 
 // 切换标签
 const switchTab = (tab) => {
+  if (activeTab.value === tab) return;
   activeTab.value = tab;
+  loadPosts(true); // 重置并加载新数据
 };
 
 // 切换关注状态
-const toggleFollow = (post) => {
-  // 查找当前帖子在数组中的索引
-  const index = posts.value.findIndex(p => p.id === post.id);
-  if (index !== -1) {
-    // 创建一个新的帖子对象并更新isFollowing属性
-    const updatedPost = { ...posts.value[index], isFollowing: !posts.value[index].isFollowing };
-    // 通过直接替换数组中的对象来确保响应式更新
-    posts.value[index] = updatedPost;
+const toggleFollow = async (post, event) => {
+  // 阻止事件冒泡，防止触发帖子点击
+  event.stopPropagation();
+  
+  try {
+    // 发送请求前先更新UI，提供即时反馈
+    post.isFollowed = !post.isFollowed;
+    
+    // TODO: 调用关注/取消关注API
+    // 由于API文档中没有明确的关注用户接口，这里需要向后端确认具体接口
+    // 临时使用模拟实现
+    console.log(`${post.isFollowed ? '关注' : '取消关注'}用户:`, post.author.userId);
+    
+    // 如果请求失败，恢复状态
+    // await someFollowApi();
+  } catch (error) {
+    // 请求失败，回滚UI状态
+    post.isFollowed = !post.isFollowed;
+    console.error('关注操作失败:', error);
+  }
+};
+
+// 点赞/取消点赞
+const toggleLike = async (post, event) => {
+  // 检查用户是否登录
+  if (!checkUserLogin()) return;
+  
+  event.stopPropagation();
+  
+  try {
+    const isLiked = post.isLiked;
+    post.isLiked = !isLiked;
+    
+    const response = await (isLiked ? unlikePost : likePost)({
+      userId: currentUser.value.userId, // 从store中获取userId
+      postId: post.post.postId
+    });
+    
+    if (response === true) {
+      // 更新点赞数
+      if (isLiked) {
+        post.post.likes = Math.max(0, post.post.likes - 1);
+      } else {
+        post.post.likes += 1;
+      }
+    } else {
+      // 操作失败，恢复状态
+      post.isLiked = isLiked;
+    }
+  } catch (error) {
+    // 请求失败，恢复UI状态
+    post.isLiked = !post.isLiked;
+    console.error('点赞操作失败:', error);
   }
 };
 
@@ -72,52 +181,189 @@ const closePublisher = () => {
 };
 
 // 处理发布帖子
-const handlePublish = (postData) => {
-  // 生成新帖子ID
-  const newPostId = posts.value.length > 0 ? Math.max(...posts.value.map(p => p.id)) + 1 : 1;
+const handlePublish = async (postData) => {
+  // 检查用户是否登录
+  if (!checkUserLogin()) return;
   
-  // 提取媒体数据
-  let postImages = [];
-  let videoSource = '';
+  try {
+    // 1. 处理媒体文件上传
+    const mediaUrls = [];
+    let videoUrl = '';
+    
+    if (postData.mediaType === 'image' && Array.isArray(postData.media)) {
+      // 上传图片(最多9张)
+      const imageFiles = postData.media.slice(0, 9);
+      for (const image of imageFiles) {
+        try {
+          const response = await uploadFile(image.file);
+          if (response && response.fileUrl) {
+            mediaUrls.push(response.fileUrl);
+          }
+        } catch (error) {
+          console.error('文件上传失败:', error);
+        }
+      }
+    } else if (postData.mediaType === 'video' && postData.media) {
+      try {
+        const response = await uploadFile(postData.media.file);
+        if (response && response.fileUrl) {
+          videoUrl = response.fileUrl;
+        }
+      } catch (error) {
+        console.error('视频上传失败:', error);
+      }
+    }
+    
+    // 获取位置信息
+    const locationData = externalDataStore.locationData;
+    const locationString = locationData.city ? `${locationData.province || ''} ${locationData.city}` : '';
+    
+    // 2. 创建帖子
+    const response = await createPost({
+      userId: currentUser.value.userId,
+      content: postData.content,
+      tag: postData.tag,
+      softLabel: postData.customTags ? postData.customTags.join('#') : '',
+      imageUrls: mediaUrls.length > 0 ? mediaUrls : null,
+      videoUrl: videoUrl || null,
+      location: locationString // 使用位置信息
+    });
+    
+    if (response === true) {
+      loadPosts(true);
+      closePublisher();
+    }
+  } catch (error) {
+    console.error('发布帖子失败:', error);
+  }
+};
+
+// 修改帖子跳转方法
+const navigateToPostDetail = (post) => {
+  // 增加文章浏览量
+  request({
+    url: SQUARE_API.POST_VIEW + post.post.postId,
+    method: 'post'
+  }).catch(error => {
+    console.error('增加浏览量失败:', error);
+  });
   
-  if (postData.mediaType === 'image' && Array.isArray(postData.media)) {
-    // 最多只取9张图片
-    postImages = postData.media.slice(0, 9).map(img => img.url);
-  } else if (postData.mediaType === 'video' && postData.media) {
-    // 处理视频
-    videoSource = postData.media;
+  // 直接跳转到详情页，数据已经在 store 中
+  router.push(`/post/${post.post.postId}`);
+};
+
+// 搜索帖子
+const searchPosts = () => {
+  loadPosts(true);
+};
+
+// 监听滚动加载更多
+const onScroll = (e) => {
+  const element = e.target;
+  // 检查是否滚动到底部
+  if (element.scrollHeight - element.scrollTop - element.clientHeight < 50) {
+    // 如果还有更多数据且当前没有加载中
+    if (!loading.value && pageInfo.value.currentPage < pageInfo.value.totalPages - 1) {
+      pageInfo.value.currentPage += 1;
+      loadPosts();
+    }
+  }
+};
+
+// 格式化点赞数、评论数和浏览量
+const formatNumber = (num) => {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1) + 'M';
+  } else if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'k';
+  }
+  return num.toString();
+};
+
+// 获取资源类型
+const getResourceType = (post) => {
+  if (!post?.post) return 'none';
+  
+  // 检查资源 URL 是否是视频
+  const isVideoUrl = (url) => {
+    return typeof url === 'string' && (
+      url.endsWith('.mp4') || 
+      url.endsWith('.webm') || 
+      url.includes('/videos/')
+    );
+  };
+
+  // 先检查 videoUrl
+  if (post.post.videoUrl && isVideoUrl(post.post.videoUrl)) {
+    return 'video';
+  }
+
+  // 再检查 resourceUrls
+  if (post.post.resourceUrls && Array.isArray(post.post.resourceUrls) && post.post.resourceUrls.length > 0) {
+    // 如果第一个资源是视频，则认为是视频帖子
+    const firstUrl = Array.isArray(post.post.resourceUrls[0]) 
+      ? post.post.resourceUrls[0][0] 
+      : post.post.resourceUrls[0];
+      
+    if (isVideoUrl(firstUrl)) {
+      return 'video';
+    }
+    return 'image';
+  }
+
+  return 'none';
+};
+
+// 获取资源URL列表
+const getResourceUrls = (post) => {
+  if (!post?.post) return [];
+  
+  // 如果是视频类型，返回空数组（视频会单独处理）
+  if (getResourceType(post) === 'video') {
+    return [];
   }
   
-  // 创建新帖子对象
-  const newPost = {
-    id: newPostId,
-    author: '我', // 假设当前用户名
-    avatar: 'https://i.pravatar.cc/40?img=1', // 假设当前用户头像
-    location: '广州', // 假设当前用户位置
-    content: postData.content,
-    images: postImages,
-    video: videoSource, // 添加视频字段
-    mediaType: postData.mediaType, // 保存媒体类型
-    likes: '0',
-    comments: '0',
-    views: '0',
-    isFollowing: false,
-    // 可以添加标签信息，但不渲染在视图中
-    tags: {
-      hard: postData.hardTag,
-      soft: postData.softTags
-    }
-  };
+  // 处理图片资源
+  if (post.post.resourceUrls) {
+    const urls = Array.isArray(post.post.resourceUrls) ? post.post.resourceUrls : [];
+    return urls.map(urlArray => {
+      return Array.isArray(urlArray) ? urlArray[0] : urlArray;
+    }).filter(url => url && !url.endsWith('.mp4') && !url.includes('/videos/'));
+  }
   
-  // 添加到帖子列表开头
-  posts.value.unshift(newPost);
-  
-  // 关闭发布窗口
-  showPublisher.value = false;
-  
-  // 切换到关注标签页，让用户立即看到自己发布的帖子
-  activeTab.value = 'follow';
+  return [];
 };
+
+// 获取视频 URL
+const getVideoUrl = (post) => {
+  if (!post?.post) return '';
+  
+  // 先检查 videoUrl 字段
+  if (post.post.videoUrl) {
+    return post.post.videoUrl;
+  }
+  
+  // 如果在 resourceUrls 中找到视频
+  if (post.post.resourceUrls && Array.isArray(post.post.resourceUrls) && post.post.resourceUrls.length > 0) {
+    const firstUrl = Array.isArray(post.post.resourceUrls[0]) 
+      ? post.post.resourceUrls[0][0] 
+      : post.post.resourceUrls[0];
+      
+    if (firstUrl && (firstUrl.endsWith('.mp4') || firstUrl.includes('/videos/'))) {
+      return firstUrl;
+    }
+  }
+  
+  return '';
+};
+
+// 组件挂载时加载数据
+onMounted(() => {
+  loadPosts(true);
+  if (!externalDataStore.locationData.city) {
+    externalDataStore.getLocationData();
+  }
+});
 </script>
 
 <template>
@@ -145,39 +391,70 @@ const handlePublish = (postData) => {
       </div>
 
       <!-- 内容区域 -->
-      <div class="content-container">
-        <div class="posts-list">
+      <div class="content-container" @scroll="onScroll">
+        <div v-if="loading && posts.length === 0" class="loading-container">
+          <div class="loading-spinner"></div>
+          <p>加载中...</p>
+        </div>
+        
+        <div v-else-if="posts.length === 0" class="empty-container">
+          <p>暂无帖子</p>
+        </div>
+        
+        <div v-else class="posts-list">
           <!-- 帖子卡片 -->
-          <div v-for="post in posts" :key="post.id" class="post-card">
+          <div 
+            v-for="post in posts" 
+            :key="post.post.postId" 
+            class="post-card"
+            @click="navigateToPostDetail(post)"
+          >
             <div class="post-header">
               <div class="user-info">
-                <img :src="post.avatar" class="avatar" :alt="post.author">
+                <img :src="post.author.imagePath || 'https://i.pravatar.cc/40'" class="avatar" :alt="post.author.username">
                 <div class="user-details">
-                  <div class="username">{{ post.author }}</div>
-                  <div class="location">IP属地：{{ post.location }}</div>
+                  <div class="username">{{ post.author.username }}</div>
+                  <div class="location">IP属地：{{ post.post.ipAddress || '未知' }}</div>
                 </div>
               </div>
               <button 
-                :class="['follow-button', { 'following': post.isFollowing }]"
-                @click="toggleFollow(post)"
+                :class="['follow-button', { 'following': post.isFollowed }]"
+                @click="toggleFollow(post, $event)"
               >
-                {{ post.isFollowing ? '已关注' : '关注' }}
+                {{ post.isFollowed ? '已关注' : '关注' }}
               </button>
             </div>
-            <p class="post-content">{{ post.content }}</p>
+            <p class="post-content">{{ post.post.content }}</p>
+            
+            <!-- 视频显示 -->
+            <div v-if="getResourceType(post) === 'video'" class="post-video">
+              <video 
+                class="video-player" 
+                controls
+                autoplay
+                muted
+                loop
+                playsinline
+                :src="getVideoUrl(post)"
+                preload="metadata"
+                controlsList="nodownload"
+              >
+                您的浏览器不支持视频播放
+              </video>
+            </div>
             
             <!-- 图片显示 -->
             <div 
-              v-if="post.images && post.images.length > 0" 
+              v-else-if="getResourceType(post) === 'image'" 
               :class="[
                 'post-images', 
-                post.images.length === 1 ? 'one-image' : '',
-                post.images.length === 2 ? 'two-images' : '',
-                post.images.length === 4 ? 'four-images' : ''
+                getResourceUrls(post).length === 1 ? 'one-image' : '',
+                getResourceUrls(post).length === 2 ? 'two-images' : '',
+                getResourceUrls(post).length === 4 ? 'four-images' : ''
               ]"
             >
               <img 
-                v-for="(image, index) in post.images" 
+                v-for="(image, index) in getResourceUrls(post)" 
                 :key="index" 
                 :src="image" 
                 class="post-image" 
@@ -185,29 +462,31 @@ const handlePublish = (postData) => {
               >
             </div>
             
-            <!-- 视频显示 -->
-            <div v-if="post.video" class="post-video">
-              <video 
-                controls 
-                :src="post.video" 
-                class="video-player"
-              ></video>
-            </div>
-            
             <div class="post-actions">
-              <button class="action-button">
-                <i class="far fa-heart"></i>
-                <span>{{ post.likes }}</span>
+              <button class="action-button" @click="toggleLike(post, $event)">
+                <i :class="[post.isLiked ? 'fas fa-heart text-red-500' : 'far fa-heart']"></i>
+                <span>{{ formatNumber(post.post.likes) }}</span>
               </button>
               <button class="action-button">
                 <i class="far fa-comment"></i>
-                <span>{{ post.comments }}</span>
+                <span>{{ formatNumber(post.post.comments) }}</span>
               </button>
               <div class="action-button">
                 <i class="far fa-eye"></i>
-                <span>{{ post.views }}</span>
+                <span>{{ formatNumber(post.post.views) }}</span>
               </div>
             </div>
+          </div>
+          
+          <!-- 加载更多提示 -->
+          <div v-if="loading" class="loading-more">
+            <div class="loading-spinner-small"></div>
+            <span>加载中...</span>
+          </div>
+          
+          <!-- 没有更多数据提示 -->
+          <div v-if="!loading && pageInfo.currentPage >= pageInfo.totalPages - 1 && posts.length > 0" class="no-more">
+            --- 已经到底了 ---
           </div>
           
           <!-- 添加底部填充元素，确保最后一项内容完全可见 -->
@@ -312,6 +591,50 @@ const handlePublish = (postData) => {
   flex-direction: column;
   gap: 12px;
   padding-bottom: 80px; /* 为发布按钮留出额外的空间 */
+}
+
+/* 加载中和空状态 */
+.loading-container, .empty-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: calc(100vh - 200px);
+  color: #9CA3AF;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(59, 130, 246, 0.2);
+  border-radius: 50%;
+  border-top-color: #3B82F6;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+.loading-spinner-small {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(59, 130, 246, 0.2);
+  border-radius: 50%;
+  border-top-color: #3B82F6;
+  animation: spin 1s linear infinite;
+  margin-right: 8px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-more, .no-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 0;
+  color: #9CA3AF;
+  font-size: 0.875rem;
 }
 
 /* 帖子卡片 */
@@ -467,12 +790,12 @@ const handlePublish = (postData) => {
   margin-bottom: 12px;
   border-radius: 4px;
   overflow: hidden;
+  background-color: #000;
 }
 
 .video-player {
   width: 100%;
-  height: auto;
-  aspect-ratio: 16/9;
+  max-height: 400px;
   object-fit: contain;
   background-color: #000;
 }

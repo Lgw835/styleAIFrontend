@@ -23,21 +23,22 @@ const imageList = ref([]);
 // 视频数据
 const videoUrl = ref('');
 
-// 选中的硬标签
-const selectedHardTag = ref('生活');
+// 常用标签列表 - 修改为包含 id 和 name 的对象
+const hardTags = [
+  { id: '1234567890128', name: '生活' },
+  { id: '1234567890129', name: '工作' },
+  { id: '1234567890130', name: '休闲' },
+  { id: '1234567890131', name: '运动' },
+  { id: '1234567890132', name: '聚会' },
+  { id: '1234567890133', name: '约会' },
+  { id: '1234567890134', name: '其他' }
+];
+
+// 选中的硬标签 - 存储 ID 而不是名称
+const selectedHardTag = ref('1234567890128'); // 默认选择"生活"
 
 // 软标签输入
 const softTags = ref('');
-
-// 常用标签列表
-const commonTags = [
-  { id: 1, text: '日常穿搭', selected: false },
-  { id: 2, text: '职场穿搭', selected: false },
-  { id: 3, text: '约会装扮', selected: false },
-  { id: 4, text: '休闲风格', selected: false },
-  { id: 5, text: '春季搭配', selected: false },
-  { id: 6, text: '配饰搭配', selected: false }
-];
 
 // 切换媒体类型
 const switchMediaType = (type) => {
@@ -59,15 +60,19 @@ const handleImageUpload = (event) => {
   // 处理多图上传
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
-    const reader = new FileReader();
+    // 创建 FormData 对象
+    const formData = new FormData();
+    formData.append('file', file); // 直接使用原始文件对象
     
+    // 保存预览图
+    const reader = new FileReader();
     reader.onload = (e) => {
       imageList.value.push({
         id: Date.now() + i,
+        file: formData, // 保存 FormData 对象而不是文件对象
         url: e.target.result
       });
     };
-    
     reader.readAsDataURL(file);
   }
   
@@ -85,11 +90,18 @@ const handleVideoUpload = (event) => {
   const file = event.target.files[0];
   if (!file) return;
   
+  // 创建 FormData 对象
+  const formData = new FormData();
+  formData.append('file', file); // 直接使用原始文件对象
+  
+  // 保存预览图
   const reader = new FileReader();
   reader.onload = (e) => {
-    videoUrl.value = e.target.result;
+    videoUrl.value = {
+      file: formData, // 保存 FormData 对象而不是文件对象
+      url: e.target.result
+    };
   };
-  
   reader.readAsDataURL(file);
   
   // 清空input，以便可以重复选择同一文件
@@ -102,8 +114,8 @@ const deleteVideo = () => {
 };
 
 // 选择硬标签
-const selectHardTag = (tag) => {
-  selectedHardTag.value = tag;
+const selectHardTag = (tagId) => {
+  selectedHardTag.value = tagId;
 };
 
 // 选择软标签
@@ -154,8 +166,8 @@ const publishPost = () => {
     content: content.value,
     mediaType: activeMediaType.value,
     media: activeMediaType.value === 'image' ? imageList.value : videoUrl.value,
-    hardTag: selectedHardTag.value,
-    softTags: softTags.value,
+    tag: selectedHardTag.value, // 直接使用标签 ID
+    customTags: softTags.value.split(/\s+/).filter(tag => tag.startsWith('#')).map(tag => tag.slice(1))
   };
   
   // 发送数据
@@ -171,9 +183,8 @@ const resetForm = () => {
   activeMediaType.value = 'image';
   imageList.value = [];
   videoUrl.value = '';
-  selectedHardTag.value = '生活';
+  selectedHardTag.value = '1234567890128'; // 重置为"生活"的 ID
   softTags.value = '';
-  commonTags.forEach(tag => tag.selected = false);
 };
 
 // 关闭弹窗
@@ -254,7 +265,14 @@ const closePublisher = () => {
           <div v-else class="video-upload-section">
             <!-- 视频预览 -->
             <div v-if="videoUrl" class="video-preview">
-              <video controls :src="videoUrl"></video>
+              <video 
+                controls 
+                :src="videoUrl.url"
+                class="video-preview-player"
+                preload="metadata"
+              >
+                您的浏览器不支持视频播放
+              </video>
               <button class="delete-button" @click="deleteVideo">
                 <i class="fas fa-times"></i>
               </button>
@@ -279,14 +297,14 @@ const closePublisher = () => {
         <div class="tag-section">
           <h3 class="section-title">选择一个类别 <span class="required">*</span></h3>
           <div class="hard-tags">
-            <div 
-              v-for="tag in ['生活', '工作', '休闲', '运动', '聚会', '约会', '其他']" 
-              :key="tag"
-              :class="['hard-tag-item', { selected: selectedHardTag === tag }]"
-              @click="selectHardTag(tag)"
+            <button
+              v-for="tag in hardTags"
+              :key="tag.id"
+              :class="['hard-tag-item', { selected: selectedHardTag === tag.id }]"
+              @click="selectHardTag(tag.id)"
             >
-              {{ tag }}
-            </div>
+              {{ tag.name }}
+            </button>
           </div>
         </div>
         
@@ -305,12 +323,12 @@ const closePublisher = () => {
             <div class="section-subtitle">常用标签：</div>
             <div class="tag-items">
               <div 
-                v-for="tag in commonTags" 
-                :key="tag.id"
+                v-for="tag in ['生活', '职场穿搭', '休闲风格', '春季搭配', '配饰搭配']" 
+                :key="tag"
                 :class="['tag-item', { selected: tag.selected }]"
-                @click="toggleSoftTag(tag.text); tag.selected = !tag.selected"
+                @click="toggleSoftTag(tag); tag.selected = !tag.selected"
               >
-                # {{ tag.text }}
+                # {{ tag }}
               </div>
             </div>
           </div>
@@ -488,18 +506,24 @@ const closePublisher = () => {
   margin-bottom: 8px;
 }
 
+.video-upload-section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .video-preview {
   position: relative;
   width: 100%;
-  aspect-ratio: 16/9;
-  border-radius: 8px;
+  margin-bottom: 12px;
+  border-radius: 4px;
   overflow: hidden;
   background-color: #000;
 }
 
-.video-preview video {
+.video-preview-player {
   width: 100%;
-  height: 100%;
+  max-height: 400px;
   object-fit: contain;
 }
 
