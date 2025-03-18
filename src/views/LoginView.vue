@@ -61,10 +61,12 @@ import { showToast } from 'vant'
 import { login } from '@/api' // 导入登录API
 import { useUserStore } from '@/stores/user' // 导入用户状态存储
 import { useOutfitRecordStore } from '@/stores/outfitRecord' // 导入穿搭记录Store
+import { useScheduleStore } from '@/stores/schedule'
 
 const router = useRouter()
 const userStore = useUserStore()
 const outfitRecordStore = useOutfitRecordStore()
+const scheduleStore = useScheduleStore()
 const username = ref('')
 const password = ref('')
 
@@ -99,6 +101,14 @@ const handleLogin = async () => {
         })
       }
       
+      // 登录成功后获取今日日程
+      await scheduleStore.fetchTodaySchedules(res.userInfo.userId)
+      
+      // 如果有日程，设置首次访问标记为 true
+      if (scheduleStore.todaySchedules && scheduleStore.todaySchedules.length > 0) {
+        sessionStorage.setItem('isFirstVisit', 'true')
+      }
+      
       // 显示成功提示
       showToast('登录成功')
       
@@ -114,6 +124,9 @@ const handleLogin = async () => {
           console.error('跳转失败:', err)
         })
       }, 100)
+
+      // 重置日程提醒查看状态
+      scheduleStore.setTodayNotificationViewed(false)
     }
   } catch (error) {
     console.error('登录失败:', error)

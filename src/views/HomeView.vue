@@ -1,103 +1,109 @@
 <template>
-  <div class="home">
-    <!-- 使用导航栏组件 -->
-    <TopNavBar title="智能穿搭">
-      <!-- 在导航栏右侧添加日程提醒图标 -->
+  <div class="min-h-screen bg-gray-50">
+    <van-nav-bar
+      title="智能穿搭"
+      fixed
+      placeholder
+      safe-area-inset-top
+      class="bg-white border-b border-gray-100"
+      :style="{ height: '46px' }"
+    >
       <template #right>
-        <div class="schedule-bell" @click="showScheduleNotification">
-          <van-badge dot v-if="shouldShowNotificationDot">
-            <i class="fas fa-bell"></i>
-          </van-badge>
-          <i class="fas fa-bell" v-else></i>
+        <div @click="showScheduleNotification" class="mr-4 relative">
+          <i class="fas fa-bell text-lg text-gray-600"></i>
+          <span v-if="shouldShowNotificationDot" 
+                class="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full">
+          </span>
         </div>
       </template>
-    </TopNavBar>
+    </van-nav-bar>
     
-    <!-- 主要内容区 -->
-    <div class="content">
-      <!-- 顶部信息区：天气和幸运色组合 -->
-      <div class="info-panel">
-        <!-- 天气卡片 -->
-        <div class="weather-card" :class="weatherClass">
-          <div class="weather-info">
-            <div>
-              <h3>{{ weatherData.city }}</h3>
-              <div class="weather-description">
-                <i :class="weatherIcon"></i>
-                <p>{{ weatherData.text }}</p>
+    <div class="px-4" :style="{ paddingTop: '56px', paddingBottom: '70px' }">
+      <div class="flex flex-col gap-3">
+        <div 
+          class="rounded-xl overflow-hidden shadow-sm transition-shadow hover:shadow-md" 
+          :class="weatherClass"
+        >
+          <div class="p-4">
+            <div class="flex justify-between items-center">
+              <div>
+                <h3 class="text-xl font-medium mb-1">{{ weatherData.city }}</h3>
+                <div class="flex items-center">
+                  <i :class="weatherIcon" class="text-2xl mr-2"></i>
+                  <p>{{ weatherData.text }}</p>
+                </div>
+              </div>
+              <div class="text-right">
+                <p class="text-4xl font-light">{{ weatherData.temp }}°</p>
+                <p class="text-sm mt-1 opacity-85">{{ weatherData.tempMin }}° / {{ weatherData.tempMax }}°</p>
               </div>
             </div>
-            <div class="temperature">
-              <p class="current-temp">{{ weatherData.temp }}°</p>
-              <p class="temp-range">{{ weatherData.tempMin }}° / {{ weatherData.tempMax }}°</p>
-            </div>
           </div>
         </div>
-        
-        <!-- 今日幸运色 - 带背景色的原始布局 -->
-        <div class="lucky-color-card" :style="getLuckyColorStyle">
-          <div class="lucky-color-simple">
-            <div class="color-circle" :style="{ backgroundColor: dailyLuckyColor.hex }"></div>
-            <div class="lucky-color-text">
-              <h4>今日幸运色: {{ dailyLuckyColor.name }}</h4>
-              <p>{{ dailyLuckyColor.suggestion }}</p>
+
+        <div 
+          class="rounded-xl overflow-hidden bg-white shadow-sm transition-shadow hover:shadow-md"
+          :style="getLuckyColorStyle"
+        >
+          <div class="p-4">
+            <div class="flex items-center">
+              <div 
+                class="w-12 h-12 rounded-full shadow-sm mr-4 border border-white/20" 
+                :style="{ backgroundColor: dailyLuckyColor.hex }"
+              ></div>
+              <div>
+                <h4 class="text-lg font-medium mb-1">今日幸运色: {{ dailyLuckyColor.name }}</h4>
+                <p class="text-sm opacity-85 line-clamp-2">{{ dailyLuckyColor.suggestion }}</p>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 穿衣建议 -->
-      <div class="clothing-suggestion" v-if="clothingSuggestion">
-        <i class="fas fa-tshirt"></i>
-        <span>{{ clothingSuggestion }}</span>
+      <div v-if="clothingSuggestion" 
+           class="mt-3 bg-white rounded-xl p-4 shadow-sm transition-shadow hover:shadow-md flex items-center">
+        <i class="fas fa-tshirt text-xl text-blue-500 mr-4"></i>
+        <span class="text-gray-700">{{ clothingSuggestion }}</span>
       </div>
 
-      <!-- 功能网格 - 增强样式 -->
-      <h3 class="section-title">智能穿搭功能</h3>
-      <div class="feature-grid">
-        <router-link to="/daily-match" class="feature-item">
-          <div class="feature-icon-wrapper blue">
-            <i class="fas fa-tshirt"></i>
+      <h3 class="text-xl font-medium mt-6 mb-3 px-1">智能穿搭功能</h3>
+      
+      <div class="grid grid-cols-2 gap-3">
+        <router-link to="/daily-match" 
+                     class="bg-white rounded-xl p-4 shadow-sm transition-all hover:shadow-md hover:scale-[1.02]">
+          <div class="flex justify-center items-center w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 text-white mx-auto mb-3">
+            <i class="fas fa-tshirt text-xl"></i>
           </div>
-          <div class="feature-content">
-            <h3>每日一搭</h3>
-            <p>AI为您精选搭配</p>
-          </div>
+          <h3 class="text-lg font-medium mb-1">每日一搭</h3>
+          <p class="text-sm text-gray-500">AI为您精选搭配</p>
         </router-link>
         
-        <router-link to="/dress-recommend" class="feature-item">
-          <div class="feature-icon-wrapper purple">
-            <i class="fas fa-magic"></i>
+        <router-link to="/dress-recommend" class="bg-white rounded-xl p-4 shadow-sm transition-all hover:shadow-md hover:scale-[1.02]">
+          <div class="flex justify-center items-center w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-purple-500 text-white mx-auto mb-3">
+            <i class="fas fa-magic text-xl"></i>
           </div>
-          <div class="feature-content">
-            <h3>穿搭推荐</h3>
-            <p>个性化搭配建议</p>
-          </div>
+          <h3 class="text-lg font-medium mb-1">穿搭推荐</h3>
+          <p class="text-sm text-gray-500">个性化搭配建议</p>
         </router-link>
         
-        <router-link to="/ai-review" class="feature-item">
-          <div class="feature-icon-wrapper green">
-            <i class="fas fa-star"></i>
+        <router-link to="/ai-review" class="bg-white rounded-xl p-4 shadow-sm transition-all hover:shadow-md hover:scale-[1.02]">
+          <div class="flex justify-center items-center w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-green-500 text-white mx-auto mb-3">
+            <i class="fas fa-star text-xl"></i>
           </div>
-          <div class="feature-content">
-            <h3>AI评价</h3>
-            <p>专业搭配点评</p>
-          </div>
+          <h3 class="text-lg font-medium mb-1">AI评价</h3>
+          <p class="text-sm text-gray-500">专业搭配点评</p>
         </router-link>
         
-        <router-link to="/outfit-records" class="feature-item">
-          <div class="feature-icon-wrapper yellow">
-            <i class="fas fa-history"></i>
+        <router-link to="/outfit-records" class="bg-white rounded-xl p-4 shadow-sm transition-all hover:shadow-md hover:scale-[1.02]">
+          <div class="flex justify-center items-center w-12 h-12 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-500 text-white mx-auto mb-3">
+            <i class="fas fa-history text-xl"></i>
           </div>
-          <div class="feature-content">
-            <h3>穿搭记录</h3>
-            <p>查看历史搭配</p>
-          </div>
+          <h3 class="text-lg font-medium mb-1">穿搭记录</h3>
+          <p class="text-sm text-gray-500">查看历史搭配</p>
         </router-link>
       </div>
     </div>
 
-    <!-- 用户画像填写蒙版 -->
     <UserProfileOverlay
       :show="showProfileOverlay"
       @close="closeProfileOverlay"
@@ -105,73 +111,72 @@
       @skip="skipProfileSetup"
     />
 
-    <!-- 修改为轻量级提示框 -->
     <van-dialog
       v-model:show="showNotificationDialog"
       title="今日日程提醒"
       @confirm="viewScheduleDetails"
       @cancel="closeNotification"
-      confirmButtonText="查看详情"
-      cancelButtonText="知道了"
+      confirm-button-text="查看详情"
+      cancel-button-text="知道了"
+      :close-on-click-overlay="true"
+      @click-overlay="closeNotification"
     >
-      <div class="notification-content">
-        <i class="fas fa-calendar-check notification-icon"></i>
-        <p>
-          今天您有 <span class="highlight">{{ scheduleStore.todaySchedules.length }}</span> 个日程安排
+      <div class="py-4 text-center">
+        <i class="fas fa-calendar-check text-4xl text-green-500 mb-4"></i>
+        <p class="text-gray-700">
+          今天您有 <span class="text-blue-500 font-semibold">{{ scheduleStore.todaySchedules.length }}</span> 个日程安排
           <template v-if="scheduleStore.importantCount > 0">
-            ，其中 <span class="highlight important">{{ scheduleStore.importantCount }}</span> 个重要日程
+            ，其中 <span class="text-red-500 font-semibold">{{ scheduleStore.importantCount }}</span> 个重要日程
           </template>
-          。
         </p>
       </div>
     </van-dialog>
 
-    <!-- 添加用户画像提醒，仅当用户已登录但没有画像时显示 -->
     <div v-if="needsProfileSetup" 
-         class="fixed bottom-5 right-5 bg-white rounded-lg shadow-lg p-3 z-50 w-64 border border-blue-200">
+         class="fixed bottom-20 right-4 bg-white rounded-lg shadow-lg p-4 w-64 border border-blue-200">
       <div class="flex items-center mb-2">
-        <i class="fas fa-user-circle text-blue-500 text-xl mr-2"></i>
-        <h3 class="font-medium text-gray-800">完善个人信息</h3>
+        <i class="fas fa-user-circle text-blue-500 text-2xl mr-2"></i>
+        <h3 class="font-semibold text-gray-800">完善个人信息</h3>
       </div>
-      <p class="text-sm text-gray-600 mb-3">完善您的个人信息，获取更精准的穿搭推荐！</p>
+      <p class="text-sm text-gray-600 mb-4">完善您的个人信息，获取更精准的穿搭推荐！</p>
       <div class="flex justify-between">
         <button @click="showProfileOverlay = true" 
-                class="bg-blue-500 text-white px-3 py-1 rounded-md text-sm">
+                class="bg-blue-500 text-white px-4 py-2 rounded-md text-sm">
           立即填写
         </button>
         <button @click="dismissProfileReminder" 
-                class="text-gray-500 text-sm underline">
+                class="text-gray-500 text-sm">
           稍后再说
         </button>
       </div>
     </div>
 
-    <!-- 添加底部导航栏 -->
-    <div class="bottom-nav">
-      <router-link to="/" class="nav-item active">
-        <i class="fas fa-home"></i>
-        <span>首页</span>
-      </router-link>
-      <router-link to="/wardrobe" class="nav-item">
-        <i class="fas fa-tshirt"></i>
-        <span>衣柜</span>
-      </router-link>
-      <router-link to="/plaza" class="nav-item">
-        <i class="fas fa-compass"></i>
-        <span>广场</span>
-      </router-link>
-      <router-link to="/profile" class="nav-item">
-        <i class="fas fa-user"></i>
-        <span>我的</span>
-      </router-link>
+    <div class="fixed bottom-0 left-0 right-0 bg-white border-t">
+      <div class="flex justify-around py-2">
+        <router-link to="/" class="flex flex-col items-center text-blue-500">
+          <i class="fas fa-home text-xl mb-1"></i>
+          <span class="text-xs">首页</span>
+        </router-link>
+        <router-link to="/wardrobe" class="flex flex-col items-center text-gray-600">
+          <i class="fas fa-tshirt text-xl mb-1"></i>
+          <span class="text-xs">衣柜</span>
+        </router-link>
+        <router-link to="/plaza" class="flex flex-col items-center text-gray-600">
+          <i class="fas fa-compass text-xl mb-1"></i>
+          <span class="text-xs">广场</span>
+        </router-link>
+        <router-link to="/profile" class="flex flex-col items-center text-gray-600">
+          <i class="fas fa-user text-xl mb-1"></i>
+          <span class="text-xs">我的</span>
+        </router-link>
+      </div>
     </div>
 
   </div>
 </template>
 
 <script>
-import TopNavBar from '@/components/TopNavBar.vue'
-import { onMounted, ref, computed } from 'vue'
+import { onMounted, ref, computed, watch } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { useExternalDataStore } from '@/stores/externalData'
 import { useRouter } from 'vue-router'
@@ -183,7 +188,6 @@ import { getWeather, saveWeatherRecord } from '@/api/weather'
 export default {
   name: 'HomeView',
   components: {
-    TopNavBar,
     UserProfileOverlay
   },
   setup() {
@@ -219,24 +223,14 @@ export default {
     // 根据天气状况计算CSS类
     const weatherClass = computed(() => {
       const text = weatherData.value.text || '';
-      const temp = parseInt(weatherData.value.temp || 0);
       
-      let weatherType = 'default';
+      if (text.includes('晴')) return 'bg-gradient-to-r from-yellow-400 to-yellow-500 text-white';
+      if (text.includes('多云')) return 'bg-gradient-to-r from-blue-400 to-blue-500 text-white';
+      if (text.includes('阴')) return 'bg-gradient-to-r from-gray-400 to-gray-500 text-white';
+      if (text.includes('雨')) return 'bg-gradient-to-r from-blue-500 to-blue-600 text-white';
+      if (text.includes('雪')) return 'bg-gradient-to-r from-blue-200 to-blue-300 text-gray-800';
       
-      if (text.includes('晴') && !text.includes('云')) weatherType = 'sunny';
-      else if (text.includes('雨')) weatherType = 'rainy';
-      else if (text.includes('雪')) weatherType = 'snowy';
-      else if (text.includes('雾') || text.includes('霾')) weatherType = 'foggy';
-      else if (text.includes('云') || text.includes('阴')) weatherType = 'cloudy';
-      
-      // 温度等级
-      let tempClass = 'mild';
-      if (temp >= 30) tempClass = 'hot';
-      else if (temp >= 20) tempClass = 'warm';
-      else if (temp <= 5) tempClass = 'cold';
-      else if (temp <= 10) tempClass = 'cool';
-      
-      return `weather-${weatherType} temp-${tempClass}`;
+      return '';
     });
     
     // 根据天气计算穿衣建议
@@ -314,6 +308,49 @@ export default {
       return luckyColors[dayOfYear % luckyColors.length];
     });
 
+    // 使用 ref 来跟踪访问状态
+    const isFirstVisit = ref(sessionStorage.getItem('isFirstVisit') === 'true')
+
+    // 监听 isFirstVisit 的变化
+    watch(isFirstVisit, (newValue) => {
+      sessionStorage.setItem('isFirstVisit', newValue.toString())
+    })
+
+    // 修改红点显示逻辑
+    const shouldShowNotificationDot = computed(() => {
+      const hasSchedules = scheduleStore.todaySchedules && scheduleStore.todaySchedules.length > 0
+      return isFirstVisit.value && hasSchedules
+    })
+    
+    // 格式化时间
+    const formatTime = (dateString) => {
+      const date = new Date(dateString)
+      return date.toLocaleTimeString('zh-CN', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        hour12: false 
+      })
+    }
+    
+    // 格式化日期
+    const formatDate = (dateString) => {
+      const date = new Date(dateString)
+      return date.toLocaleDateString('zh-CN', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })
+    }
+
+    // 修改显示日程提醒对话框的方法
+    const showScheduleNotification = () => {
+      if (scheduleStore.todaySchedules && scheduleStore.todaySchedules.length > 0) {
+        showNotificationDialog.value = true
+        // 直接修改 ref 值，这会触发 watch
+        isFirstVisit.value = false
+      }
+    }
+
     onMounted(async () => {
       // 获取天气数据
       await fetchWeather()
@@ -337,6 +374,12 @@ export default {
         router.replace('/login')
       } else {
         console.log('HomeView确认已登录状态')
+      }
+
+      // 如果已登录，获取日程
+      if (userStore.isLoggedIn) {
+        await scheduleStore.fetchTodaySchedules(userStore.userInfo.userId)
+        console.log('Mounted: 日程获取完成', scheduleStore.todaySchedules) // 调试用
       }
     })
 
@@ -372,49 +415,13 @@ export default {
     const showNotificationDialog = ref(false)
     const showScheduleDetailDialog = ref(false)
     
-    // 决定是否显示提醒红点
-    const shouldShowNotificationDot = computed(() => {
-      return scheduleStore.todaySchedules.length > 0 && !scheduleStore.todayNotificationViewed
-    })
-    
-    // 格式化时间
-    const formatTime = (dateString) => {
-      const date = new Date(dateString)
-      return date.toLocaleTimeString('zh-CN', { 
-        hour: '2-digit', 
-        minute: '2-digit',
-        hour12: false 
-      })
-    }
-    
-    // 格式化日期
-    const formatDate = (dateString) => {
-      const date = new Date(dateString)
-      return date.toLocaleDateString('zh-CN', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      })
-    }
-
-    // 显示日程通知
-    function showScheduleNotification() {
-      if (scheduleStore.todaySchedules.length > 0) {
-        showNotificationDialog.value = true
-      } else {
-        // 如果没有日程，直接显示空状态
-        showScheduleDetailDialog.value = true
-      }
-    }
-    
     // 查看日程详情
     function viewScheduleDetails() {
       showNotificationDialog.value = false
-      scheduleStore.markNotificationAsViewed()
+      scheduleStore.setTodayNotificationViewed(true)
       
-      // 简单导航到日程页面
+      // 导航到日程页面
       router.push('/schedule')
-      console.log('查看日程详情按钮点击')
     }
     
     // 关闭通知
@@ -532,378 +539,53 @@ export default {
       needsProfileSetup,
       userStore,
       router,
-      saveWeatherData
+      saveWeatherData,
+      isFirstVisit
     }
   }
 }
 </script>
 
-<style scoped>
-.home {
-  padding-top: 56px;
-}
-
-.content {
-  padding: 16px;
-  max-height: calc(100vh - 56px);
-  overflow-y: auto;
-  box-sizing: border-box;
-}
-
-/* 信息面板 - 组合天气和幸运色 */
-.info-panel {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.weather-card {
-  flex: 1;
-  min-width: 180px;
-  background: white;
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s ease;
-  margin-bottom: 0;
-}
-
-.lucky-color-card {
-  flex: 1;
-  min-width: 180px;
-  padding: 16px;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+<style>
+/* 添加一些过渡效果 */
+.transition-all {
   transition: all 0.3s ease;
 }
 
-/* 恢复原有布局样式 */
-.lucky-color-simple {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+/* 确保渐变效果平滑 */
+.bg-gradient-to-r,
+.bg-gradient-to-br {
+  background-size: 200% 200%;
 }
 
-.lucky-color-simple .color-circle {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-  flex-shrink: 0;
-}
-
-.lucky-color-text {
-  flex: 1;
-}
-
-.lucky-color-text h4 {
-  font-size: 1rem;
-  margin-bottom: 4px;
-  font-weight: 600;
-}
-
-.lucky-color-text p {
-  font-size: 0.875rem;
-  color: #666;
-  margin: 0;
-  line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* 穿衣建议 */
-.clothing-suggestion {
-  background: #f5f5f5;
-  padding: 12px 16px;
-  border-radius: 12px;
-  margin-bottom: 20px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-}
-
-.clothing-suggestion i {
-  color: #666;
-  font-size: 1.1rem;
-}
-
-/* 功能板块样式增强 */
-.section-title {
-  font-size: 1.2rem;
-  font-weight: 600;
-  margin-bottom: 12px;
-  color: #333;
-}
-
-.feature-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-}
-
-.feature-item {
-  display: flex;
-  background: white;
-  border-radius: 12px;
-  padding: 16px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-  transition: all 0.3s ease;
-  text-decoration: none;
-  color: inherit;
+/* 铃铛图标容器 */
+.relative {
   position: relative;
-  overflow: hidden;
+  display: inline-block;
 }
 
-.feature-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-}
-
-.feature-icon-wrapper {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-right: 12px;
-  flex-shrink: 0;
-}
-
-.feature-icon-wrapper i {
-  font-size: 1.3rem;
-  color: #333;
-}
-
-.feature-content {
-  flex: 1;
-  position: relative;
-}
-
-.feature-content h3 {
-  font-size: 1.1rem;
-  font-weight: 600;
-  margin-bottom: 4px;
-  color: #333;
-}
-
-.feature-content p {
-  font-size: 0.875rem;
-  color: #666;
-  margin: 0;
-}
-
-.feature-arrow {
+/* 红点样式 */
+.absolute {
   position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  opacity: 0.5;
 }
 
-.feature-icon-wrapper.blue { 
-  background-color: #e0f2fe; 
+/* 可以添加动画效果 */
+.bg-red-500 {
+  animation: pulse 2s infinite;
 }
 
-.feature-icon-wrapper.purple { 
-  background-color: #f3e8ff; 
-}
-
-.feature-icon-wrapper.green { 
-  background-color: #dcfce7; 
-}
-
-.feature-icon-wrapper.yellow { 
-  background-color: #fef9c3; 
-}
-
-/* 保留其他已有的天气相关样式 */
-.weather-sunny {
-  background: linear-gradient(135deg, #ffd86f, #fc6262);
-  color: white;
-}
-
-.weather-cloudy {
-  background: linear-gradient(135deg, #c9d6ff, #e2e2e2);
-}
-
-/* 其他天气样式... */
-
-.weather-info {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-
-.weather-description {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 4px;
-}
-
-.weather-description i {
-  font-size: 1.2rem;
-}
-
-.current-temp {
-  font-size: 2.2rem;
-  font-weight: 300;
-  line-height: 1;
-}
-
-.temp-range {
-  opacity: 0.8;
-  font-size: 0.9rem;
-  text-align: right;
-}
-
-/* 提醒铃铛图标样式 */
-.schedule-bell {
-  padding: 0 16px;
-  cursor: pointer;
-}
-
-.schedule-bell i {
-  font-size: 1.2rem;
-  color: #333;
-}
-
-/* 通知内容样式 */
-.notification-content {
-  padding: 16px;
-  text-align: center;
-}
-
-.notification-icon {
-  font-size: 2.5rem;
-  color: #4CAF50;
-  margin-bottom: 16px;
-}
-
-.notification-content p {
-  font-size: 1.1rem;
-  line-height: 1.5;
-}
-
-.highlight {
-  font-weight: bold;
-  color: #2196F3;
-}
-
-.highlight.important {
-  color: #F44336;
-}
-
-/* 日程列表样式 */
-.schedule-list {
-  padding: 16px;
-  max-height: 60vh;
-  overflow-y: auto;
-}
-
-.schedule-item {
-  display: flex;
-  align-items: flex-start;
-  padding: 12px;
-  border-bottom: 1px solid #eee;
-  position: relative;
-}
-
-.schedule-item.important {
-  background-color: #fff8f8;
-}
-
-.schedule-time {
-  font-size: 0.9rem;
-  color: #666;
-  min-width: 80px;
-}
-
-.schedule-content {
-  flex: 1;
-  margin: 0 12px;
-}
-
-.schedule-content h4 {
-  margin: 0;
-  font-size: 1rem;
-  color: #333;
-}
-
-.schedule-content p {
-  margin: 4px 0 0;
-  font-size: 0.9rem;
-  color: #666;
-}
-
-.schedule-item i {
-  color: #ff9800;
-  font-size: 1rem;
-}
-
-.empty-schedule {
-  text-align: center;
-  padding: 32px 16px;
-  color: #999;
-}
-
-.empty-schedule i {
-  font-size: 2rem;
-  margin-bottom: 8px;
-}
-
-.empty-schedule p {
-  margin: 0;
-}
-
-/* 底部导航栏样式 */
-.bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 60px;
-  background-color: white;
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  box-shadow: 0 -1px 5px rgba(0, 0, 0, 0.1);
-  z-index: 100;
-}
-
-.nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  color: #666;
-  text-decoration: none;
-  padding: 8px 0;
-  width: 25%;
-}
-
-.nav-item i {
-  font-size: 1.2rem;
-  margin-bottom: 4px;
-}
-
-.nav-item span {
-  font-size: 0.75rem;
-}
-
-.nav-item.active {
-  color: #3B82F6;
-}
-
-/* 确保内容区域不被底部导航栏覆盖 */
-.content {
-  padding-bottom: 70px;
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 </style> 

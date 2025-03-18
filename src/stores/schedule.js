@@ -10,69 +10,16 @@ import {
 } from '@/api/schedule'
 
 export const useScheduleStore = defineStore('schedule', () => {
-  // 日程列表
+  // 只存储日程列表，供其他模块使用
   const schedules = ref([])
-  // 重要日程数量
+  // 重要日程数量，供其他模块使用
   const importantCount = ref(0)
-  // 加载状态
-  const loading = ref(false)
-  // 最后更新时间
+  // 最后更新时间，用于缓存控制
   const lastUpdated = ref(null)
-  // 当前选中日期
-  const selectedDate = ref(new Date())
+  const todaySchedules = ref([])
+  const todayNotificationViewed = ref(false)
   
-  // 获取今日日程
-  async function fetchTodaySchedules(userId) {
-    if (!userId) return
-    
-    try {
-      loading.value = true
-      const response = await getTodaySchedules(userId)
-      
-      if (response && response.scheduleList) {
-        schedules.value = response.scheduleList
-        importantCount.value = response.importantCount || 0
-        lastUpdated.value = new Date().toISOString()
-      }
-      
-      return response
-    } catch (error) {
-      console.error('获取今日日程失败:', error)
-      return null
-    } finally {
-      loading.value = false
-    }
-  }
-
-  // 获取指定日期的日程
-  async function fetchSchedulesByDate(userId, date) {
-    if (!userId || !date) return
-    
-    try {
-      loading.value = true
-      
-      const response = await getSchedulesByDate({ 
-        userId,
-        date: typeof date === 'string' ? date : formatDateToString(date)
-      })
-      
-      if (response && response.scheduleList) {
-        schedules.value = response.scheduleList
-        importantCount.value = response.importantCount || 0
-        selectedDate.value = typeof date === 'string' ? new Date(date) : new Date(date)
-        lastUpdated.value = new Date().toISOString()
-      }
-      
-      return response
-    } catch (error) {
-      console.error('获取日程失败:', error)
-      return null
-    } finally {
-      loading.value = false
-    }
-  }
-
-  // 添加日期格式化辅助函数
+  // 格式化日期为 YYYY-MM-DD
   function formatDateToString(date) {
     const year = date.getFullYear()
     const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -80,12 +27,46 @@ export const useScheduleStore = defineStore('schedule', () => {
     return `${year}-${month}-${day}`
   }
 
+  // 获取今日日程并更新store
+  async function fetchTodaySchedules(userId) {
+    if (!userId) return null
+    
+    try {
+      const response = await getTodaySchedules(userId)
+      
+      if (response && response.scheduleList) {
+        // 更新store数据供其他模块使用
+        schedules.value = response.scheduleList
+        importantCount.value = response.importantCount || 0
+        lastUpdated.value = new Date().toISOString()
+        todaySchedules.value = response.scheduleList
+      }
+      
+      return response
+    } catch (error) {
+      console.error('获取今日日程失败:', error)
+      return null
+    }
+  }
+
+  // 获取指定日期的日程，不更新store
+  async function fetchSchedulesByDate(userId, date) {
+    if (!userId || !date) return null
+    
+    try {
+      return await getSchedulesByDate({ 
+        userId,
+        date: typeof date === 'string' ? date : formatDateToString(date)
+      })
+    } catch (error) {
+      console.error('获取日程失败:', error)
+      return null
+    }
+  }
+
   // 创建日程
   async function createNewSchedule(scheduleData) {
     try {
-      loading.value = true
-      
-      // 转换字段名以匹配后端
       const data = {
         userId: scheduleData.userId,
         eventDescribe: scheduleData.eventDescribe,
@@ -96,25 +77,23 @@ export const useScheduleStore = defineStore('schedule', () => {
       
       const response = await createSchedule(data)
       
-      if (response.data.success) {
-        // 重新获取当天日程以保持数据同步
-        await fetchSchedulesByDate(data.userId, new Date(data.date))
+      // 如果是今天的日程，更新store数据
+      const today = new Date()
+      const scheduleDate = new Date(data.date)
+      if (today.toDateString() === scheduleDate.toDateString()) {
+        await fetchTodaySchedules(data.userId)
       }
       
-      return response.data
+      return response
     } catch (error) {
       console.error('创建日程失败:', error)
       return { success: false, message: '创建日程失败' }
-    } finally {
-      loading.value = false
     }
   }
 
   // 更新日程
   async function updateExistingSchedule(scheduleData) {
     try {
-      loading.value = true
-      
       const data = {
         scheduleId: scheduleData.scheduleId,
         userId: scheduleData.userId,
@@ -126,38 +105,36 @@ export const useScheduleStore = defineStore('schedule', () => {
       
       const response = await updateSchedule(data)
       
-      if (response.success) {
-        // 重新获取当天日程以保持数据同步
-        await fetchSchedulesByDate(data.userId, new Date(data.date))
+      // 如果是今天的日程，更新store数据
+      const today = new Date()
+      const scheduleDate = new Date(data.date)
+      if (today.toDateString() === scheduleDate.toDateString()) {
+        await fetchTodaySchedules(data.userId)
       }
       
       return response
     } catch (error) {
       console.error('更新日程失败:', error)
       return { success: false, message: '更新日程失败' }
-    } finally {
-      loading.value = false
     }
   }
 
   // 删除日程
   async function deleteExistingSchedule(scheduleId, userId, date) {
     try {
-      loading.value = true
-      
       const response = await deleteSchedule(scheduleId)
       
-      if (response.data.success) {
-        // 重新获取当天日程以保持数据同步
-        await fetchSchedulesByDate(userId, date)
+      // 如果是今天的日程，更新store数据
+      const today = new Date()
+      const scheduleDate = new Date(date)
+      if (today.toDateString() === scheduleDate.toDateString()) {
+        await fetchTodaySchedules(userId)
       }
       
-      return response.data
+      return response
     } catch (error) {
       console.error('删除日程失败:', error)
       return { success: false, message: '删除日程失败' }
-    } finally {
-      loading.value = false
     }
   }
 
@@ -165,14 +142,32 @@ export const useScheduleStore = defineStore('schedule', () => {
   async function recordWeatherInfo(weatherInfo) {
     try {
       const response = await recordWeather(weatherInfo)
-      return response.data
+      return response
     } catch (error) {
       console.error('记录天气信息失败:', error)
-      return false
+      return { success: false, message: '记录天气信息失败' }
     }
   }
 
-  // 从 sessionStorage 恢复数据
+  // 设置今日提醒查看状态
+  function setTodayNotificationViewed(viewed) {
+    todayNotificationViewed.value = viewed
+    saveToSession()
+  }
+
+  // 修改保存到 session 的数据
+  function saveToSession() {
+    const data = {
+      schedules: schedules.value,
+      importantCount: importantCount.value,
+      lastUpdated: lastUpdated.value,
+      todaySchedules: todaySchedules.value,
+      todayNotificationViewed: todayNotificationViewed.value
+    }
+    sessionStorage.setItem('scheduleData', JSON.stringify(data))
+  }
+  
+  // 修改从 session 恢复数据的方法
   function restoreFromSession() {
     const savedData = sessionStorage.getItem('scheduleData')
     if (savedData) {
@@ -180,24 +175,14 @@ export const useScheduleStore = defineStore('schedule', () => {
       schedules.value = data.schedules || []
       importantCount.value = data.importantCount || 0
       lastUpdated.value = data.lastUpdated || null
-      selectedDate.value = data.selectedDate ? new Date(data.selectedDate) : new Date()
+      todaySchedules.value = data.todaySchedules || []
+      todayNotificationViewed.value = data.todayNotificationViewed || false
     }
   }
-
-  // 保存数据到 sessionStorage
-  function saveToSession() {
-    const data = {
-      schedules: schedules.value,
-      importantCount: importantCount.value,
-      lastUpdated: lastUpdated.value,
-      selectedDate: selectedDate.value.toISOString()
-    }
-    sessionStorage.setItem('scheduleData', JSON.stringify(data))
-  }
-
-  // 监听数据变化并保存
+  
+  // 监听数据变化
   watch(
-    [schedules, importantCount, lastUpdated, selectedDate],
+    [schedules, importantCount, lastUpdated, todaySchedules, todayNotificationViewed],
     () => {
       saveToSession()
     },
@@ -208,18 +193,22 @@ export const useScheduleStore = defineStore('schedule', () => {
   restoreFromSession()
 
   return {
+    // 暴露给其他模块使用的数据和方法
     schedules,
     importantCount,
-    loading,
     lastUpdated,
-    selectedDate,
+    todaySchedules,
+    todayNotificationViewed,
     fetchTodaySchedules,
+    recordWeather: recordWeatherInfo,
+    restoreFromSession,
+    saveToSession,
+    setTodayNotificationViewed,
+    
+    // 日程模块内部使用的方法
     fetchSchedulesByDate,
     createSchedule: createNewSchedule,
     updateSchedule: updateExistingSchedule,
-    deleteSchedule: deleteExistingSchedule,
-    recordWeather: recordWeatherInfo,
-    restoreFromSession,
-    saveToSession
+    deleteSchedule: deleteExistingSchedule
   }
 }) 

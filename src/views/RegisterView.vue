@@ -114,9 +114,11 @@ import { useRouter } from 'vue-router'
 import { showToast } from 'vant'
 import { getSmsCode, register } from '@/api'
 import { useUserStore } from '@/stores/user'
+import { useScheduleStore } from '@/stores/schedule'
 
 const router = useRouter()
 const userStore = useUserStore()
+const scheduleStore = useScheduleStore()
 const phone = ref('')
 const verificationCode = ref('')
 const username = ref('')
@@ -200,13 +202,15 @@ const handleRegister = async () => {
       password: password.value
     })
     
-    // 确保 res.userInfo 存在
     if (res && res.userInfo) {
       // 保存用户信息
       userStore.setUserInfo(res.userInfo, false)
       
       // 设置新登录标记
       localStorage.setItem('newLogin', 'true')
+      
+      // 注册成功后获取今日日程
+      await scheduleStore.fetchTodaySchedules(res.userInfo.userId)
       
       // 注册成功提示
       showToast('注册成功')

@@ -77,10 +77,12 @@ import { showToast } from 'vant'
 import { getSmsCode, loginWithPhone } from '@/api/user'
 import { useUserStore } from '@/stores/user'
 import { useOutfitRecordStore } from '@/stores/outfitRecord'
+import { useScheduleStore } from '@/stores/schedule'
 
 const router = useRouter()
 const userStore = useUserStore()
 const outfitRecordStore = useOutfitRecordStore()
+const scheduleStore = useScheduleStore()
 const phone = ref('')
 const verificationCode = ref('')
 const countDown = ref(0)
@@ -196,7 +198,7 @@ const handleLogin = async () => {
       // 更新用户信息
       if (userInfo) {
         // 存储用户信息到store
-        userStore.setUserInfo(userInfo, false)
+        userStore.setUserInfo(userInfo, true)
         
         // 存储用户画像(如果有)
         if (userProfile) {
@@ -211,6 +213,14 @@ const handleLogin = async () => {
           outfitRecordStore.fetchOutfitRecords(userInfo.userId, true).catch(err => {
             console.error('获取穿搭记录失败:', err)
           })
+        }
+        
+        // 登录成功后获取今日日程
+        await scheduleStore.fetchTodaySchedules(userInfo.userId)
+        
+        // 如果有日程，设置首次访问标记为 true
+        if (scheduleStore.todaySchedules && scheduleStore.todaySchedules.length > 0) {
+          sessionStorage.setItem('isFirstVisit', 'true')
         }
         
         showToast('登录成功')

@@ -25,10 +25,10 @@
 
       <!-- 日程列表 -->
       <div class="event-list-container">
-        <div v-if="dayEvents.length > 0" class="event-list">
+        <div v-if="daySchedules.length > 0" class="event-list">
           <!-- 日程列表项 -->
           <router-link 
-            v-for="event in dayEvents" 
+            v-for="event in daySchedules" 
             :key="event.scheduleId" 
             :to="`/schedule-detail/${event.scheduleId}`" 
             class="event-link"
@@ -116,7 +116,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { useScheduleStore } from '@/stores/schedule' 
+import { useScheduleStore } from '@/stores/schedule'
 import SubPageNavBar from '@/components/SubPageNavBar.vue'
 
 const router = useRouter()
@@ -124,22 +124,21 @@ const route = useRoute()
 const userStore = useUserStore()
 const scheduleStore = useScheduleStore()
 
-// 状态变量
+// 本地状态
 const currentDate = ref(new Date())
 const isCalendarVisible = ref(false)
 const calendarDays = ref([])
+const daySchedules = ref([]) // 当前选中日期的日程列表
 
 // 计算属性
-const selectedDate = computed(() => scheduleStore.selectedDate)
-
 const formatSelectedDate = computed(() => {
-  const date = scheduleStore.selectedDate
+  const date = currentDate.value
   return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`
 })
 
 const formatWeekday = computed(() => {
   const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
-  return weekdays[scheduleStore.selectedDate.getDay()]
+  return weekdays[currentDate.value.getDay()]
 })
 
 const formatCurrentMonth = computed(() => {
@@ -148,12 +147,7 @@ const formatCurrentMonth = computed(() => {
   return `${year}年${month}月`
 })
 
-const dayEvents = computed(() => {
-  return scheduleStore.schedules
-})
-
-// 方法
-// 格式化日期为 YYYY-MM-DD 格式
+// 格式化日期为 YYYY-MM-DD
 function formatDateToString(date) {
   const year = date.getFullYear()
   const month = String(date.getMonth() + 1).padStart(2, '0')
@@ -166,12 +160,14 @@ async function fetchSchedules() {
   if (!userStore.userInfo?.userId) return
   
   try {
-    const date = scheduleStore.selectedDate
-    // 使用格式化后的日期字符串
-    await scheduleStore.fetchSchedulesByDate(
-      userStore.userInfo.userId, 
-      formatDateToString(date)
+    const response = await scheduleStore.fetchSchedulesByDate(
+      userStore.userInfo.userId,
+      formatDateToString(currentDate.value)
     )
+
+    if (response && response.scheduleList) {
+      daySchedules.value = response.scheduleList
+    }
   } catch (error) {
     console.error('获取日程失败:', error)
   }
@@ -199,7 +195,7 @@ function renderCalendar() {
       day: date.getDate(),
       isOtherMonth: true,
       isToday: isSameDay(date, new Date()),
-      isSelected: isSameDay(date, selectedDate.value),
+      isSelected: isSameDay(date, currentDate.value),
       hasEvent: false // 可以根据实际日程判断
     })
   }
@@ -212,7 +208,7 @@ function renderCalendar() {
       day: i,
       isOtherMonth: false,
       isToday: isSameDay(date, new Date()),
-      isSelected: isSameDay(date, selectedDate.value),
+      isSelected: isSameDay(date, currentDate.value),
       hasEvent: false // 可以根据实际日程判断
     })
   }
@@ -226,7 +222,7 @@ function renderCalendar() {
       day: i,
       isOtherMonth: true,
       isToday: isSameDay(date, new Date()),
-      isSelected: isSameDay(date, selectedDate.value),
+      isSelected: isSameDay(date, currentDate.value),
       hasEvent: false // 可以根据实际日程判断
     })
   }
@@ -253,7 +249,7 @@ function selectDate(date) {
 // 显示日历弹窗
 function showCalendarPopup() {
   isCalendarVisible.value = true
-  currentDate.value = new Date(scheduleStore.selectedDate)
+  currentDate.value = new Date(currentDate.value)
   renderCalendar()
 }
 
@@ -276,20 +272,15 @@ function nextMonth() {
 
 // 确认选择日期
 async function confirmDate() {
-  const selectedDate = new Date(currentDate.value)
-  // 设置时间为当天的 00:00:00
-  selectedDate.setHours(0, 0, 0, 0)
-  scheduleStore.selectedDate = selectedDate
+  currentDate.value.setHours(0, 0, 0, 0)
   hideCalendarPopup()
   await fetchSchedules()
 }
 
 // 跳转到今天
 async function goToToday() {
-  const today = new Date()
-  // 设置时间为当天的 00:00:00
-  today.setHours(0, 0, 0, 0)
-  scheduleStore.selectedDate = today
+  currentDate.value = new Date()
+  currentDate.value.setHours(0, 0, 0, 0)
   await fetchSchedules()
 }
 
@@ -304,8 +295,13 @@ watch(
 )
 
 // 初始化
-onMounted(() => {
-  fetchSchedules()
+onMounted(async () => {
+  // 如果是今天，同时更新store
+  const today = new Date()
+  if (formatDateToString(currentDate.value) === formatDateToString(today)) {
+    await scheduleStore.fetchTodaySchedules(userStore.userInfo?.userId)
+  }
+  await fetchSchedules()
   renderCalendar()
 })
 </script>
