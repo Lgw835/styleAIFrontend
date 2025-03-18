@@ -1,30 +1,23 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <van-nav-bar
-      title="智能穿搭"
-      fixed
-      placeholder
-      safe-area-inset-top
-      class="bg-white border-b border-gray-100"
-      :style="{ height: '46px' }"
-    >
+  <div class="min-h-screen bg-gradient-to-b from-gray-50 to-white">
+    <TopNavBar title="智能穿搭">
       <template #right>
         <div @click="showScheduleNotification" class="mr-4 relative">
-          <i class="fas fa-bell text-lg text-gray-600"></i>
+          <i class="fas fa-bell text-lg text-gray-600 hover:text-blue-500 transition-colors"></i>
           <span v-if="shouldShowNotificationDot" 
-                class="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full">
+                class="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-pulse">
           </span>
         </div>
       </template>
-    </van-nav-bar>
+    </TopNavBar>
     
     <div class="px-4" :style="{ paddingTop: '56px', paddingBottom: '70px' }">
-      <div class="flex flex-col gap-3">
+      <div class="flex flex-col gap-4 mt-3">
         <div 
-          class="rounded-xl overflow-hidden shadow-sm transition-shadow hover:shadow-md" 
+          class="rounded-xl overflow-hidden shadow-md transition-all hover:shadow-lg transform hover:scale-[1.01]" 
           :class="weatherClass"
         >
-          <div class="p-4">
+          <div class="p-5">
             <div class="flex justify-between items-center">
               <div>
                 <h3 class="text-xl font-medium mb-1">{{ weatherData.city }}</h3>
@@ -42,13 +35,13 @@
         </div>
 
         <div 
-          class="rounded-xl overflow-hidden bg-white shadow-sm transition-shadow hover:shadow-md"
+          class="rounded-xl overflow-hidden bg-white shadow-md transition-all hover:shadow-lg transform hover:scale-[1.01]"
           :style="getLuckyColorStyle"
         >
-          <div class="p-4">
+          <div class="p-5 backdrop-blur-sm">
             <div class="flex items-center">
               <div 
-                class="w-12 h-12 rounded-full shadow-sm mr-4 border border-white/20" 
+                class="w-14 h-14 rounded-full shadow-md mr-4 border-2 border-white/40" 
                 :style="{ backgroundColor: dailyLuckyColor.hex }"
               ></div>
               <div>
@@ -61,45 +54,55 @@
       </div>
 
       <div v-if="clothingSuggestion" 
-           class="mt-3 bg-white rounded-xl p-4 shadow-sm transition-shadow hover:shadow-md flex items-center">
-        <i class="fas fa-tshirt text-xl text-blue-500 mr-4"></i>
-        <span class="text-gray-700">{{ clothingSuggestion }}</span>
+           class="mt-4 bg-white rounded-xl p-5 shadow-md transition-all hover:shadow-lg transform hover:scale-[1.01] border-l-4 border-blue-500">
+        <div class="flex items-center">
+          <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-4">
+            <i class="fas fa-tshirt text-xl text-blue-500"></i>
+          </div>
+          <div>
+            <h4 class="text-sm text-blue-500 font-medium mb-1">今日穿搭建议</h4>
+            <p class="text-gray-700">{{ clothingSuggestion }}</p>
+          </div>
+        </div>
       </div>
 
-      <h3 class="text-xl font-medium mt-6 mb-3 px-1">智能穿搭功能</h3>
+      <h3 class="text-xl font-medium mt-8 mb-4 px-1 flex items-center">
+        <span class="w-1 h-6 bg-blue-500 rounded-full mr-2 inline-block"></span>
+        智能穿搭功能
+      </h3>
       
-      <div class="grid grid-cols-2 gap-3">
+      <div class="grid grid-cols-2 gap-4">
         <router-link to="/daily-match" 
-                     class="bg-white rounded-xl p-4 shadow-sm transition-all hover:shadow-md hover:scale-[1.02]">
-          <div class="flex justify-center items-center w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-blue-500 text-white mx-auto mb-3">
+                     class="bg-white rounded-xl p-5 shadow-md transition-all hover:shadow-lg hover:scale-[1.02] border border-gray-100 group">
+          <div class="flex justify-center items-center w-14 h-14 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 text-white mx-auto mb-4 group-hover:scale-110 transition-transform">
             <i class="fas fa-tshirt text-xl"></i>
           </div>
-          <h3 class="text-lg font-medium mb-1">每日一搭</h3>
-          <p class="text-sm text-gray-500">AI为您精选搭配</p>
+          <h3 class="text-lg font-medium mb-1 text-center">每日一搭</h3>
+          <p class="text-sm text-gray-500 text-center">AI为您精选搭配</p>
         </router-link>
         
-        <router-link to="/dress-recommend" class="bg-white rounded-xl p-4 shadow-sm transition-all hover:shadow-md hover:scale-[1.02]">
-          <div class="flex justify-center items-center w-12 h-12 rounded-full bg-gradient-to-br from-purple-400 to-purple-500 text-white mx-auto mb-3">
+        <router-link to="/dress-recommend" class="bg-white rounded-xl p-5 shadow-md transition-all hover:shadow-lg hover:scale-[1.02] border border-gray-100 group">
+          <div class="flex justify-center items-center w-14 h-14 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 text-white mx-auto mb-4 group-hover:scale-110 transition-transform">
             <i class="fas fa-magic text-xl"></i>
           </div>
-          <h3 class="text-lg font-medium mb-1">穿搭推荐</h3>
-          <p class="text-sm text-gray-500">个性化搭配建议</p>
+          <h3 class="text-lg font-medium mb-1 text-center">穿搭推荐</h3>
+          <p class="text-sm text-gray-500 text-center">个性化搭配建议</p>
         </router-link>
         
-        <router-link to="/ai-review" class="bg-white rounded-xl p-4 shadow-sm transition-all hover:shadow-md hover:scale-[1.02]">
-          <div class="flex justify-center items-center w-12 h-12 rounded-full bg-gradient-to-br from-green-400 to-green-500 text-white mx-auto mb-3">
+        <router-link to="/ai-review" class="bg-white rounded-xl p-5 shadow-md transition-all hover:shadow-lg hover:scale-[1.02] border border-gray-100 group">
+          <div class="flex justify-center items-center w-14 h-14 rounded-full bg-gradient-to-br from-green-400 to-green-600 text-white mx-auto mb-4 group-hover:scale-110 transition-transform">
             <i class="fas fa-star text-xl"></i>
           </div>
-          <h3 class="text-lg font-medium mb-1">AI评价</h3>
-          <p class="text-sm text-gray-500">专业搭配点评</p>
+          <h3 class="text-lg font-medium mb-1 text-center">AI评价</h3>
+          <p class="text-sm text-gray-500 text-center">专业搭配点评</p>
         </router-link>
         
-        <router-link to="/outfit-records" class="bg-white rounded-xl p-4 shadow-sm transition-all hover:shadow-md hover:scale-[1.02]">
-          <div class="flex justify-center items-center w-12 h-12 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-500 text-white mx-auto mb-3">
+        <router-link to="/outfit-records" class="bg-white rounded-xl p-5 shadow-md transition-all hover:shadow-lg hover:scale-[1.02] border border-gray-100 group">
+          <div class="flex justify-center items-center w-14 h-14 rounded-full bg-gradient-to-br from-yellow-400 to-yellow-600 text-white mx-auto mb-4 group-hover:scale-110 transition-transform">
             <i class="fas fa-history text-xl"></i>
           </div>
-          <h3 class="text-lg font-medium mb-1">穿搭记录</h3>
-          <p class="text-sm text-gray-500">查看历史搭配</p>
+          <h3 class="text-lg font-medium mb-1 text-center">穿搭记录</h3>
+          <p class="text-sm text-gray-500 text-center">查看历史搭配</p>
         </router-link>
       </div>
     </div>
@@ -120,9 +123,10 @@
       cancel-button-text="知道了"
       :close-on-click-overlay="true"
       @click-overlay="closeNotification"
+      class="rounded-lg"
     >
-      <div class="py-4 text-center">
-        <i class="fas fa-calendar-check text-4xl text-green-500 mb-4"></i>
+      <div class="py-6 px-4 text-center">
+        <i class="fas fa-calendar-check text-5xl text-green-500 mb-4"></i>
         <p class="text-gray-700">
           今天您有 <span class="text-blue-500 font-semibold">{{ scheduleStore.todaySchedules.length }}</span> 个日程安排
           <template v-if="scheduleStore.importantCount > 0">
@@ -133,7 +137,7 @@
     </van-dialog>
 
     <div v-if="needsProfileSetup" 
-         class="fixed bottom-20 right-4 bg-white rounded-lg shadow-lg p-4 w-64 border border-blue-200">
+         class="fixed bottom-20 right-4 bg-white rounded-lg shadow-xl p-4 w-72 border border-blue-200 animate-fade-in-up">
       <div class="flex items-center mb-2">
         <i class="fas fa-user-circle text-blue-500 text-2xl mr-2"></i>
         <h3 class="font-semibold text-gray-800">完善个人信息</h3>
@@ -141,31 +145,31 @@
       <p class="text-sm text-gray-600 mb-4">完善您的个人信息，获取更精准的穿搭推荐！</p>
       <div class="flex justify-between">
         <button @click="showProfileOverlay = true" 
-                class="bg-blue-500 text-white px-4 py-2 rounded-md text-sm">
+                class="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-4 py-2 rounded-md text-sm hover:from-blue-600 hover:to-blue-700 transition-all">
           立即填写
         </button>
         <button @click="dismissProfileReminder" 
-                class="text-gray-500 text-sm">
+                class="text-gray-500 text-sm hover:text-gray-700 transition-colors">
           稍后再说
         </button>
       </div>
     </div>
 
-    <div class="fixed bottom-0 left-0 right-0 bg-white border-t">
-      <div class="flex justify-around py-2">
-        <router-link to="/" class="flex flex-col items-center text-blue-500">
+    <div class="fixed bottom-0 left-0 right-0 bg-white border-t shadow-md">
+      <div class="flex justify-around py-3">
+        <router-link to="/" class="flex flex-col items-center text-blue-500 transition-colors">
           <i class="fas fa-home text-xl mb-1"></i>
           <span class="text-xs">首页</span>
         </router-link>
-        <router-link to="/wardrobe" class="flex flex-col items-center text-gray-600">
+        <router-link to="/wardrobe" class="flex flex-col items-center text-gray-600 hover:text-blue-500 transition-colors">
           <i class="fas fa-tshirt text-xl mb-1"></i>
           <span class="text-xs">衣柜</span>
         </router-link>
-        <router-link to="/plaza" class="flex flex-col items-center text-gray-600">
+        <router-link to="/plaza" class="flex flex-col items-center text-gray-600 hover:text-blue-500 transition-colors">
           <i class="fas fa-compass text-xl mb-1"></i>
           <span class="text-xs">广场</span>
         </router-link>
-        <router-link to="/profile" class="flex flex-col items-center text-gray-600">
+        <router-link to="/profile" class="flex flex-col items-center text-gray-600 hover:text-blue-500 transition-colors">
           <i class="fas fa-user text-xl mb-1"></i>
           <span class="text-xs">我的</span>
         </router-link>
@@ -184,11 +188,13 @@ import { storeToRefs } from 'pinia'
 import { useScheduleStore } from '@/stores/schedule'
 import UserProfileOverlay from '@/components/UserProfileOverlay.vue'
 import { getWeather, saveWeatherRecord } from '@/api/weather'
+import TopNavBar from '@/components/TopNavBar.vue'
 
 export default {
   name: 'HomeView',
   components: {
-    UserProfileOverlay
+    UserProfileOverlay,
+    TopNavBar
   },
   setup() {
     const userStore = useUserStore()
@@ -558,19 +564,8 @@ export default {
   background-size: 200% 200%;
 }
 
-/* 铃铛图标容器 */
-.relative {
-  position: relative;
-  display: inline-block;
-}
-
 /* 红点样式 */
-.absolute {
-  position: absolute;
-}
-
-/* 可以添加动画效果 */
-.bg-red-500 {
+.animate-pulse {
   animation: pulse 2s infinite;
 }
 
@@ -580,12 +575,42 @@ export default {
     opacity: 1;
   }
   50% {
-    transform: scale(1.2);
+    transform: scale(1.3);
     opacity: 0.8;
   }
   100% {
     transform: scale(1);
     opacity: 1;
   }
+}
+
+/* 添加淡入上升动画 */
+.animate-fade-in-up {
+  animation: fadeInUp 0.5s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 添加组悬停效果 */
+.group:hover .group-hover\:scale-110 {
+  transform: scale(1.1);
+}
+
+/* 平滑过渡 */
+.transition-transform {
+  transition: transform 0.3s ease;
+}
+
+.transition-colors {
+  transition: color 0.3s ease;
 }
 </style> 
