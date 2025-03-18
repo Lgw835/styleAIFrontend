@@ -20,9 +20,6 @@ export * from './userPortrait'
 // 导出日程相关API
 export * from './schedule'
 
-// 导出社区相关API
-export * from './community'
-
 // 导出所有API URLs配置
 export * from './config'
 
