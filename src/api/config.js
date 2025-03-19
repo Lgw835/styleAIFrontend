@@ -7,7 +7,7 @@
 import { ref } from 'vue'
 
 // 从环境变量获取基础 URL
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:7001'
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://119.3.127.151:7001'
 
 // 服务前缀
 export const SERVICE_PREFIX = {
