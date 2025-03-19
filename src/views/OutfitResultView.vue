@@ -153,8 +153,8 @@
     
     <SaveModal 
       v-model:show="showSaveModal"
-      :initialRating="saveModalData.rating"
-      :initialComment="saveModalData.comment"
+      v-model:rating="saveModalData.rating"
+      v-model:comment="saveModalData.comment"
       @save="saveOutfit"
       @later="saveForLater"
       @cancel="handleCancelSave"
@@ -285,12 +285,6 @@ export default {
       tags: []
     })
     
-    // 初始化保存模态框数据
-    const initSaveModalData = () => {
-      saveModalData.rating = 0
-      saveModalData.comment = ''
-    }
-    
     // 修改打开保存模态框方法 - 添加防循环锁
     const saveInProgress = ref(false)
     const openSaveModal = () => {
@@ -306,11 +300,11 @@ export default {
         return
       }
       
-      // 初始化保存模态框数据
-      initSaveModalData()
-      
       // 打开模态框
       showSaveModal.value = true
+      
+      // 调试用：打印初始状态
+      console.log('打开模态框时的数据:', JSON.stringify(saveModalData))
     }
     
     // 修复saveOutfitRecord方法，确保正确提取和传递outfitId
@@ -383,7 +377,7 @@ export default {
         loading.value = true
         const result = await saveOutfitRecord({})
         showToast('保存成功')
-        router.push('/outfit-record')
+        router.push('/home')
       } catch (error) {
         showToast('保存失败: ' + error.message)
       } finally {
@@ -392,9 +386,25 @@ export default {
       }
     }
 
-    // 修改立即评价方法，主要修复评论保存问题
+    // 修改立即评价方法，修复评论和评分获取问题
     const saveOutfit = async () => {
       try {
+        // 尝试直接从模态框DOM元素获取评分和评论数据
+        const modalElement = document.querySelector('.save-modal') // 假设SaveModal有这个class
+        const ratingStars = modalElement?.querySelectorAll('.rating-star.active')?.length || 0
+        const commentText = modalElement?.querySelector('textarea')?.value || ''
+        
+        // 如果无法从DOM获取，则使用saveModalData
+        const userRating = ratingStars > 0 ? ratingStars : saveModalData.rating
+        const userComment = commentText || saveModalData.comment?.trim() || ''
+        
+        console.log('保存前捕获的评分和评论 (从DOM或状态):', {
+          rating: userRating,
+          comment: userComment,
+          hasComment: !!userComment,
+          sourceType: ratingStars > 0 ? 'DOM' : 'State'
+        })
+        
         loading.value = true
         saveInProgress.value = true
         
@@ -407,51 +417,46 @@ export default {
         const outfitId = saveResult.outfitId
         console.log('保存记录返回的outfitId:', outfitId, '类型:', typeof outfitId)
         
-        // 获取评分和评论内容
-        const rating = saveModalData.rating || 0
-        const comment = saveModalData.comment?.trim() || ''
-        
-        console.log('从saveModalData获取的评分和评论:', { 
-          rating,
-          hasComment: !!comment
-        })
-        
         // 2. 如果有评分和评价，则提交评价
-        if ((rating > 0 || comment) && outfitId) {
+        if ((userRating > 0 || userComment) && outfitId) {
           // 构建评价数据
           const commentData = {
             userId: userStore.userInfo?.userId,
             ipAddress: externalDataStore.locationData?.city ? 
               `${externalDataStore.locationData.province || ''} ${externalDataStore.locationData.city}` : "",
             outfitId: outfitId,
-            score: rating,
-            comment: comment
+            rating: userRating,           // 使用保存的评分
+            evaluationText: userComment,  // 使用保存的评论
+            score: userRating,            
+            comment: userComment          
           }
           
-          console.log('准备调用第三个接口保存评论，完整参数:', JSON.stringify(commentData))
+          console.log('准备调用评价接口保存评论，完整参数:', JSON.stringify(commentData))
           
           try {
             const commentResult = await saveOutfitComment(commentData)
-            console.log('第三个接口调用成功:', commentResult)
+            console.log('评价接口调用成功:', commentResult)
+            showToast('评价已保存')
           } catch (commentError) {
             console.error('保存评论失败:', commentError)
             showToast('评论保存失败，但穿搭方案已保存')
           }
         } else {
-          console.log('没有评价内容或缺少outfitId，跳过第三个接口调用')
+          console.log('没有评价内容或缺少outfitId，跳过评价接口调用')
         }
         
         // 添加延迟确保接口调用完成
         await new Promise(resolve => setTimeout(resolve, 800))
         
         showToast('穿搭方案已保存')
-        router.push('/outfit-record')
+        router.push('/home')
       } catch (error) {
         console.error('保存过程中出错:', error)
         showToast('保存失败: ' + error.message)
       } finally {
         loading.value = false
         saveInProgress.value = false
+        showSaveModal.value = false  // 确保无论成功或失败都关闭模态框
       }
     }
 

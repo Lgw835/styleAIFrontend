@@ -142,6 +142,19 @@ export function getDailyMatch(params) {
 }
 
 /**
+ * 获取每日一搭推荐
+ * @param {Object} data - 请求参数
+ * @returns {Promise}
+ */
+export function dayRecommend(data) {
+  return request({
+    url: '/style-ai-dress-aggregation-service/outfitApi/dayRecommend',
+    method: 'post',
+    data
+  })
+}
+
+/**
  * ==================== 穿搭图片相关 ====================
  */
 
