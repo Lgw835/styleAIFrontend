@@ -354,13 +354,13 @@ export default {
         
         // 提取outfitId - 确保正确获取message中的ID
         let outfitId = null
-        if (savedResult && savedResult.message) {
+        if (savedResult && savedResult.outfitId) {
           // 尝试处理message，防止它是JSON字符串
-          if (typeof savedResult.message === 'string') {
+          if (typeof savedResult.outfitId === 'string') {
             // 如果message是形如 "1902222351994527746" 的字符串，去掉引号
-            outfitId = savedResult.message.replace(/^"|"$/g, '')
+            outfitId = savedResult.outfitId.replace(/^"|"$/g, '')
           } else {
-            outfitId = savedResult.message
+            outfitId = savedResult.outfitId
           }
           console.log('从API返回中提取的outfitId:', outfitId, '类型:', typeof outfitId)
         }

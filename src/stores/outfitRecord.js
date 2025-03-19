@@ -77,46 +77,61 @@ export const useOutfitRecordStore = defineStore('outfitRecord', () => {
   }
 
   // 获取穿搭记录
-  const fetchOutfitRecords = async (userId, forceRefresh = false) => {
-    // 如果不强制刷新且有本地数据，使用本地数据
-    if (!forceRefresh && outfits.value.length > 0) {
-      return outfits.value
-    }
-    
-    loading.value = true
-    
+  const fetchOutfitRecords = async (userId, params = {}) => {
     try {
       const userStore = useUserStore()
-      const actualUserId = userId || userStore.userInfo?.id
+      const actualUserId = userId || userStore.userInfo?.userId
       
       if (!actualUserId) {
         throw new Error('用户未登录')
       }
       
-      const response = await getOutfitRecords(actualUserId)
+      // 使用分页参数调用 API
+      const response = await getOutfitRecords(actualUserId, {
+        page: params.page || 1,
+        pageSize: params.pageSize || 6
+      })
       
-      if (response && response.data) {
-        outfits.value = response.data
-        // 保存到 Session Storage
-        saveToSession()
-        return outfits.value
+      if (response && Array.isArray(response)) {
+        // 如果是第一页，更新 lastFetchTime
+        if (params.page === 1) {
+          lastFetchTime.value = Date.now()
+        }
+        return response
+      } else if (response && Array.isArray(response.data)) {
+        if (params.page === 1) {
+          lastFetchTime.value = Date.now()
+        }
+        return response.data
       } else {
-        throw new Error('获取数据格式错误')
+        console.warn('API返回格式异常:', response)
+        return []
       }
     } catch (error) {
       console.error('获取穿搭记录失败:', error)
       return []
-    } finally {
-      loading.value = false
     }
   }
 
   // 获取穿搭详情
   const fetchOutfitDetail = async (outfitId) => {
     try {
+      // 从本地数据中查找，使用新的 outfitId 字段
+      const outfit = outfits.value.find(o => o.outfitId === outfitId)
+      
+      if (outfit) {
+        currentOutfit.value = outfit
+        return outfit
+      }
+      
+      // 如果本地没有，尝试从API获取
       const response = await getOutfitDetail(outfitId)
-      currentOutfit.value = response.data
-      return response.data
+      if (response && response.data) {
+        currentOutfit.value = response.data
+        return response.data
+      }
+      
+      throw new Error('未找到穿搭详情')
     } catch (error) {
       console.error('获取穿搭详情失败', error)
       throw error
@@ -124,24 +139,33 @@ export const useOutfitRecordStore = defineStore('outfitRecord', () => {
   }
 
   // 获取穿搭评价
-  const fetchOutfitEvaluation = async (outfitId, userId) => {
+  const fetchOutfitEvaluation = async (outfitId) => {
     try {
+      const userStore = useUserStore()
       const response = await evaluateOutfit({
-        outfitId,
-        userId
+        userId: userStore.userInfo?.userId,
+        outfitId: outfitId,
+        ipAddress: ''
       })
-      currentEvaluation.value = response.data
-      return response.data
+      
+      if (response && response.data) {
+        currentEvaluation.value = response.data
+        return response.data
+      }
+      
+      return null
     } catch (error) {
       console.error('获取穿搭评价失败', error)
-      throw error
+      return null
     }
   }
 
   // 提交评价
   const submitEvaluation = async (evaluationData) => {
     try {
-      await saveOutfitComment(evaluationData)
+      console.log('提交评价数据:', evaluationData)
+      const response = await saveOutfitComment(evaluationData)
+      
       // 更新本地数据
       if (currentOutfit.value && currentOutfit.value.id === evaluationData.outfitId) {
         currentOutfit.value = {
@@ -150,8 +174,19 @@ export const useOutfitRecordStore = defineStore('outfitRecord', () => {
           comment: evaluationData.comment
         }
       }
-      // 保存到Session Storage
-      saveToSession()
+      
+      // 更新列表中的数据
+      const index = outfits.value.findIndex(o => o.id === evaluationData.outfitId)
+      if (index !== -1) {
+        outfits.value[index] = {
+          ...outfits.value[index],
+          score: evaluationData.score,
+          comment: evaluationData.comment
+        }
+        saveToSession()
+      }
+      
+      return response
     } catch (error) {
       console.error('提交评价失败', error)
       throw error
@@ -162,16 +197,26 @@ export const useOutfitRecordStore = defineStore('outfitRecord', () => {
   const deleteOutfit = async (outfitId) => {
     try {
       await deleteOutfitRecord(outfitId)
-      // 更新本地数据
-      outfits.value = outfits.value.filter(o => o.id !== outfitId)
-      if (currentOutfit.value?.id === outfitId) {
+      
+      // 使用新的 outfitId 字段过滤
+      outfits.value = outfits.value.filter(o => o.outfitId !== outfitId)
+      if (currentOutfit.value?.outfitId === outfitId) {
         currentOutfit.value = null
       }
-      // 保存到Session Storage
+      
       saveToSession()
+      return true
     } catch (error) {
-      console.error('删除穿搭失败', error)
-      throw error
+      console.error('删除穿搭失败，但会继续更新本地数据:', error)
+      
+      // 使用新的 outfitId 字段过滤
+      outfits.value = outfits.value.filter(o => o.outfitId !== outfitId)
+      if (currentOutfit.value?.outfitId === outfitId) {
+        currentOutfit.value = null
+      }
+      
+      saveToSession()
+      return true
     }
   }
 
@@ -186,7 +231,7 @@ export const useOutfitRecordStore = defineStore('outfitRecord', () => {
     currentEvaluation.value = null
   }
 
-  // 添加保存穿搭记录的方法
+  // 完全重构保存穿搭记录的方法
   const saveOutfitRecord = async (outfitData) => {
     loading.value = true
     
@@ -200,21 +245,15 @@ export const useOutfitRecordStore = defineStore('outfitRecord', () => {
       let ipAddress = ''
       try {
         const externalDataStore = useExternalDataStore()
-        ipAddress = externalDataStore?.locationData?.city || '上海市'
+        ipAddress = externalDataStore?.locationData?.city 
+          ? `${externalDataStore.locationData.province || ''} ${externalDataStore.locationData.city}`
+          : '上海市'
       } catch (e) {
         console.warn('获取位置信息失败:', e)
         ipAddress = '上海市' // 默认值
       }
       
-      // 调试输出
-      console.log('准备保存场景ID:', outfitResultStore.sceneId)
-      console.log('准备保存突出形象标签:', outfitResultStore.highlightTags)
-      
-      // 直接使用已经格式化好的字符串
-      const sceneId = outfitResultStore.sceneId || outfitData.sceneId || '日常场景'
-      const highlightImageUrl = outfitResultStore.highlightTags || outfitData.highlightTags || '日常风格'
-      
-      // 构建请求参数 - 不需要再做格式转换
+      // 构建请求参数
       const requestParams = {
         userId: outfitData.userId || '',
         ipAddress: ipAddress,
@@ -226,42 +265,50 @@ export const useOutfitRecordStore = defineStore('outfitRecord', () => {
                             '简约时尚风格',
         outfitImageUrl: outfitData.imageUrl || outfitResultStore.outfitImage || '',
         requirementText: outfitResultStore.summary || '日常穿着需求',
-        sceneId: sceneId,
-        highlightImageUrl: highlightImageUrl
+        sceneId: outfitResultStore.sceneId || outfitData.sceneId || '日常场景',
+        highlightImageUrl: outfitResultStore.highlightTags || outfitData.highlightTags || '日常风格'
       }
       
       console.log('调用保存接口，参数:', requestParams)
       
       // 调用保存接口
       const response = await saveOutfit(requestParams)
-      
-      console.log('保存接口响应:', response)
+      console.log('保存接口完整响应:', response)
       
       if (response && response.success) {
-        // 如果保存成功，添加到本地数据中
+        // 关键改进：直接从message字段获取outfitId
+        const outfitId = response.message
+        console.log('保存成功，获取到的outfitId:', outfitId)
+        
+        // 添加到本地数据，使用新的字段格式
         const newRecord = {
-          id: response.data?.outfitId || `outfit_${Date.now()}`,
+          outfitId: outfitId,
           userId: outfitData.userId,
-          imageUrl: outfitData.imageUrl,
-          description: outfitData.description || '',
-          occasion: outfitData.occasion || '',
-          styleType: outfitData.styleType || '',
-          createdAt: new Date().toISOString(),
-          status: 'pending', // 表示待评价状态
-          
-          // 保存接口返回的额外信息（如果有）
-          outfitId: response.data?.message,
-          date: response.data?.date
+          outfitDescription: requestParams.outfitDescription,
+          aiPromptDescription: requestParams.aiPromptDescription,
+          outfitImageUrl: requestParams.outfitImageUrl,
+          date: new Date().toISOString(),
+          requirementText: requestParams.requirementText,
+          sceneId: requestParams.sceneId,
+          highlightImageUrl: requestParams.highlightImageUrl,
+          ifEvaluate: 0,
+          evaluationId: null,
+          evaluationText: null,
+          rating: null,
+          createdAt: null
         }
         
-        // 添加到数组开头，新记录显示在前面
+        // 添加到数组开头
         outfits.value.unshift(newRecord)
-        
-        // 保存到Session Storage
         saveToSession()
         
-        console.log('穿搭记录保存成功:', newRecord)
-        return newRecord
+        // 返回包含outfitId的结果
+        return {
+          success: true,
+          outfitId: outfitId,
+          outfitImageUrl: requestParams.outfitImageUrl,
+          record: newRecord
+        }
       } else {
         throw new Error(response.message || '保存失败')
       }

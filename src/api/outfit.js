@@ -62,27 +62,28 @@ export function saveOutfit(params) {
  */
 
 /**
- * 获取用户穿搭记录列表
+ * 获取用户穿搭记录列表 - 修正为正确的API路径
  * @param {string} userId - 用户ID
  * @returns {Promise}
  */
 export function getOutfitRecords(userId) {
   return request({
-    url: OUTFIT_API.RECORDS || OUTFIT_API.RECORD_LIST,
+    url: '/style-ai-dress-aggregation-service/outfitApi/getOutfitRecommends',
     method: 'get',
     params: { userId }
   })
 }
 
 /**
- * 获取穿搭记录详情
+ * 获取穿搭记录详情 - 暂时使用本地数据，不发起实际请求
  * @param {string|number} id - 记录ID
  * @returns {Promise}
  */
 export function getOutfitDetail(id) {
-  return request({
-    url: (OUTFIT_API.DETAIL || OUTFIT_API.RECORD_DETAIL) + id,
-    method: 'get'
+  // 由于没有详情API，我们返回一个模拟的成功响应
+  return Promise.resolve({
+    success: true,
+    data: null // 返回null，后续由store中的本地数据处理
   })
 }
 
@@ -100,15 +101,14 @@ export const saveOutfitComment = (data) => {
 }
 
 /**
- * 删除穿搭记录
+ * 删除穿搭记录 - 暂时不实际发起请求
  * @param {string|number} outfitId - 穿搭记录ID
  * @returns {Promise}
  */
 export function deleteOutfitRecord(outfitId) {
-  return request({
-    url: OUTFIT_API.DELETE + outfitId,
-    method: 'delete'
-  })
+  // 由于没有删除API，我们返回一个模拟的成功响应
+  console.log('模拟删除记录:', outfitId)
+  return Promise.resolve({ success: true })
 }
 
 /**
