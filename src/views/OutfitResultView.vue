@@ -194,7 +194,8 @@ import MarkdownRenderer from '@/components/MarkdownRenderer.vue'
 import { 
   generateOutfitImage, 
   followUpOutfit, 
-  saveOutfit 
+  saveOutfit as saveOutfitApi,
+  saveOutfitComment  // 正确的函数名
 } from '@/api/outfit'
 import { uploadFile } from '@/api/user'
 import { useUserStore } from '@/stores/user'
@@ -223,13 +224,19 @@ export default {
     const outfitResultStore = useOutfitResultStore()
     const outfitRecordStore = useOutfitRecordStore()
     
+    // 改为只打印当前状态
+    console.log('当前 store 状态:', {
+      sceneId: outfitResultStore.sceneId,
+      highlightTags: outfitResultStore.highlightTags
+    })
+    
     // 加载状态
     const loading = ref(false)
     const loadingMessage = ref('加载穿搭方案...')
     
     // 获取路由参数
-    const scene = route.query.scene || ''
-    const tags = (route.query.tags || '').split(',').filter(Boolean)
+    const scene = route.query.scene || '日常场景'
+    const tags = route.query.tags ? route.query.tags.split(',').filter(Boolean) : ['日常风格']
     const gender = route.query.gender || ''
     const useProfile = route.query.useProfile === 'true'
     const additionalInfo = route.query.additionalInfo || ''
@@ -306,286 +313,148 @@ export default {
       showSaveModal.value = true
     }
     
-    // 修复首先上传图片然后保存穿搭方案的函数
-    const saveOutfit = async (saveData) => {
-      // 防止重复操作
-      if (saveInProgress.value) return
-      saveInProgress.value = true
-      
+    // 修复saveOutfitRecord方法，确保正确提取和传递outfitId
+    const saveOutfitRecord = async (outfitData) => {
       try {
-        // 关闭模态框，防止重复操作
-        showSaveModal.value = false
-        
-        // 显示加载中
-        loading.value = true
-        loadingMessage.value = "正在处理图片..."
-        
-        // 获取当前版本的图片
-        const versionImage = getCurrentVersionImage.value
-        
-        // 检查是否有图片需要上传
-        let outfitImageUrl = ''
-        if (versionImage) {
-          // 如果图片是base64格式，需要先上传
-          if (versionImage.startsWith('data:image')) {
-            // 将Base64转为Blob
-            const base64Response = await fetch(versionImage);
-            const blob = await base64Response.blob();
-            
-            // 创建FormData
-            const formData = new FormData();
-            formData.append('file', blob, 'outfit-image.jpg');
-            
-            // 上传图片
-            loadingMessage.value = "正在上传图片..."
-            const uploadResponse = await uploadFile(formData);
-            console.log('图片上传响应:', uploadResponse);
-            
-            // 获取上传后的图片URL
-            if (uploadResponse && uploadResponse.data && uploadResponse.data.fileUrl) {
-              outfitImageUrl = uploadResponse.data.fileUrl;
-            } else {
-              throw new Error('图片上传失败');
-            }
-          } else {
-            // 如果已经是URL，直接使用
-            outfitImageUrl = versionImage;
+        // 1. 获取必要信息
+        const userId = userStore.userInfo?.userId
+        if (!userId) {
+          throw new Error('用户未登录')
+        }
+
+        // 2. 上传图片（如果有）
+        let imageUrl = ''
+        if (getCurrentVersionImage.value) {
+          const imageBlob = await fetch(getCurrentVersionImage.value).then(r => r.blob())
+          const formData = new FormData()
+          formData.append('file', imageBlob, 'outfit-image.png')
+          const uploadResult = await uploadFile(formData)
+          // 确保使用API返回的图片URL，而不是base64
+          imageUrl = uploadResult.fileUrl || uploadResult.url || ''
+          
+          if (!imageUrl) {
+            throw new Error('图片上传失败，未返回有效URL')
           }
         }
-        
-        // 显示保存中
-        loadingMessage.value = "正在保存穿搭方案..."
-        
-        // 组装穿搭数据 - 严格按照 OutfitSaveRequestVO 结构
-        const outfitData = {
-          userId: userStore.userInfo?.id || '',
-          ipAddress: externalDataStore.locationData?.city || '未知位置',
-          outfitDescription: JSON.stringify(outfitResultStore.readablePlan || {}),
-          aiPromptDescription: imagePrompt.value || '',
-          outfitImageUrl: outfitImageUrl,
-          requirementText: additionalInfo || '', // 使用路由参数中的附加信息
-          sceneId: scene || '',                  // 使用路由参数中的场景
-          highlightImageUrl: ''                  // 暂无高亮图
+
+        // 3. 构建基础保存数据
+        const baseOutfitData = {
+          userId,
+          imageUrl, // 使用上传后的URL，不是base64
+          description: outfitResultStore.currentEvaluation?.description || '',
+          occasion: outfitResultStore.currentEvaluation?.occasion || '',
+          styleType: outfitResultStore.currentEvaluation?.styleType || '',
+          sceneId: outfitResultStore.sceneId,
+          highlightTags: outfitResultStore.highlightTags
         }
+
+        // 4. 保存穿搭记录 - 使用store方法
+        const savedResult = await outfitRecordStore.saveOutfitRecord(baseOutfitData)
+        console.log('保存记录API返回结果:', savedResult)
         
-        console.log('保存穿搭数据:', outfitData);
-        
-        // 调用实际的保存API
-        const response = await saveOutfit(outfitData)
-        console.log('保存穿搭响应:', response);
-        
-        // 显示成功提示
-        showToast('穿搭方案已保存')
-        
-        // 保存成功后，重置状态
-        isSaved.value = true
-        
-        // 短暂延迟后跳转到首页 - 避免立即跳转
-        setTimeout(() => {
-          router.push('/')
-        }, 1500)
-        
-      } catch (error) {
-        console.error('保存穿搭方案失败', error)
-        showToast('保存失败: ' + (error.message || '请稍后再试'))
-      } finally {
-        saveInProgress.value = false
-        loading.value = false
-      }
-    }
-    
-    // 修复稍后评价并保存函数
-    const saveForLater = async () => {
-      // 防止重复操作
-      if (saveInProgress.value) return
-      saveInProgress.value = true
-      
-      try {
-        // 关闭模态框，防止重复操作
-        showSaveModal.value = false
-        
-        // 显示加载中
-        loading.value = true
-        loadingMessage.value = "正在处理图片..."
-        
-        // 获取当前版本的图片
-        const versionImage = getCurrentVersionImage.value
-        
-        // 检查是否有图片需要上传
-        let outfitImageUrl = ''
-        if (versionImage) {
-          // 如果图片是base64格式，需要先上传
-          if (versionImage.startsWith('data:image')) {
-            // 将Base64转为Blob
-            const base64Response = await fetch(versionImage);
-            const blob = await base64Response.blob();
-            
-            // 创建FormData
-            const formData = new FormData();
-            formData.append('file', blob, 'outfit-image.jpg');
-            
-            // 上传图片
-            loadingMessage.value = "正在上传图片..."
-            const uploadResponse = await uploadFile(formData);
-            console.log('图片上传响应:', uploadResponse);
-            
-            // 获取上传后的图片URL
-            if (uploadResponse && uploadResponse.data && uploadResponse.data.fileUrl) {
-              outfitImageUrl = uploadResponse.data.fileUrl;
-            } else {
-              throw new Error('图片上传失败');
-            }
+        // 提取outfitId - 确保正确获取message中的ID
+        let outfitId = null
+        if (savedResult && savedResult.message) {
+          // 尝试处理message，防止它是JSON字符串
+          if (typeof savedResult.message === 'string') {
+            // 如果message是形如 "1902222351994527746" 的字符串，去掉引号
+            outfitId = savedResult.message.replace(/^"|"$/g, '')
           } else {
-            // 如果已经是URL，直接使用
-            outfitImageUrl = versionImage;
+            outfitId = savedResult.message
           }
+          console.log('从API返回中提取的outfitId:', outfitId, '类型:', typeof outfitId)
         }
         
-        // 显示保存中
-        loadingMessage.value = "正在保存穿搭方案..."
-        
-        // 组装穿搭数据 - 严格按照 OutfitSaveRequestVO 结构
-        const outfitData = {
-          userId: userStore.userInfo?.id || '',
-          ipAddress: externalDataStore.locationData?.city || '未知位置',
-          outfitDescription: JSON.stringify(outfitResultStore.readablePlan || {}),
-          aiPromptDescription: imagePrompt.value || '',
-          outfitImageUrl: outfitImageUrl,
-          requirementText: additionalInfo || '', // 使用路由参数中的附加信息
-          sceneId: scene || '',                  // 使用路由参数中的场景
-          highlightImageUrl: ''                  // 暂无高亮图
-        }
-        
-        console.log('保存穿搭数据:', outfitData);
-        
-        // 调用实际的API
-        const response = await saveOutfit(outfitData)
-        console.log('保存穿搭响应:', response);
-        
-        // 显示成功提示
-        showToast('穿搭方案已保存，您可以稍后在记录中评价')
-        
-        // 保存成功后跳转首页，添加延迟避免循环
-        setTimeout(() => {
-          router.push('/')
-        }, 1500)
-        
-        return true
-      } catch (error) {
-        console.error('保存穿搭方案失败', error)
-        showToast('保存失败: ' + (error.message || '请重试'))
-        return false
-      } finally {
-        saveInProgress.value = false
-        loading.value = false
-      }
-    }
-    
-    // 格式化穿搭数据，用于保存
-    const formatOutfitData = (saveData) => {
-      const now = new Date().toISOString()
-      
-      return {
-        id: `outfit_${Date.now()}`,
-        userId: userStore.userInfo?.id || 'temp_user',
-        title: saveData.title,
-        description: saveData.description,
-        outfitImageUrl: outfitResultStore.outfitImage || '',
-        createdAt: now,
-        updatedAt: now,
-        tags: saveData.tags || [],
-        score: null,
-        comment: '',
-        aiPromptDescription: imagePrompt.value || '',
-        outfitDescription: outfitResultStore.readablePlan || ''
-      }
-    }
-    
-    // 提交评价
-    const submitEvaluation = async (commentData) => {
-      try {
-        // TODO: 当API可用时，使用真实的API调用
-        // const response = await submitOutfitEvaluation(commentData)
-        
-        // 实际上在评价时，outfitRecordStore.submitEvaluation 方法会自动更新对应的穿搭评分
-        await outfitRecordStore.submitEvaluation(commentData)
-        
-        return true
-      } catch (error) {
-        console.error('提交评价失败', error)
-        return false
-      }
-    }
-    
-    // 保存到API的函数（当API可用时使用）
-    const saveOutfitToAPI = async (outfitData) => {
-      // 构建API请求格式
-      const requestData = {
-        userId: outfitData.userId,
-        ipAddress: externalDataStore.locationData?.city || '未知位置',
-        outfitDescription: JSON.stringify(outfitData.outfitData),
-        aiPromptDescription: outfitData.aiDescription,
-        outfitImageUrl: outfitData.imageUrl,
-        requirementText: outfitData.description,
-        sceneId: route.query.scene || 'default',
-        highlightImageUrl: '' // 暂无高亮图
-      }
-      
-      // TODO: 调用真实API
-      // return await saveOutfit(requestData)
-      
-      // 模拟API响应
-      await new Promise(resolve => setTimeout(resolve, 800))
-      return {
-        data: {
-          id: `outfit_${Date.now()}`,
+        // 返回保存结果
+        return {
           success: true,
-          message: '保存成功'
+          outfitId: outfitId, // 使用处理后的outfitId
+          imageUrl: imageUrl
         }
+      } catch (error) {
+        console.error('保存穿搭记录失败:', error)
+        throw error
       }
     }
 
-    // 从路由参数或API获取初始数据
-    const initData = async () => {
-      loading.value = true
-      
+    // 修改稍后评价方法
+    const saveForLater = async () => {
       try {
-        // 从 Pinia store 获取数据
-        // 尝试从会话存储恢复数据（处理刷新情况）
-        outfitResultStore.restoreFromSession()
-        
-        // 检查是否有数据
-        if (outfitResultStore.versionHistory.length === 0) {
-          // 如果没有数据，使用默认数据
-          await useDefaultData()
-        }
+        loading.value = true
+        const result = await saveOutfitRecord({})
+        showToast('保存成功')
+        router.push('/outfit-record')
       } catch (error) {
-        console.error('初始化数据失败', error)
-        await useDefaultData()
+        showToast('保存失败: ' + error.message)
       } finally {
         loading.value = false
+        saveInProgress.value = false
       }
     }
-    
-    // 使用默认数据
-    const useDefaultData = () => {
-      const plan = {
-        top: '简约白色T恤，搭配浅蓝色休闲衬衫作为外层。',
-        bottom: '直筒深蓝色牛仔裤，裤长合适，略微修身。',
-        accessories: '灰色低帮帆布鞋，搭配简约棕色皮带和银色手表。',
-        keyPoints: [
-          '整体色调协调，蓝白灰色系清爽自然',
-          '宽松但不松垮，保持整洁有型的整体感',
-          '适合休闲场合，同时兼具简约时尚气质'
-        ]
+
+    // 修改立即评价方法，主要修复评论保存问题
+    const saveOutfit = async () => {
+      try {
+        loading.value = true
+        saveInProgress.value = true
+        
+        // 1. 先保存穿搭记录
+        console.log('开始第一步：上传图片和保存穿搭记录')
+        const saveResult = await saveOutfitRecord({})
+        console.log('第一步完成，保存结果:', saveResult)
+        
+        // 确保outfitId正确获取，输出详细信息
+        const outfitId = saveResult.outfitId
+        console.log('保存记录返回的outfitId:', outfitId, '类型:', typeof outfitId)
+        
+        // 获取评分和评论内容
+        const rating = saveModalData.rating || 0
+        const comment = saveModalData.comment?.trim() || ''
+        
+        console.log('从saveModalData获取的评分和评论:', { 
+          rating,
+          hasComment: !!comment
+        })
+        
+        // 2. 如果有评分和评价，则提交评价
+        if ((rating > 0 || comment) && outfitId) {
+          // 构建评价数据
+          const commentData = {
+            userId: userStore.userInfo?.userId,
+            ipAddress: externalDataStore.locationData?.city ? 
+              `${externalDataStore.locationData.province || ''} ${externalDataStore.locationData.city}` : "",
+            outfitId: outfitId,
+            score: rating,
+            comment: comment
+          }
+          
+          console.log('准备调用第三个接口保存评论，完整参数:', JSON.stringify(commentData))
+          
+          try {
+            const commentResult = await saveOutfitComment(commentData)
+            console.log('第三个接口调用成功:', commentResult)
+          } catch (commentError) {
+            console.error('保存评论失败:', commentError)
+            showToast('评论保存失败，但穿搭方案已保存')
+          }
+        } else {
+          console.log('没有评价内容或缺少outfitId，跳过第三个接口调用')
+        }
+        
+        // 添加延迟确保接口调用完成
+        await new Promise(resolve => setTimeout(resolve, 800))
+        
+        showToast('穿搭方案已保存')
+        router.push('/outfit-record')
+      } catch (error) {
+        console.error('保存过程中出错:', error)
+        showToast('保存失败: ' + error.message)
+      } finally {
+        loading.value = false
+        saveInProgress.value = false
       }
-      
-      outfitResultStore.readablePlan = plan
-      outfitResultStore.imagePrompt = `young ${gender === 'male' ? 'man' : 'woman'} wearing simple white t-shirt, light blue casual shirt, dark blue straight jeans, grey canvas shoes, minimal accessories, casual everyday style, clean modern background, natural lighting, 4k quality, professional fashion photography`
-      
-      outfitResultStore.addToVersionHistory('初始方案', '默认推荐方案')
     }
-    
+
     // 修改generateImage方法以正确处理返回的base64数据并更新当前版本
     const generateImage = async () => {
       if (loading.value) return
@@ -952,51 +821,6 @@ export default {
       } catch (error) {
         console.error('上传图片失败', error)
         throw new Error('图片上传失败，请重试')
-      } finally {
-        loading.value = false
-      }
-    }
-
-    // 添加保存穿搭推荐的方法
-    const saveOutfitRecommendation = async () => {
-      try {
-        loading.value = true
-        loadingMessage.value = "正在保存穿搭推荐..."
-        
-        // 上传图片获取URL
-        const imageUrl = await uploadImage(outfitImage.value)
-        
-        // 准备请求数据
-        const requestData = {
-          userId: userStore.userInfo?.id,
-          title: saveModalData.title,
-          description: saveModalData.description,
-          imageUrl: imageUrl,
-          outfitData: {
-            top: recommendation.value.top,
-            bottom: recommendation.value.bottom,
-            accessories: recommendation.value.accessories,
-            keyPoints: recommendation.value.keyPoints
-          },
-          aiDescription: recommendation.value.aiDescription || formatOutfitPlanToString(recommendation.value),
-          tags: saveModalData.tags || []
-        }
-        
-        // TODO: 调用保存穿搭接口
-        // const response = await saveOutfit(requestData)
-        // if (response && response.data && response.data.id) {
-        //   return response.data.id
-        // }
-        
-        // 模拟请求延迟
-        await new Promise(resolve => setTimeout(resolve, 800))
-        
-        // 模拟返回ID
-        return 'outfit_' + Date.now()
-        
-      } catch (error) {
-        console.error('保存穿搭推荐失败', error)
-        throw new Error('保存失败，请稍后再试')
       } finally {
         loading.value = false
       }

@@ -49,11 +49,11 @@ export function followUpOutfit(data) {
  * @param {Object} data - 保存的穿搭方案数据
  * @returns {Promise}
  */
-export function saveOutfit(data) {
+export function saveOutfit(params) {
   return request({
     url: '/style-ai-dress-aggregation-service/outfitApi/save',
     method: 'post',
-    data
+    data: params
   })
 }
 
@@ -91,9 +91,9 @@ export function getOutfitDetail(id) {
  * @param {Object} data - 评论信息
  * @returns {Promise}
  */
-export function saveOutfitComment(data) {
+export const saveOutfitComment = (data) => {
   return request({
-    url: OUTFIT_API.SAVE_COMMENT,
+    url: '/style-ai-dress-aggregation-service/outfitApi/saveOutfitComment',
     method: 'post',
     data
   })

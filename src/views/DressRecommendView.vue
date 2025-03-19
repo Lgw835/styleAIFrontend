@@ -56,9 +56,9 @@
             <button 
               v-for="tag in imageTags" 
               :key="tag"
+              @click="selectTag(tag)"
               class="px-4 py-2 rounded-full border"
               :class="{ 'bg-blue-50 border-blue-500': selectedTags.includes(tag) }"
-              @click="toggleTag(tag)"
             >
               {{ tag }}
             </button>
@@ -99,7 +99,7 @@
         <!-- 下一步按钮 -->
         <button 
           class="w-full bg-blue-500 text-white py-3 rounded-lg mt-6"
-          @click="handleNext"
+          @click="handleRecommend"
         >
           下一步
         </button>
@@ -134,45 +134,46 @@ export default {
   setup() {
     // 获取用户信息
     const userStore = useUserStore()
-    // 获取位置数据
     const externalDataStore = useExternalDataStore()
-    // 位置加载状态
-    const isLocationLoading = ref(false)
     const router = useRouter()
     
-    // 初始化位置数据
-    onMounted(async () => {
-      if (!externalDataStore.locationData.city) {
-        isLocationLoading.value = true
-        try {
-          await externalDataStore.getLocationData()
-        } catch (error) {
-          console.error('获取位置信息失败', error)
-        } finally {
-          isLocationLoading.value = false
-        }
-      }
-    })
+    // 响应式状态定义
+    const loading = ref(false)
+    const loadingMessage = ref('正在生成穿搭方案...')
+    const isLocationLoading = ref(false)
+    const selectedScene = ref('')
+    const selectedTags = ref([])
+    const gender = ref('')
+    const additionalInfo = ref('')
+    const useProfile = ref(!!userStore?.userProfile)
+    
+    // 场景和标签数据
+    const scenes = [
+      { name: '商务正式', icon: 'fa-briefcase' },
+      { name: '休闲日常', icon: 'fa-coffee' },
+      { name: '约会', icon: 'fa-heart' },
+      { name: '运动', icon: 'fa-dumbbell' },
+      { name: '派对', icon: 'fa-glass-cheers' },
+      { name: '更多', icon: 'fa-plus' }
+    ]
+    
+    const imageTags = ['优雅知性', '活力运动', '甜美可爱', '简约时尚', '成熟稳重']
     
     // 计算用户画像完整度
     const calculateProfileCompleteness = () => {
       const profileStr = userStore.userProfile
-      
       if (!profileStr) return 0
       
       try {
-        // 尝试将字符串解析为对象
         const profile = typeof profileStr === 'string' 
           ? JSON.parse(profileStr) 
           : profileStr
           
-        // 定义要检查的关键字段
         const keyFields = [
           'height', 'weight', 'bodyShape', 'skinTone', 
           'preferredStyles', 'dislikedStyles', 'colorPreferences'
         ]
         
-        // 检查每个字段是否有值
         let filledFields = 0
         for (const field of keyFields) {
           if (profile[field] && 
@@ -183,118 +184,87 @@ export default {
           }
         }
         
-        // 计算百分比
         return Math.round((filledFields / keyFields.length) * 100)
       } catch (error) {
         console.error('计算用户画像完整度失败:', error)
-        return 0 // 解析失败返回0
+        return 0
       }
     }
     
-    // 检查是否有用户画像
+    // 计算属性
+    const profileCompleteness = computed(() => calculateProfileCompleteness())
     const hasUserProfile = computed(() => {
       const profile = userStore.userProfile
-      
       if (!profile) return false
-      
-      // 如果是字符串但只是空对象，也视为无效
       if (typeof profile === 'string' && 
          (profile === '{}' || profile === 'null' || profile === '')) {
         return false
       }
-      
       return true
     })
     
-    return {
-      // 返回计算完整度的函数和用户画像状态
-      calculateProfileCompleteness,
-      hasUserProfile,
-      externalDataStore,
-      isLocationLoading,
-      router,
-      userStore
+    // 方法定义
+    const selectScene = (scene) => {
+      selectedScene.value = scene
+      console.log('场景已选择:', scene)
     }
-  },
-  data() {
-    return {
-      useProfile: !!this.userStore?.userProfile,
-      profileCompleteness: this.calculateProfileCompleteness(),
-      selectedScene: '',
-      selectedTags: [],
-      gender: '',
-      additionalInfo: '',
-      loading: false,
-      loadingMessage: '正在生成穿搭方案...',
-      scenes: [
-        { name: '商务正式', icon: 'fa-briefcase' },
-        { name: '休闲日常', icon: 'fa-coffee' },
-        { name: '约会', icon: 'fa-heart' },
-        { name: '运动', icon: 'fa-dumbbell' },
-        { name: '派对', icon: 'fa-glass-cheers' },
-        { name: '更多', icon: 'fa-plus' }
-      ],
-      imageTags: ['优雅知性', '活力运动', '甜美可爱', '简约时尚', '成熟稳重']
-    }
-  },
-  methods: {
-    selectScene(scene) {
-      this.selectedScene = scene
-    },
-    toggleTag(tag) {
-      const index = this.selectedTags.indexOf(tag)
-      if (index === -1) {
-        this.selectedTags.push(tag)
+    
+    const selectTag = (tag) => {
+      if (selectedTags.value.includes(tag)) {
+        selectedTags.value = selectedTags.value.filter(t => t !== tag)
       } else {
-        this.selectedTags.splice(index, 1)
+        selectedTags.value.push(tag)
       }
-    },
-    selectGender(gender) {
-      this.gender = gender
-    },
-    async handleNext() {
-      // 检查用户是否登录
-      if (!this.userStore || !this.userStore.isLoggedIn) {
-        console.log('登录检查结果:', {
-          storeExists: !!this.userStore,
-          isLoggedIn: this.userStore?.isLoggedIn,
-          hasUserInfo: !!this.userStore?.userInfo
-        })
-        this.$toast('请先登录')
-        this.router.push('/login')
-        return
-      }
-      
-      // 检查用户信息是否完整
-      const userId = this.userStore.userInfo?.userId
-      if (!userId) {
-        console.error('用户已登录但没有用户ID')
-        this.$toast('用户信息不完整，请重新登录')
-        this.router.push('/login')
-        return
-      }
-      
-      // 开始加载状态
-      this.loading = true
-      this.loadingMessage = '正在生成穿搭方案，请耐心等待...'
-      
+      console.log('当前选中的标签:', selectedTags.value)
+    }
+    
+    const selectGender = (value) => {
+      gender.value = value
+    }
+    
+    // 处理推荐请求
+    const handleRecommend = async () => {
       try {
+        loading.value = true
+        loadingMessage.value = '正在生成穿搭方案...'
+        
+        // 检查用户是否登录
+        if (!userStore || !userStore.isLoggedIn) {
+          console.log('登录检查结果:', {
+            storeExists: !!userStore,
+            isLoggedIn: userStore?.isLoggedIn,
+            hasUserInfo: !!userStore?.userInfo
+          })
+          $toast('请先登录')
+          router.push('/login')
+          return
+        }
+        
+        // 检查用户信息是否完整
+        const userId = userStore.userInfo?.userId
+        if (!userId) {
+          console.error('用户已登录但没有用户ID')
+          $toast('用户信息不完整，请重新登录')
+          router.push('/login')
+          return
+        }
+        
         // 准备要发送的数据
         const requestData = {
           userId: userId,
-          ipAddress: this.externalDataStore.locationData?.city ? 
-            `${this.externalDataStore.locationData.province || ''} ${this.externalDataStore.locationData.city}` : "",
+          ipAddress: externalDataStore.locationData?.city ? 
+            `${externalDataStore.locationData.province || ''} ${externalDataStore.locationData.city}` : "",
           weather: "",
-          scene: this.selectedScene || '休闲日常',
-          features: this.selectedTags.join('，'),
-          additionalInfo: this.additionalInfo || ""
+          scene: selectedScene.value || '休闲日常',
+          features: selectedTags.value.join('，'),
+          additionalInfo: additionalInfo.value || ""
         }
         
         // 处理用户画像信息并添加到附加信息中
-        if (this.useProfile && this.userStore.userProfile) {
+        if (useProfile.value && userStore.userProfile) {
           try {
             // 尝试解析用户画像JSON
-            const profileObj = JSON.parse(this.userStore.userProfile);
+            const profileObj = JSON.parse(userStore.userProfile);
             
             // 开始构建用户画像信息，每个有值的字段都添加进来
             let profileInfo = [];
@@ -386,19 +356,19 @@ export default {
           } catch (e) {
             console.error('解析用户画像失败:', e);
             // 解析失败时，添加原始性别信息
-            const userGender = this.gender === 'male' ? '男' : this.gender === 'female' ? '女' : '未指定';
+            const userGender = gender.value === 'male' ? '男' : gender.value === 'female' ? '女' : '未指定';
             requestData.additionalInfo = (requestData.additionalInfo ? requestData.additionalInfo + "\n" : "") + `性别: ${userGender}`;
           }
-        } else if (this.gender) {
+        } else if (gender.value) {
           // 如果没有使用用户画像但有性别选择
-          const userGender = this.gender === 'male' ? '男' : '女';
+          const userGender = gender.value === 'male' ? '男' : '女';
           requestData.additionalInfo = (requestData.additionalInfo ? requestData.additionalInfo + "\n" : "") + `性别: ${userGender}`;
         }
         
         console.log('API 基础 URL:', import.meta.env.VITE_API_BASE_URL)
         console.log('发送穿搭推荐请求:', requestData)
         
-        // 使用 recommendOutfit API 函数，不再使用 fetch
+        // 调用API获取推荐
         const response = await recommendOutfit(requestData)
         console.log('API 返回原始数据:', response)
         
@@ -411,99 +381,86 @@ export default {
           console.warn('API返回数据中没有readablePlan字段')
         }
         
-        // 存储数据到 store
+        // 存储数据到 store - 修改这部分
         const outfitResultStore = useOutfitResultStore()
-        outfitResultStore.setInitialRecommendation(response)
         
-        console.log('成功存储数据到store')
+        // 打印当前选中的值，确认数据正确
+        console.log('当前选中的场景:', selectedScene.value)
+        console.log('当前选中的标签:', selectedTags.value)
+        
+        // 构建完整的数据对象
+        const storeData = {
+          ...response,
+          sceneId: selectedScene.value,
+          highlightTags: selectedTags.value.join('#')
+        }
+        
+        console.log('准备存储到store的数据:', storeData)
+        
+        // 保存到store
+        outfitResultStore.setInitialRecommendation(storeData)
+        
+        console.log('存储后的store数据:', {
+          sceneId: outfitResultStore.sceneId,
+          highlightTags: outfitResultStore.highlightTags
+        })
         
         // 跳转前增加延迟，确保数据已存储
         setTimeout(() => {
-          this.router.push('/outfit-result')
+          router.push('/outfit-result')
         }, 500)
         
       } catch (error) {
         console.error('获取推荐失败:', error)
       } finally {
-        this.loading = false
+        loading.value = false
       }
-    },
+    }
     
-    // 生成基于用户画像的个性化推荐响应
-    generatePersonalizedResponse(profile) {
-      // 这里实现基于用户画像数据的个性化推荐逻辑
-      // 实际项目中，这部分逻辑应该由后端实现
-      
-      // 示例：根据身材类型调整建议
-      let topSuggestion = ''
-      let bottomSuggestion = ''
-      
-      if (profile.bodyShape === 'pear') {
-        topSuggestion = '宽松上衣搭配轻薄外套，增加肩部视觉宽度平衡身材比例。'
-        bottomSuggestion = '直筒裤型或A字裙，避免过于紧身的下装。'
-      } else if (profile.bodyShape === 'apple') {
-        topSuggestion = 'V领上衣搭配垂直条纹开衫，拉长上半身视觉线条。'
-        bottomSuggestion = '高腰直筒裤或喇叭裤，平衡身材比例。'
-      } else if (profile.bodyShape === 'hourglass') {
-        topSuggestion = '合身上衣搭配腰部收紧的外套，突出腰线。'
-        bottomSuggestion = '修身裤型或高腰裙，展现曲线美。'
-      } else {
-        topSuggestion = '简约合身上衣，搭配轻薄外套增加层次感。'
-        bottomSuggestion = '修身直筒裤，展现自然腿部线条。'
-      }
-      
-      // 根据颜色偏好调整
-      let colorScheme = '中性色调为主'
-      if (profile.colorPreferences && profile.colorPreferences.length > 0) {
-        colorScheme = `以${profile.colorPreferences[0]}为主色调，搭配协调色系`
-      }
-      
-      return {
-        readablePlan: `## 穿搭方案\n\n### 上装\n${topSuggestion}\n\n### 下装\n${bottomSuggestion}\n\n### 鞋子配饰\n选择${colorScheme}的鞋履，搭配简约配饰增加质感。\n\n### 搭配要点\n- ${colorScheme}，突出个人气质\n- 结合您的身材特点，强调优势部位\n- 根据您的风格偏好，兼顾时尚感与舒适度`,
-        imagePrompt: `young ${this.gender === 'male' ? 'man' : 'woman'} with ${profile.bodyShape || 'average'} body type, wearing outfit that complements their physique, ${profile.colorPreferences ? profile.colorPreferences[0] : 'neutral'} color scheme, ${profile.preferredStyles ? profile.preferredStyles[0] : 'casual'} style, clean modern background, natural lighting, 4k quality, professional fashion photography`,
-        summary: '基于您的身材特点和风格偏好定制的个性化穿搭方案'
-      }
-    },
-    // 获取用户画像数据的辅助函数 - 确保返回结构化数据
-    getUserProfileData() {
-      if (!this.userStore || !this.userStore.userProfile) {
-        return null
-      }
-      
-      // 检查数据类型
-      const profileData = this.userStore.userProfile
-      
-      // 如果是字符串，尝试解析为结构化数据
-      if (typeof profileData === 'string') {
+    // 初始化位置数据
+    onMounted(async () => {
+      if (!externalDataStore.locationData.city) {
+        isLocationLoading.value = true
         try {
-          return JSON.parse(profileData)
+          await externalDataStore.getLocationData()
         } catch (error) {
-          console.error('无法解析用户画像数据', error)
-          return profileData // 返回原始字符串，保持兼容性
+          console.error('获取位置信息失败', error)
+        } finally {
+          isLocationLoading.value = false
         }
       }
+    })
+    
+    return {
+      // 状态
+      loading,
+      loadingMessage,
+      selectedScene,
+      selectedTags,
+      gender,
+      additionalInfo,
+      useProfile,
+      profileCompleteness,
+      isLocationLoading,
       
-      // 如果已经是对象，直接返回
-      return profileData
-    },
-    // 添加辅助方法从字符串中提取值
-    extractProfileValue(key) {
-      if (!this.userStore.userProfile) return null
+      // 静态数据
+      scenes,
+      imageTags,
       
-      try {
-        // 确保处理字符串
-        const profileStr = this.userStore.userProfile
-        
-        // 尝试解析
-        const profileObj = typeof profileStr === 'string' 
-          ? JSON.parse(profileStr) 
-          : profileStr
-          
-        return profileObj[key]
-      } catch (e) {
-        console.error(`提取用户画像属性 ${key} 失败`, e)
-        return null
-      }
+      // 计算属性
+      hasUserProfile,
+      
+      // 方法
+      selectScene,
+      selectTag,
+      selectGender,
+      handleRecommend,
+      calculateProfileCompleteness,
+      
+      // Store
+      userStore,
+      externalDataStore,
+      router
     }
   }
 }

@@ -8,16 +8,42 @@ import {
 import { useUserStore } from '@/stores/user'
 import { useExternalDataStore } from '@/stores/externalData'
 
+// Session Storage 键名常量 - 确保所有地方使用同一个key
+const SESSION_STORAGE_KEY = 'outfitResultData'
+
 export const useOutfitResultStore = defineStore('outfitResult', {
-  state: () => ({
-    // 不再直接存储方案数据，只存储版本和元数据
-    currentVersionIndex: 0, // 当前版本在历史中的索引
-    versionHistory: [], // 所有版本历史
-    outfitImage: '', // 当前图片URL
-    outfitId: null, // 后端ID
-    allowSave: true, // 是否允许保存
-    initialRecommendation: null // 初始推荐
-  }),
+  state: () => {
+    // 使用统一的 SESSION_STORAGE_KEY
+    const savedData = sessionStorage.getItem(SESSION_STORAGE_KEY)
+    let initialState = {
+      currentVersionIndex: 0,
+      versionHistory: [],
+      outfitImage: '',
+      outfitId: null,
+      allowSave: true,
+      initialRecommendation: null,
+      sceneId: '日常场景',
+      highlightTags: '#日常风格',
+      currentEvaluation: null,
+      isInitialized: false  // 添加初始化标记
+    }
+
+    if (savedData) {
+      try {
+        const parsed = JSON.parse(savedData)
+        initialState = {
+          ...initialState,
+          ...parsed,
+          isInitialized: true  // 标记为已初始化
+        }
+        console.log('从 sessionStorage 恢复的数据:', initialState)
+      } catch (e) {
+        console.error('解析 sessionStorage 数据失败:', e)
+      }
+    }
+
+    return initialState
+  },
   
   getters: {
     // 获取当前版本号
@@ -69,11 +95,21 @@ export const useOutfitResultStore = defineStore('outfitResult', {
       this.currentVersionIndex = 0
       this.initialRecommendation = data
       
-      // 保存到会话存储
+      // 保存场景和标签
+      this.sceneId = data.sceneId || '日常场景'
+      // 确保 highlightTags 以#开头
+      const tags = data.highlightTags || '#日常风格'
+      this.highlightTags = tags.startsWith('#') ? tags : '#' + tags
+      
+      // 标记为已初始化
+      this.isInitialized = true
+      
+      // 立即保存到 sessionStorage
       this.saveToSession()
       
-      console.log('存储完成:', {
-        currentVersionIndex: this.currentVersionIndex,
+      console.log('存储完成，当前 store 状态:', {
+        sceneId: this.sceneId,
+        highlightTags: this.highlightTags,
         versionHistory: this.versionHistory
       })
     },
@@ -81,7 +117,7 @@ export const useOutfitResultStore = defineStore('outfitResult', {
     // 从sessionStorage恢复数据（处理页面刷新情况）
     restoreFromSession() {
       try {
-        const savedData = sessionStorage.getItem('outfitResultData')
+        const savedData = sessionStorage.getItem(SESSION_STORAGE_KEY)
         if (savedData) {
           const parsedData = JSON.parse(savedData)
           
@@ -101,6 +137,10 @@ export const useOutfitResultStore = defineStore('outfitResult', {
             this.outfitImage = parsedData.outfitImage || ''
             this.outfitId = parsedData.outfitId || null
             this.initialRecommendation = parsedData.initialRecommendation || null
+            this.sceneId = parsedData.sceneId || '日常场景'
+            // 确保恢复的 highlightTags 以#开头
+            const tags = parsedData.highlightTags || '#日常风格'
+            this.highlightTags = tags.startsWith('#') ? tags : '#' + tags
           } else if (parsedData.readablePlan) {
             // 兼容旧的数据结构：如果没有版本历史但有直接字段
             const version = {
@@ -116,10 +156,14 @@ export const useOutfitResultStore = defineStore('outfitResult', {
             this.currentVersionIndex = 0
             this.outfitImage = parsedData.outfitImage || ''
             this.outfitId = parsedData.outfitId || null
+            this.sceneId = parsedData.sceneId || '日常场景'
+            // 这里也确保以#开头
+            const tags = parsedData.highlightTags || '#日常风格'
+            this.highlightTags = tags.startsWith('#') ? tags : '#' + tags
           }
         }
       } catch (error) {
-        console.error('从会话恢复数据失败', error)
+        console.error('从会话恢复数据失败:', error)
       }
     },
     
@@ -132,12 +176,16 @@ export const useOutfitResultStore = defineStore('outfitResult', {
           outfitImage: this.outfitImage,
           outfitId: this.outfitId,
           initialRecommendation: this.initialRecommendation,
-          allowSave: this.allowSave
+          allowSave: this.allowSave,
+          sceneId: this.sceneId,
+          highlightTags: this.highlightTags,
+          currentEvaluation: this.currentEvaluation
         }
         
-        sessionStorage.setItem('outfitResultData', JSON.stringify(dataToSave))
+        sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(dataToSave))
+        console.log('数据已保存到 sessionStorage:', dataToSave)
       } catch (error) {
-        console.error('保存数据到会话失败', error)
+        console.error('保存数据到会话失败:', error)
       }
     },
     
@@ -148,11 +196,17 @@ export const useOutfitResultStore = defineStore('outfitResult', {
           this.currentVersionIndex,
           JSON.stringify(this.versionHistory),
           this.outfitImage,
-          this.outfitId
+          this.outfitId,
+          this.sceneId,
+          this.highlightTags,
+          this.currentEvaluation
         ], 
         () => {
-          console.log('数据变化，保存到sessionStorage')
-          this.saveToSession()
+          // 只有在初始化完成后才保存数据
+          if (this.isInitialized) {
+            console.log('数据变化，保存到sessionStorage')
+            this.saveToSession()
+          }
         }, 
         { deep: true }
       )
@@ -222,22 +276,22 @@ export const useOutfitResultStore = defineStore('outfitResult', {
     
     // 重置所有数据
     resetAll() {
-      // 重置所有状态
+      this.isInitialized = false  // 重置初始化标记
       this.versionHistory = []
       this.currentVersionIndex = 0
       this.outfitImage = ''
       this.outfitId = null
       this.allowSave = true
       this.initialRecommendation = null
+      this.sceneId = '日常场景'
+      this.highlightTags = '#日常风格'  // 添加#
+      this.currentEvaluation = null
       
-      console.log('outfitResultStore: 重置所有数据')
-      
-      // 确保清除会话存储
       try {
-        sessionStorage.removeItem('outfitResultData')
+        sessionStorage.removeItem(SESSION_STORAGE_KEY)
         console.log('outfitResultStore: 已清除会话存储')
       } catch (error) {
-        console.error('清除会话存储失败', error)
+        console.error('清除会话存储失败:', error)
       }
     },
     
@@ -355,6 +409,30 @@ export const useOutfitResultStore = defineStore('outfitResult', {
       } catch (error) {
         // 错误处理...
       }
+    },
+    
+    // 保存场景和标签方法
+    setSceneAndTags(scene, tags) {
+      // 如果已经初始化且有值，则不覆盖
+      if (this.isInitialized && this.sceneId !== '日常场景' && this.highlightTags !== '日常风格') {
+        console.log('已有场景和标签数据，跳过设置')
+        return true
+      }
+      
+      this.sceneId = scene || '日常场景'
+      
+      // 直接保存为字符串，确保以#开头
+      if (Array.isArray(tags) && tags.length > 0) {
+        this.highlightTags = '#' + tags.join('#')  // 添加开头的#
+      } else if (typeof tags === 'string') {
+        // 如果是字符串，确保以#开头
+        this.highlightTags = tags.startsWith('#') ? tags : '#' + tags
+      } else {
+        this.highlightTags = '#日常风格'  // 默认值也加上#
+      }
+      
+      this.saveToSession()
+      return true
     },
   }
 }) 

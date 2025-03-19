@@ -2,13 +2,16 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import mitt from 'mitt'
 import { useUserStore } from '@/stores/user'
+import { useExternalDataStore } from '@/stores/externalData'
+import { useOutfitResultStore } from '@/stores/outfitResult'
 // 导入统一的API
 import { 
   getOutfitRecords, 
   getOutfitDetail, 
   saveOutfitComment, 
   deleteOutfitRecord,
-  evaluateOutfit 
+  evaluateOutfit,
+  saveOutfit
 } from '@/api/outfit'
 
 // 创建一个简单的事件发射器
@@ -183,6 +186,93 @@ export const useOutfitRecordStore = defineStore('outfitRecord', () => {
     currentEvaluation.value = null
   }
 
+  // 添加保存穿搭记录的方法
+  const saveOutfitRecord = async (outfitData) => {
+    loading.value = true
+    
+    try {
+      console.log('准备保存穿搭记录:', outfitData)
+      
+      // 获取 outfitResultStore 中的数据
+      const outfitResultStore = useOutfitResultStore()
+      
+      // 从外部获取可能的IP地址信息
+      let ipAddress = ''
+      try {
+        const externalDataStore = useExternalDataStore()
+        ipAddress = externalDataStore?.locationData?.city || '上海市'
+      } catch (e) {
+        console.warn('获取位置信息失败:', e)
+        ipAddress = '上海市' // 默认值
+      }
+      
+      // 调试输出
+      console.log('准备保存场景ID:', outfitResultStore.sceneId)
+      console.log('准备保存突出形象标签:', outfitResultStore.highlightTags)
+      
+      // 直接使用已经格式化好的字符串
+      const sceneId = outfitResultStore.sceneId || outfitData.sceneId || '日常场景'
+      const highlightImageUrl = outfitResultStore.highlightTags || outfitData.highlightTags || '日常风格'
+      
+      // 构建请求参数 - 不需要再做格式转换
+      const requestParams = {
+        userId: outfitData.userId || '',
+        ipAddress: ipAddress,
+        outfitDescription: outfitResultStore.currentEvaluation?.description || 
+                          outfitResultStore.readablePlan || 
+                          '个人日常穿搭',
+        aiPromptDescription: outfitResultStore.imagePrompt || 
+                            outfitResultStore.currentEvaluation?.styleType || 
+                            '简约时尚风格',
+        outfitImageUrl: outfitData.imageUrl || outfitResultStore.outfitImage || '',
+        requirementText: outfitResultStore.summary || '日常穿着需求',
+        sceneId: sceneId,
+        highlightImageUrl: highlightImageUrl
+      }
+      
+      console.log('调用保存接口，参数:', requestParams)
+      
+      // 调用保存接口
+      const response = await saveOutfit(requestParams)
+      
+      console.log('保存接口响应:', response)
+      
+      if (response && response.success) {
+        // 如果保存成功，添加到本地数据中
+        const newRecord = {
+          id: response.data?.outfitId || `outfit_${Date.now()}`,
+          userId: outfitData.userId,
+          imageUrl: outfitData.imageUrl,
+          description: outfitData.description || '',
+          occasion: outfitData.occasion || '',
+          styleType: outfitData.styleType || '',
+          createdAt: new Date().toISOString(),
+          status: 'pending', // 表示待评价状态
+          
+          // 保存接口返回的额外信息（如果有）
+          outfitId: response.data?.message,
+          date: response.data?.date
+        }
+        
+        // 添加到数组开头，新记录显示在前面
+        outfits.value.unshift(newRecord)
+        
+        // 保存到Session Storage
+        saveToSession()
+        
+        console.log('穿搭记录保存成功:', newRecord)
+        return newRecord
+      } else {
+        throw new Error(response.message || '保存失败')
+      }
+    } catch (error) {
+      console.error('保存穿搭记录失败:', error)
+      throw error
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     // 状态
     outfits,
@@ -202,6 +292,7 @@ export const useOutfitRecordStore = defineStore('outfitRecord', () => {
     setCurrentOutfit,
     clearCurrentOutfit,
     loadFromSession,
-    saveToSession
+    saveToSession,
+    saveOutfitRecord
   }
 }) 
