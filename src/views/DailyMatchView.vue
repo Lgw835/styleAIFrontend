@@ -47,6 +47,19 @@
           </div>
           <h2 class="text-3xl font-bold text-white mb-3">开启你的专属穿搭之旅</h2>
           <p class="text-white/80">AI智能推荐，为你打造完美造型</p>
+          
+          <!-- 用户画像完整度 -->
+          <div v-if="userStore.userProfile" class="mt-3 flex items-center justify-center">
+            <div class="profile-completeness bg-white/20 backdrop-blur-md px-4 py-2 rounded-full">
+              <div class="flex items-center">
+                <span class="text-white text-sm mr-2">画像完整度</span>
+                <div class="w-24 h-2 bg-white/30 rounded-full overflow-hidden">
+                  <div class="bg-white h-full rounded-full" :style="{ width: profileCompleteness + '%' }"></div>
+                </div>
+                <span class="text-white text-sm ml-2">{{ profileCompleteness }}%</span>
+              </div>
+            </div>
+          </div>
         </div>
         
         <button 
@@ -68,9 +81,10 @@ import { useUserStore } from '@/stores/user'
 import { useExternalDataStore } from '@/stores/externalData'
 import { useOutfitResultStore } from '@/stores/outfitResult'
 import { useScheduleStore } from '@/stores/schedule'
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { dayRecommend } from '@/api/outfit'
+import { storeToRefs } from 'pinia'
 
 export default {
   name: 'DailyMatchView',
@@ -84,6 +98,9 @@ export default {
     const scheduleStore = useScheduleStore()
     const router = useRouter()
     
+    // 使用 storeToRefs 确保响应式
+    const { dailyLuckyColor } = storeToRefs(externalDataStore)
+    
     // 加载状态
     const loading = ref(false)
     
@@ -93,6 +110,54 @@ export default {
     
     // 动画状态
     const animationStarted = ref(false)
+    
+    // 计算用户画像完整度
+    const calculateProfileCompleteness = () => {
+      const profileStr = userStore.userProfile
+      if (!profileStr) return 0
+      
+      try {
+        const profile = typeof profileStr === 'string' 
+          ? JSON.parse(profileStr) 
+          : profileStr
+          
+        // 排除 ID 字段，计算所有其他字段
+        const validFields = [
+          'gender', 'age', 'height', 'weight', 'bodyShape', 
+          'stylePreference', 'skinTone', 'hairColor', 'hairLength', 
+          'hairStyle', 'eyeColor', 'faceShape', 'bodyType',
+          'tattooDescription', 'piercingDescription', 'otherFeatures'
+        ]
+        
+        let filledFields = 0
+        let totalFields = validFields.length
+        
+        for (const field of validFields) {
+          if (profile[field] !== undefined) {
+            // 数字类型：值不为0算作已填写
+            if (typeof profile[field] === 'number' && profile[field] !== 0) {
+              filledFields++
+            } 
+            // 字符串类型：非空字符串算作已填写
+            else if (typeof profile[field] === 'string' && profile[field].trim() !== '') {
+              filledFields++
+            }
+            // 数组类型：长度大于0算作已填写
+            else if (Array.isArray(profile[field]) && profile[field].length > 0) {
+              filledFields++
+            }
+          }
+        }
+        
+        return Math.round((filledFields / totalFields) * 100)
+      } catch (error) {
+        console.error('计算用户画像完整度失败:', error)
+        return 0
+      }
+    }
+    
+    // 计算用户画像完整度
+    const profileCompleteness = computed(() => calculateProfileCompleteness())
     
     // 浮动词数据
     const floatingWords = [
@@ -106,9 +171,8 @@ export default {
     
     // 获取幸运色
     const getLuckyColor = () => {
-      // 从首页的幸运色数据中获取，这里用随机模拟
-      const luckyColors = ['红色', '蓝色', '绿色', '黄色', '紫色', '橙色', '粉色', '青色']
-      return luckyColors[Math.floor(Math.random() * luckyColors.length)]
+      // 从全局 externalDataStore 中获取每日幸运色
+      return dailyLuckyColor.value?.name || '薄荷绿'
     }
     
     // 整合日程信息成字符串
@@ -142,48 +206,41 @@ export default {
           : userStore.userProfile
         
         // 构建用户画像信息字符串
-        let profileInfo = []
+        const profileInfo = []
         
-        // 添加性别
-        if (profileObj.gender) {
-          const userGender = profileObj.gender === 'male' ? '男' : profileObj.gender === 'female' ? '女' : profileObj.gender
-          profileInfo.push(`我的性别: ${userGender}`)
-        }
+        // 定义要获取的有效字段
+        const validFields = [
+          { key: 'gender', label: '性别', transform: (val) => val === 'male' ? '男' : val === 'female' ? '女' : val },
+          { key: 'age', label: '年龄', transform: (val) => val + '岁' },
+          { key: 'height', label: '身高', transform: (val) => val + 'cm' },
+          { key: 'weight', label: '体重', transform: (val) => val + 'kg' },
+          { key: 'bodyShape', label: '体型' },
+          { key: 'stylePreference', label: '风格偏好' },
+          { key: 'skinTone', label: '肤色' },
+          { key: 'hairColor', label: '发色' },
+          { key: 'hairLength', label: '发长' },
+          { key: 'hairStyle', label: '发型' },
+          { key: 'eyeColor', label: '眼睛颜色' },
+          { key: 'faceShape', label: '脸型' },
+          { key: 'tattooDescription', label: '纹身描述' },
+          { key: 'piercingDescription', label: '穿孔描述' },
+          { key: 'otherFeatures', label: '其他特征' }
+        ]
         
-        // 添加年龄
-        if (profileObj.age) {
-          profileInfo.push(`我的年龄: ${profileObj.age}岁`)
-        }
-        
-        // 添加身高
-        if (profileObj.height) {
-          profileInfo.push(`我的身高: ${profileObj.height}cm`)
-        }
-        
-        // 添加体重
-        if (profileObj.weight) {
-          profileInfo.push(`我的体重: ${profileObj.weight}kg`)
-        }
-        
-        // 添加体型
-        if (profileObj.bodyShape) {
-          profileInfo.push(`我的体型: ${profileObj.bodyShape}`)
-        }
-        
-        // 添加风格偏好
-        if (profileObj.stylePreference) {
-          profileInfo.push(`我的风格偏好: ${profileObj.stylePreference}`)
-        }
-        
-        // 添加肤色
-        if (profileObj.skinTone) {
-          profileInfo.push(`我的肤色: ${profileObj.skinTone}`)
-        }
-        
-        // 添加发色
-        if (profileObj.hairColor) {
-          profileInfo.push(`我的发色: ${profileObj.hairColor}`)
-        }
+        // 遍历字段并添加非空值
+        validFields.forEach(field => {
+          const value = profileObj[field.key]
+          if (value !== undefined && value !== null) {
+            // 数字类型：值不为0才添加
+            if (typeof value === 'number' && value !== 0) {
+              profileInfo.push(`我的${field.label}: ${field.transform ? field.transform(value) : value}`)
+            } 
+            // 字符串类型：非空字符串才添加
+            else if (typeof value === 'string' && value.trim() !== '') {
+              profileInfo.push(`我的${field.label}: ${field.transform ? field.transform(value) : value}`)
+            }
+          }
+        })
         
         return profileInfo.join("\n")
       } catch (e) {
@@ -242,8 +299,8 @@ export default {
             `${externalDataStore.weatherData.text} ${externalDataStore.weatherData.temp}°C` : "",
           luckyColor: getLuckyColor(),
           schedule: getScheduleString(),
-          scene: "", // 每日一搭不指定场景
-          features: "", // 每日一搭不指定特征
+          scene: "日常场景", // 每日一搭默认日常场景
+          features: "日常风格", // 每日一搭默认日常风格
           additionalInfo: getUserProfileString()
         }
         
@@ -264,8 +321,8 @@ export default {
         // 构建完整的数据对象，与DressRecommendView保持一致
         const storeData = {
           ...response,
-          sceneId: "日常场景", // 使用"日常场景"作为场景标识
-          highlightTags: "日常风格" // 使用"日常风格"作为标签
+          sceneId: "每日一搭", // 使用"每日一搭"作为场景标识
+          highlightTags: dailyLuckyColor.value?.name || "幸运色" // 使用幸运色作为标签
         }
         
         console.log('准备存储到store的数据:', storeData)
@@ -312,7 +369,10 @@ export default {
       wordElements,
       matchButton,
       animationStarted,
-      handleButtonClick
+      handleButtonClick,
+      dailyLuckyColor,
+      profileCompleteness,
+      userStore
     }
   }
 }

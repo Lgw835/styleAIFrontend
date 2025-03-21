@@ -187,7 +187,7 @@ import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useScheduleStore } from '@/stores/schedule'
 import UserProfileOverlay from '@/components/UserProfileOverlay.vue'
-import { getWeather, saveWeatherRecord } from '@/api/weather'
+import {saveWeatherRecord } from '@/api/weather'
 import { saveUserProfile } from '@/api/user'
 import TopNavBar from '@/components/TopNavBar.vue'
 
@@ -205,7 +205,7 @@ export default {
     const scheduleStore = useScheduleStore()
     
     // 使用 storeToRefs 确保响应式
-    const { weatherData, loading } = storeToRefs(externalDataStore)
+    const { weatherData, loading, dailyLuckyColor } = storeToRefs(externalDataStore)
 
     // 根据天气状况计算图标
     const weatherIcon = computed(() => {
@@ -255,66 +255,16 @@ export default {
       return '建议穿羽绒服、厚棉服等多层保暖衣物';
     });
     
-    // 每日幸运色
-    const luckyColors = [
-      {
-        name: '浅粉红',
-        hex: '#FFB6C1',
-        description: '象征温柔与甜美，能带来好运与温暖',
-        traits: ['温柔', '浪漫', '亲和力'],
-        suggestion: '今天适合在穿搭中加入粉色元素，会给人留下温柔甜美的印象'
-      },
-      {
-        name: '薄荷绿',
-        hex: '#98FB98',
-        description: '清新自然，代表新的开始与活力',
-        traits: ['清新', '活力', '自然'],
-        suggestion: '今天穿搭可以融入薄荷绿元素，给人清爽自然的感觉'
-      },
-      {
-        name: '宝石蓝',
-        hex: '#4682B4',
-        description: '稳重与智慧的象征，带来安定与自信',
-        traits: ['智慧', '沉稳', '专业'],
-        suggestion: '今天适合以蓝色为主色调，展现专业稳重的形象'
-      },
-      {
-        name: '珊瑚橙',
-        hex: '#FF7F50',
-        description: '充满活力与创造力，带来积极情绪',
-        traits: ['活力', '热情', '创意'],
-        suggestion: '在今天的穿搭中点缀橙色元素，会让你更有活力和亲和力'
-      },
-      {
-        name: '柔和紫',
-        hex: '#D8BFD8',
-        description: '神秘浪漫，象征独特与优雅',
-        traits: ['优雅', '浪漫', '神秘'],
-        suggestion: '今天适合在搭配中加入紫色元素，展现独特品味'
-      },
-      {
-        name: '温暖黄',
-        hex: '#FFD700',
-        description: '阳光活力，象征乐观与希望',
-        traits: ['乐观', '活力', '阳光'],
-        suggestion: '今天在穿搭中融入黄色，会让你更有朝气和感染力'
-      },
-      {
-        name: '沉稳棕',
-        hex: '#8B4513',
-        description: '代表稳重与踏实，给人可靠感',
-        traits: ['稳重', '可靠', '成熟'],
-        suggestion: '今天适合选择棕色系穿搭，展现沉稳大气的风格'
-      }
-    ];
-    
-    // 根据日期计算每日幸运色
-    const dailyLuckyColor = computed(() => {
-      const today = new Date();
-      const dayOfYear = Math.floor((today - new Date(today.getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24));
-      return luckyColors[dayOfYear % luckyColors.length];
+    // 计算幸运色卡片的样式
+    const getLuckyColorStyle = computed(() => {
+      const color = dailyLuckyColor.value.hex || '#FFFFFF';
+      return {
+        background: `linear-gradient(135deg, ${color}10, ${color}20)`,
+        borderLeft: `3px solid ${color}`,
+        color: '#333'
+      };
     });
-
+    
     // 使用 ref 来跟踪访问状态
     const isFirstVisit = ref(sessionStorage.getItem('isFirstVisit') === 'true')
 
@@ -361,10 +311,6 @@ export default {
     onMounted(async () => {
       // 获取天气数据
       await fetchWeather()
-      // 获取幸运色
-      fetchLuckyColor()
-      // 检查日程
-      checkSchedules()
       
       // 保存天气记录 - 明确在天气数据加载完成后调用
       if (weatherData.value && weatherData.value.city && weatherData.value.city !== '正在定位...') {
@@ -436,16 +382,6 @@ export default {
       showNotificationDialog.value = false
       scheduleStore.markNotificationAsViewed()
     }
-
-    // 计算幸运色卡片的样式
-    const getLuckyColorStyle = computed(() => {
-      const color = dailyLuckyColor.value.hex || '#FFFFFF';
-      return {
-        background: `linear-gradient(135deg, ${color}10, ${color}20)`,
-        borderLeft: `3px solid ${color}`,
-        color: '#333'
-      };
-    })
 
     // 是否显示用户画像提醒
     const showProfileReminder = ref(true)

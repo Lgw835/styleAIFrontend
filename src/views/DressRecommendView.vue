@@ -169,22 +169,35 @@ export default {
           ? JSON.parse(profileStr) 
           : profileStr
           
-        const keyFields = [
-          'height', 'weight', 'bodyShape', 'skinTone', 
-          'preferredStyles', 'dislikedStyles', 'colorPreferences'
+        // 排除 ID 字段，计算所有其他字段
+        const validFields = [
+          'gender', 'age', 'height', 'weight', 'bodyShape', 
+          'stylePreference', 'skinTone', 'hairColor', 'hairLength', 
+          'hairStyle', 'eyeColor', 'faceShape', 'bodyType',
+          'tattooDescription', 'piercingDescription', 'otherFeatures'
         ]
         
         let filledFields = 0
-        for (const field of keyFields) {
-          if (profile[field] && 
-              ((typeof profile[field] === 'string' && profile[field].trim() !== '') || 
-               (Array.isArray(profile[field]) && profile[field].length > 0) ||
-               (typeof profile[field] === 'number' && profile[field] > 0))) {
-            filledFields++
+        let totalFields = validFields.length
+        
+        for (const field of validFields) {
+          if (profile[field] !== undefined) {
+            // 数字类型：值不为0算作已填写
+            if (typeof profile[field] === 'number' && profile[field] !== 0) {
+              filledFields++
+            } 
+            // 字符串类型：非空字符串算作已填写
+            else if (typeof profile[field] === 'string' && profile[field].trim() !== '') {
+              filledFields++
+            }
+            // 数组类型：长度大于0算作已填写
+            else if (Array.isArray(profile[field]) && profile[field].length > 0) {
+              filledFields++
+            }
           }
         }
         
-        return Math.round((filledFields / keyFields.length) * 100)
+        return Math.round((filledFields / totalFields) * 100)
       } catch (error) {
         console.error('计算用户画像完整度失败:', error)
         return 0
@@ -266,84 +279,42 @@ export default {
             // 尝试解析用户画像JSON
             const profileObj = JSON.parse(userStore.userProfile);
             
-            // 开始构建用户画像信息，每个有值的字段都添加进来
-            let profileInfo = [];
+            // 构建用户画像信息字符串
+            const profileInfo = [];
             
-            // 添加性别
-            if (profileObj.gender) {
-              const userGender = profileObj.gender === 'male' ? '男' : profileObj.gender === 'female' ? '女' : profileObj.gender;
-              profileInfo.push(`我的性别: ${userGender}`);
-            }
+            // 定义要获取的有效字段
+            const validFields = [
+              { key: 'gender', label: '性别', transform: (val) => val === 'male' ? '男' : val === 'female' ? '女' : val },
+              { key: 'age', label: '年龄', transform: (val) => val + '岁' },
+              { key: 'height', label: '身高', transform: (val) => val + 'cm' },
+              { key: 'weight', label: '体重', transform: (val) => val + 'kg' },
+              { key: 'bodyShape', label: '体型' },
+              { key: 'stylePreference', label: '风格偏好' },
+              { key: 'skinTone', label: '肤色' },
+              { key: 'hairColor', label: '发色' },
+              { key: 'hairLength', label: '发长' },
+              { key: 'hairStyle', label: '发型' },
+              { key: 'eyeColor', label: '眼睛颜色' },
+              { key: 'faceShape', label: '脸型' },
+              { key: 'tattooDescription', label: '纹身描述' },
+              { key: 'piercingDescription', label: '穿孔描述' },
+              { key: 'otherFeatures', label: '其他特征' }
+            ];
             
-            // 添加年龄
-            if (profileObj.age) {
-              profileInfo.push(`我的年龄: ${profileObj.age}岁`);
-            }
-            
-            // 添加身高
-            if (profileObj.height) {
-              profileInfo.push(`我的身高: ${profileObj.height}cm`);
-            }
-            
-            // 添加体重
-            if (profileObj.weight) {
-              profileInfo.push(`我的体重: ${profileObj.weight}kg`);
-            }
-            
-            // 添加体型
-            if (profileObj.bodyShape) {
-              profileInfo.push(`我的体型: ${profileObj.bodyShape}`);
-            }
-            
-            // 添加风格偏好
-            if (profileObj.stylePreference) {
-              profileInfo.push(`我的风格偏好: ${profileObj.stylePreference}`);
-            }
-            
-            // 添加肤色
-            if (profileObj.skinTone) {
-              profileInfo.push(`我的肤色: ${profileObj.skinTone}`);
-            }
-            
-            // 添加发色
-            if (profileObj.hairColor) {
-              profileInfo.push(`我的发色: ${profileObj.hairColor}`);
-            }
-            
-            // 添加发长
-            if (profileObj.hairLength) {
-              profileInfo.push(`我的发长: ${profileObj.hairLength}`);
-            }
-            
-            // 添加发型
-            if (profileObj.hairStyle) {
-              profileInfo.push(`我的发型: ${profileObj.hairStyle}`);
-            }
-            
-            // 添加眼睛颜色
-            if (profileObj.eyeColor) {
-              profileInfo.push(`我的眼睛颜色: ${profileObj.eyeColor}`);
-            }
-            
-            // 添加脸型
-            if (profileObj.faceShape) {
-              profileInfo.push(`我的脸型: ${profileObj.faceShape}`);
-            }
-            
-            // 添加纹身描述
-            if (profileObj.tattooDescription) {
-              profileInfo.push(`我的纹身描述: ${profileObj.tattooDescription}`);
-            }
-            
-            // 添加穿孔描述
-            if (profileObj.piercingDescription) {
-              profileInfo.push(`我的穿孔描述: ${profileObj.piercingDescription}`);
-            }
-            
-            // 添加其他特征
-            if (profileObj.otherFeatures) {
-              profileInfo.push(`我的其他特征: ${profileObj.otherFeatures}`);
-            }
+            // 遍历字段并添加非空值
+            validFields.forEach(field => {
+              const value = profileObj[field.key];
+              if (value !== undefined && value !== null) {
+                // 数字类型：值不为0才添加
+                if (typeof value === 'number' && value !== 0) {
+                  profileInfo.push(`我的${field.label}: ${field.transform ? field.transform(value) : value}`);
+                } 
+                // 字符串类型：非空字符串才添加
+                else if (typeof value === 'string' && value.trim() !== '') {
+                  profileInfo.push(`我的${field.label}: ${field.transform ? field.transform(value) : value}`);
+                }
+              }
+            });
             
             // 将所有信息合并为一个字符串，每项一行
             const profileInfoText = profileInfo.join('\n');
