@@ -54,13 +54,83 @@ export const useScheduleStore = defineStore('schedule', () => {
     if (!userId || !date) return null
     
     try {
-      return await getSchedulesByDate({ 
+      const response = await getSchedulesByDate({ 
         userId,
         date: typeof date === 'string' ? date : formatDateToString(date)
       })
+      
+      // 新增：保存获取到的日程到 Pinia Store
+      if (response && response.scheduleList && response.scheduleList.length > 0) {
+        // 将新获取的日程与现有日程合并，避免重复
+        const newSchedules = response.scheduleList.filter(
+          newS => !schedules.value.some(s => s.scheduleId === newS.scheduleId)
+        )
+        
+        if (newSchedules.length > 0) {
+          schedules.value = [...schedules.value, ...newSchedules]
+          console.log(`将${newSchedules.length}条日程添加到状态管理中`)
+          // 自动保存到会话存储（由于 watch 会触发）
+        }
+      }
+      
+      return response
     } catch (error) {
       console.error('获取日程失败:', error)
       return null
+    }
+  }
+
+  // 根据ID获取单个日程详情
+  async function fetchScheduleById(scheduleId, userId) {
+    if (!scheduleId || !userId) {
+      return { success: false, message: '参数不完整' }
+    }
+    
+    try {
+      // 首先检查本地缓存中是否存在该日程
+      const cachedSchedule = schedules.value.find(s => s.scheduleId === scheduleId)
+      if (cachedSchedule) {
+        console.log('从本地缓存中找到日程:', scheduleId)
+        return { success: true, schedule: cachedSchedule }
+      }
+      
+      // 如果本地缓存中没有找到，尝试通过获取该日期的所有日程来查找
+      // 但首先我们需要获取今天的日程，因为大多数情况下用户查看的是今天的日程
+      if (schedules.value.length === 0) {
+        console.log('本地缓存为空，获取今日日程')
+        const todayResponse = await fetchTodaySchedules(userId)
+        if (todayResponse && todayResponse.scheduleList) {
+          const foundInToday = todayResponse.scheduleList.find(s => s.scheduleId === scheduleId)
+          if (foundInToday) {
+            console.log('在今日日程中找到:', scheduleId)
+            return { success: true, schedule: foundInToday }
+          }
+        }
+      }
+      
+      // 如果在今日日程中未找到，需要检查会话存储
+      try {
+        const savedData = sessionStorage.getItem('scheduleData')
+        if (savedData) {
+          const data = JSON.parse(savedData)
+          if (data.schedules && Array.isArray(data.schedules)) {
+            const foundInSession = data.schedules.find(s => s.scheduleId === scheduleId)
+            if (foundInSession) {
+              console.log('在会话存储中找到日程:', scheduleId)
+              return { success: true, schedule: foundInSession }
+            }
+          }
+        }
+      } catch (sessionError) {
+        console.error('读取会话存储失败:', sessionError)
+      }
+      
+      // 如果未找到日程，返回失败，建议返回日程模块主页
+      console.error('未找到对应日程:', scheduleId)
+      return { success: false, message: '未找到对应日程，请返回日程列表页' }
+    } catch (error) {
+      console.error('获取日程详情失败:', error)
+      return { success: false, message: '获取日程详情失败' }
     }
   }
 
@@ -155,28 +225,87 @@ export const useScheduleStore = defineStore('schedule', () => {
     saveToSession()
   }
 
+  // 将通知标记为已查看
+  function markNotificationAsViewed() {
+    todayNotificationViewed.value = true
+    saveToSession()
+  }
+
   // 修改保存到 session 的数据
   function saveToSession() {
-    const data = {
-      schedules: schedules.value,
-      importantCount: importantCount.value,
-      lastUpdated: lastUpdated.value,
-      todaySchedules: todaySchedules.value,
-      todayNotificationViewed: todayNotificationViewed.value
+    try {
+      // 先尝试获取已有的数据
+      let existingData = {}
+      const savedData = sessionStorage.getItem('scheduleData')
+      if (savedData) {
+        try {
+          existingData = JSON.parse(savedData)
+        } catch (e) {
+          console.error('解析会话存储中的日程数据失败:', e)
+          existingData = {}
+        }
+      }
+      
+      // 准备要保存的数据
+      const data = {
+        schedules: schedules.value,
+        importantCount: importantCount.value,
+        lastUpdated: new Date().toISOString(),
+        todaySchedules: todaySchedules.value,
+        todayNotificationViewed: todayNotificationViewed.value
+      }
+      
+      // 如果存在已有数据，尝试合并数组
+      if (existingData.schedules && Array.isArray(existingData.schedules)) {
+        // 合并日程列表，去除重复项
+        const mergedSchedules = [...data.schedules]
+        
+        existingData.schedules.forEach(existingSchedule => {
+          if (!mergedSchedules.some(s => s.scheduleId === existingSchedule.scheduleId)) {
+            mergedSchedules.push(existingSchedule)
+          }
+        })
+        
+        data.schedules = mergedSchedules
+      }
+      
+      // 保存到会话存储
+      sessionStorage.setItem('scheduleData', JSON.stringify(data))
+      console.log('日程数据已保存到会话存储，共', data.schedules.length, '条')
+    } catch (error) {
+      console.error('保存日程数据到会话存储失败:', error)
     }
-    sessionStorage.setItem('scheduleData', JSON.stringify(data))
   }
   
   // 修改从 session 恢复数据的方法
   function restoreFromSession() {
-    const savedData = sessionStorage.getItem('scheduleData')
-    if (savedData) {
-      const data = JSON.parse(savedData)
-      schedules.value = data.schedules || []
-      importantCount.value = data.importantCount || 0
-      lastUpdated.value = data.lastUpdated || null
-      todaySchedules.value = data.todaySchedules || []
-      todayNotificationViewed.value = data.todayNotificationViewed || false
+    try {
+      const savedData = sessionStorage.getItem('scheduleData')
+      if (savedData) {
+        const data = JSON.parse(savedData)
+        
+        // 恢复日程列表
+        if (data.schedules && Array.isArray(data.schedules)) {
+          schedules.value = data.schedules
+        }
+        
+        // 恢复其他数据
+        importantCount.value = data.importantCount || 0
+        lastUpdated.value = data.lastUpdated || null
+        
+        if (data.todaySchedules && Array.isArray(data.todaySchedules)) {
+          todaySchedules.value = data.todaySchedules
+        }
+        
+        todayNotificationViewed.value = data.todayNotificationViewed || false
+        
+        console.log('从会话存储恢复日程数据，共', schedules.value.length, '条')
+        return true
+      }
+      return false
+    } catch (error) {
+      console.error('从会话存储恢复日程数据失败:', error)
+      return false
     }
   }
   
@@ -204,9 +333,11 @@ export const useScheduleStore = defineStore('schedule', () => {
     restoreFromSession,
     saveToSession,
     setTodayNotificationViewed,
+    markNotificationAsViewed,
     
     // 日程模块内部使用的方法
     fetchSchedulesByDate,
+    fetchScheduleById,
     createSchedule: createNewSchedule,
     updateSchedule: updateExistingSchedule,
     deleteSchedule: deleteExistingSchedule

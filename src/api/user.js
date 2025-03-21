@@ -54,6 +54,19 @@ export function loginWithPhone(data) {
 }
 
 /**
+ * 保存或更新用户画像
+ * @param {Object} data - 用户画像数据
+ * @returns {Promise}
+ */
+export function saveUserProfile(data) {
+  return request({
+    url: USER_API.PROFILE,
+    method: 'post',
+    data
+  })
+}
+
+/**
  * 更新用户信息
  * @param {Object} data - 用户信息 {userId, username, imagePath}
  * @returns {Promise}

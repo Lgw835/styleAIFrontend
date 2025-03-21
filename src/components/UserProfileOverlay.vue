@@ -205,10 +205,11 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { updateProfile } from '@/api/user'
 import { useUserStore } from '@/stores/user'
 import { showToast } from 'vant'
+import { saveUserProfile } from '@/api/user'
 
 const props = defineProps({
   show: Boolean
@@ -283,8 +284,8 @@ const saveProfile = async () => {
       throw new Error('未找到用户ID，无法保存个人信息');
     }
     
-    // 调用API保存数据
-    const success = await updateProfile(profileToSave);
+    // 调用API保存数据 - 使用新的接口
+    const success = await saveUserProfile(profileToSave);
     
     if (success === true) {
       // 更新本地store
@@ -308,7 +309,26 @@ const skipProfile = async () => {
   
   try {
     // 创建只包含用户ID的最小请求对象
-    const minimalProfileData = {};
+    const minimalProfileData = {
+      userId: "",
+      profileId: "",
+      gender: "",
+      age: 0,
+      height: 0,
+      weight: 0,
+      bodyShape: "",
+      stylePreference: "",
+      skinTone: "",
+      hairColor: "",
+      hairLength: "",
+      hairStyle: "",
+      eyeColor: "",
+      faceShape: "",
+      bodyType: "",
+      tattooDescription: "",
+      piercingDescription: "",
+      otherFeatures: ""
+    };
     
     // 添加用户ID
     if (userStore.userInfo && userStore.userInfo.userId) {
@@ -322,12 +342,13 @@ const skipProfile = async () => {
       throw new Error('未找到用户ID，无法处理请求');
     }
     
-    // 调用API发送最小请求
-    const success = await updateProfile(minimalProfileData);
+    // 调用API发送最小请求 - 使用新的接口
+    const success = await saveUserProfile(minimalProfileData);
     
     if (success === true) {
-      // 不更新本地store中的用户画像数据
-      console.log('已向服务器发送最小用户画像请求');
+      // 更新本地store中的用户画像数据，但使用最小数据
+      userStore.setUserProfile(minimalProfileData);
+      console.log('已向服务器发送用户画像请求');
       emit('skip');
     } else {
       throw new Error('处理失败，请稍后再试');

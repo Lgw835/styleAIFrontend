@@ -167,6 +167,9 @@ async function fetchSchedules() {
 
     if (response && response.scheduleList) {
       daySchedules.value = response.scheduleList
+      
+      // 确保日程已保存到会话存储中
+      scheduleStore.saveToSession()
     }
   } catch (error) {
     console.error('获取日程失败:', error)

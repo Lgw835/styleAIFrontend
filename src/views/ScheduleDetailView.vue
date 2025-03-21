@@ -184,17 +184,32 @@ onMounted(async () => {
     return
   }
 
-  // 如果schedules为空，先获取日程列表
-  if (scheduleStore.schedules.length === 0) {
-    await scheduleStore.fetchTodaySchedules(userStore.userInfo?.userId)
-  }
-
-  const foundEvent = scheduleStore.schedules.find(e => e.scheduleId === eventId)
-  if (foundEvent) {
-    event.value = foundEvent
-    isReminderEnabled.value = foundEvent.reminder === 1
-    editedEvent.value = { ...foundEvent }
-  } else {
+  try {
+    // 直接通过ID获取日程详情
+    const result = await scheduleStore.fetchScheduleById(eventId, userStore.userInfo?.userId)
+    
+    if (result && result.success && result.schedule) {
+      // 使用获取到的日程数据
+      event.value = result.schedule
+      isReminderEnabled.value = result.schedule.reminder === 1
+      editedEvent.value = { ...result.schedule }
+    } else {
+      // 如果API调用成功但未返回日程数据，尝试从本地查找
+      const foundEvent = scheduleStore.schedules.find(e => e.scheduleId === eventId)
+      if (foundEvent) {
+        event.value = foundEvent
+        isReminderEnabled.value = foundEvent.reminder === 1
+        editedEvent.value = { ...foundEvent }
+      } else {
+        // 如果本地也找不到，则返回列表页
+        console.error('未找到对应日程:', eventId)
+        alert('未找到对应日程，请返回日程列表重新选择')
+        router.push('/schedule')
+      }
+    }
+  } catch (error) {
+    console.error('获取日程详情失败:', error)
+    alert('获取日程详情失败，请返回日程列表重新选择')
     router.push('/schedule')
   }
 })

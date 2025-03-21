@@ -188,6 +188,7 @@ import { storeToRefs } from 'pinia'
 import { useScheduleStore } from '@/stores/schedule'
 import UserProfileOverlay from '@/components/UserProfileOverlay.vue'
 import { getWeather, saveWeatherRecord } from '@/api/weather'
+import { saveUserProfile } from '@/api/user'
 import TopNavBar from '@/components/TopNavBar.vue'
 
 export default {
@@ -450,10 +451,41 @@ export default {
     const showProfileReminder = ref(true)
 
     // 关闭提醒
-    const dismissProfileReminder = () => {
+    const dismissProfileReminder = async () => {
       showProfileReminder.value = false
       // 可以设置一个临时的状态，避免频繁提醒用户
       sessionStorage.setItem('profileReminderDismissed', Date.now().toString())
+      
+      // 调用接口保存一个空的用户画像
+      try {
+        const emptyProfile = {
+          userId: userStore.userInfo.userId,
+          profileId: "",
+          gender: "",
+          age: 0,
+          height: 0,
+          weight: 0,
+          bodyShape: "",
+          stylePreference: "",
+          skinTone: "",
+          hairColor: "",
+          hairLength: "",
+          hairStyle: "",
+          eyeColor: "",
+          faceShape: "",
+          bodyType: "",
+          tattooDescription: "",
+          piercingDescription: "",
+          otherFeatures: ""
+        };
+        
+        await saveUserProfile(emptyProfile);
+        
+        // 保存成功后更新store中的用户画像
+        userStore.setUserProfile(emptyProfile);
+      } catch (error) {
+        console.error('保存用户画像失败:', error);
+      }
     }
 
     // 检查是否应该显示提醒

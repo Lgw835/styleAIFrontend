@@ -435,6 +435,12 @@ onMounted(() => {
                 muted
                 loop
                 playsinline
+                webkit-playsinline=""
+                x5-playsinline
+                t7-video-player-type="inline"
+                x5-video-player-type="h5-page"
+                x-webkit-airplay="allow"
+                disablePictureInPicture
                 :src="getVideoUrl(post)"
                 preload="metadata"
                 controlsList="nodownload"
