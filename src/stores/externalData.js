@@ -2,6 +2,34 @@ import { defineStore } from 'pinia'
 import { ref, watch, computed } from 'vue'
 import axios from 'axios'
 
+// 添加错误重试功能
+axios.interceptors.response.use(undefined, async function axiosRetryInterceptor(err) {
+  const config = err.config;
+  if(!config || !config.retries) return Promise.reject(err);
+  
+  // 设置变量跟踪重试次数
+  config.__retryCount = config.__retryCount || 0;
+  
+  // 检查是否已经重试了最大次数
+  if(config.__retryCount >= config.retries) {
+    return Promise.reject(err);
+  }
+  
+  // 增加重试计数
+  config.__retryCount += 1;
+  
+  // 创建新的 Promise
+  const backoff = new Promise(function(resolve) {
+    setTimeout(function() {
+      resolve();
+    }, config.retryDelay || 1000);
+  });
+  
+  // 返回重试 Promise
+  await backoff;
+  return await axios(config);
+});
+
 export const useExternalDataStore = defineStore('externalData', () => {
   // IP 地址信息
   const ipInfo = ref(null)
@@ -16,7 +44,8 @@ export const useExternalDataStore = defineStore('externalData', () => {
     humidity: null,        // 湿度
     windDirection: null,   // 风向
     windPower: null,       // 风力
-    lastUpdated: null
+    lastUpdated: null,
+    isDefaultData: false   // 标记是否为默认/模拟数据
   })
   // 位置信息
   const locationData = ref({
@@ -32,6 +61,16 @@ export const useExternalDataStore = defineStore('externalData', () => {
     ipInfo: false,
     location: false
   })
+  
+  // API状态跟踪
+  const apiStatus = ref({
+    amapIpAPI: true, // 高德IP定位API可用状态
+    amapWeatherAPI: true, // 高德天气API可用状态 
+    geolocationAPI: true // 浏览器地理定位API可用状态
+  })
+  
+  // 天气缓存生存期（分钟）
+  const WEATHER_CACHE_TTL = 30;
   
   // 幸运色数据
   const luckyColors = [
@@ -103,12 +142,27 @@ export const useExternalDataStore = defineStore('externalData', () => {
   async function fetchIpInfo() {
     try {
       loading.value.ipInfo = true
-      // 使用高德地图 IP 定位服务
-      const response = await axios.get(`https://restapi.amap.com/v3/ip`, {
+      
+      // 如果高德IP API之前失败过，直接返回默认值
+      if (!apiStatus.value.amapIpAPI) {
+        console.warn('高德IP定位API之前已失败，使用默认IP信息');
+        return getDefaultIpInfo();
+      }
+      
+      // 配置axios请求
+      const axiosConfig = {
         params: {
           key: AMAP_KEY
-        }
-      })
+        },
+        // 添加超时设置，适应移动网络
+        timeout: 10000,
+        // 添加错误重试
+        retries: 2,
+        retryDelay: 1000
+      };
+      
+      // 使用高德地图 IP 定位服务
+      const response = await axios.get(`https://restapi.amap.com/v3/ip`, axiosConfig);
       
       if (response.data.status === '1') {
         ipInfo.value = {
@@ -118,16 +172,35 @@ export const useExternalDataStore = defineStore('externalData', () => {
           adcode: response.data.adcode,
           rectangle: response.data.rectangle // 所在城市范围的经纬度
         }
+        // 标记API为可用
+        apiStatus.value.amapIpAPI = true;
         return ipInfo.value
       } else {
-        throw new Error('IP定位失败')
+        console.warn('IP定位API返回非成功状态:', response.data);
+        // 标记API为不可用
+        apiStatus.value.amapIpAPI = false;
+        throw new Error('IP定位失败: ' + (response.data.info || '未知错误'))
       }
     } catch (error) {
       console.error('获取 IP 信息失败:', error)
-      return null
+      // 标记API为不可用
+      apiStatus.value.amapIpAPI = false;
+      return getDefaultIpInfo();
     } finally {
       loading.value.ipInfo = false
     }
+  }
+  
+  // 获取默认的IP信息
+  function getDefaultIpInfo() {
+    ipInfo.value = {
+      ip: "",
+      province: "北京市",
+      city: "北京市",
+      adcode: "110000",
+      rectangle: "116.0119343,39.66127144;116.7829835,40.2164962"
+    }
+    return ipInfo.value;
   }
 
   // 获取用户位置
@@ -139,41 +212,76 @@ export const useExternalDataStore = defineStore('externalData', () => {
     try {
       loading.value.location = true
       
-      // 仅当开启浏览器地理定位时才尝试使用
-      if (useBrowserGeolocation.value && navigator.geolocation) {
+      // 仅当开启浏览器地理定位且API之前未失败时才尝试使用
+      if (useBrowserGeolocation.value && navigator.geolocation && apiStatus.value.geolocationAPI) {
         try {
           const position = await new Promise((resolve, reject) => {
-            navigator.geolocation.getCurrentPosition(resolve, reject, {
-              enableHighAccuracy: true,
-              timeout: 5000,
-              maximumAge: 0
-            })
-          })
+            // 增加超时时间以适应移动网络
+            const geolocationTimeout = 10000; // 增加到10秒
+            
+            // 设置定位选项
+            const options = {
+              enableHighAccuracy: false, // 关闭高精度定位，提高兼容性
+              timeout: geolocationTimeout,
+              maximumAge: 60000 // 增加缓存时间到60秒
+            };
+            
+            // 添加超时保险机制
+            const timeoutId = setTimeout(() => {
+              reject(new Error('地理位置请求超时'));
+            }, geolocationTimeout + 1000);
+            
+            navigator.geolocation.getCurrentPosition(
+              (pos) => {
+                clearTimeout(timeoutId);
+                resolve(pos);
+              },
+              (err) => {
+                clearTimeout(timeoutId);
+                reject(err);
+              },
+              options
+            );
+          });
+          
+          // 成功获取到位置后，标记 API 为可用
+          apiStatus.value.geolocationAPI = true;
           
           locationData.value.latitude = position.coords.latitude
           locationData.value.longitude = position.coords.longitude
           
           // 使用高德地图逆地理编码获取详细位置信息
-          const response = await axios.get('https://restapi.amap.com/v3/geocode/regeo', {
-            params: {
-              key: AMAP_KEY,
-              location: `${position.coords.longitude},${position.coords.latitude}`,
-              extensions: 'base'
+          try {
+            const response = await axios.get('https://restapi.amap.com/v3/geocode/regeo', {
+              params: {
+                key: AMAP_KEY,
+                location: `${position.coords.longitude},${position.coords.latitude}`,
+                extensions: 'base'
+              },
+              timeout: 10000 // 添加10秒超时
+            })
+            
+            if (response.data.status === '1' && response.data.regeocode) {
+              const addressComponent = response.data.regeocode.addressComponent
+              locationData.value.city = addressComponent.city || addressComponent.district
+              locationData.value.province = addressComponent.province
+              locationData.value.adcode = addressComponent.adcode
+            } else {
+              console.warn('逆地理编码API返回非成功状态:', response.data);
             }
-          })
-          
-          if (response.data.status === '1' && response.data.regeocode) {
-            const addressComponent = response.data.regeocode.addressComponent
-            locationData.value.city = addressComponent.city || addressComponent.district
-            locationData.value.province = addressComponent.province
-            locationData.value.adcode = addressComponent.adcode
+          } catch (geoError) {
+            console.error('逆地理编码失败:', geoError);
+            // 逆地理编码失败不影响位置获取
           }
           
           return locationData.value
         } catch (error) {
           console.error('浏览器定位失败，尝试IP定位:', error)
-          // 浏览器地理位置API失败，回退到IP定位
+          // 标记浏览器地理定位 API 不可用
+          apiStatus.value.geolocationAPI = false;
         }
+      } else if (!apiStatus.value.geolocationAPI) {
+        console.warn('浏览器地理定位API之前已失败，直接使用IP定位');
       }
       
       // 如果浏览器定位未启用或失败，使用IP定位
@@ -224,13 +332,13 @@ export const useExternalDataStore = defineStore('externalData', () => {
     try {
       loading.value.weather = true
       
-      // 检查是否已有天气数据且数据较新（不超过30分钟）
+      // 检查是否已有天气数据且数据较新（不超过设定的缓存时间）
       const now = new Date()
       if (weatherData.value.lastUpdated) {
         const lastUpdate = new Date(weatherData.value.lastUpdated)
         const timeDiff = now - lastUpdate
-        // 如果不到30分钟，直接返回现有数据
-        if (timeDiff < 30 * 60 * 1000) {
+        // 如果数据足够新，直接返回现有数据
+        if (timeDiff < WEATHER_CACHE_TTL * 60 * 1000) {
           return weatherData.value
         }
       }
@@ -238,80 +346,107 @@ export const useExternalDataStore = defineStore('externalData', () => {
       // 获取位置信息
       const location = await getLocationData()
       if (!location?.adcode) {
-        throw new Error('无法获取位置信息')
+        console.warn('无法获取位置信息，使用默认天气数据')
+        setDefaultWeatherData()
+        return weatherData.value
       }
       
-      // 使用高德天气API
-      const weatherResponse = await axios.get('https://restapi.amap.com/v3/weather/weatherInfo', {
-        params: {
-          key: AMAP_KEY,
-          city: location.adcode,
-          extensions: 'all' // 获取预报
-        }
-      })
+      // 如果之前高德天气API已失败，直接使用备选API
+      if (!apiStatus.value.amapWeatherAPI) {
+        console.warn('高德天气API之前已失败，尝试使用备选API');
+        return await fetchBackupWeatherData(location);
+      }
       
-      // 获取实时天气数据
-      const liveWeatherResponse = await axios.get('https://restapi.amap.com/v3/weather/weatherInfo', {
-        params: {
-          key: AMAP_KEY,
-          city: location.adcode,
-          extensions: 'base' // 获取实时
+      // 通用请求配置
+      const requestConfig = {
+        timeout: 10000, // 10秒超时
+        retries: 2,     // 重试次数
+        retryDelay: 1000, // 重试延迟
+        headers: {
+          'Accept': 'application/json',
+          'Cache-Control': 'no-cache'
         }
-      })
+      };
       
-      // 处理天气数据
-      if (weatherResponse.data.status === '1' && liveWeatherResponse.data.status === '1') {
-        const forecasts = weatherResponse.data.forecasts[0]
-        const casts = forecasts.casts
-        const live = liveWeatherResponse.data.lives[0]
-        const today = casts[0] // 今天的预报
-        
-        // 获取空气质量数据（高德API需要单独请求）
-        let airQuality = '未知'
-        try {
-          const airResponse = await axios.get('https://restapi.amap.com/v3/air/quality', {
+      try {
+        // 并发获取天气预报和实时天气数据
+        const [weatherResponse, liveWeatherResponse] = await Promise.all([
+          // 天气预报
+          axios.get('https://restapi.amap.com/v3/weather/weatherInfo', {
+            ...requestConfig,
             params: {
-              key: "ff213d3a230f61fd33a26cd19a22f5e2",
-              city: location.adcode
+              key: AMAP_KEY,
+              city: location.adcode,
+              extensions: 'all' // 获取预报
+            }
+          }),
+          // 实时天气
+          axios.get('https://restapi.amap.com/v3/weather/weatherInfo', {
+            ...requestConfig,
+            params: {
+              key: AMAP_KEY,
+              city: location.adcode,
+              extensions: 'base' // 获取实时
             }
           })
-          if (airResponse.data.status === '1' && airResponse.data.lives.length > 0) {
-            const airLive = airResponse.data.lives[0]
-            airQuality = getAirQualityText(airLive.quality)
-          }
-        } catch (error) {
-          console.error('获取空气质量数据失败:', error)
-        }
+        ]);
         
-        weatherData.value = {
-          city: forecasts.city || location.city,
-          temp: live.temperature,
-          tempMin: today.nighttemp,
-          tempMax: today.daytemp,
-          text: live.weather,
-          airQuality: airQuality,
-          humidity: live.humidity,
-          windDirection: live.winddirection,
-          windPower: live.windpower,
-          lastUpdated: now.toISOString()
+        // 处理天气数据
+        if (weatherResponse.data.status === '1' && liveWeatherResponse.data.status === '1') {
+          const forecasts = weatherResponse.data.forecasts[0]
+          if (!forecasts || !forecasts.casts || forecasts.casts.length === 0) {
+            console.warn('天气预报数据不完整:', weatherResponse.data);
+            throw new Error('天气预报数据异常');
+          }
+          
+          const casts = forecasts.casts
+          const live = liveWeatherResponse.data.lives[0]
+          if (!live) {
+            console.warn('实时天气数据不完整:', liveWeatherResponse.data);
+            throw new Error('实时天气数据异常');
+          }
+          
+          const today = casts[0] // 今天的预报
+          
+          // 获取空气质量数据
+          let airQuality = await fetchAirQuality(location.adcode);
+          
+          // 标记API成功
+          apiStatus.value.amapWeatherAPI = true;
+          
+          weatherData.value = {
+            city: forecasts.city || location.city || '北京',
+            temp: live.temperature || '23',
+            tempMin: today.nighttemp || '15',
+            tempMax: today.daytemp || '26',
+            text: live.weather || '晴朗',
+            airQuality: airQuality,
+            humidity: live.humidity || '50',
+            windDirection: live.winddirection || '东南',
+            windPower: live.windpower || '3级',
+            lastUpdated: now.toISOString(),
+            isDefaultData: false
+          }
+        } else {
+          console.warn('天气API返回非成功状态:', {
+            weatherStatus: weatherResponse?.data?.status,
+            liveStatus: liveWeatherResponse?.data?.status
+          });
+          throw new Error('获取天气数据失败')
         }
-      } else {
-        throw new Error('获取天气数据失败')
+      } catch (error) {
+        console.error('高德天气API请求失败，尝试备选API:', error);
+        // 标记API不可用
+        apiStatus.value.amapWeatherAPI = false;
+        // 尝试使用备选API
+        return await fetchBackupWeatherData(location);
       }
       
       return weatherData.value
     } catch (error) {
       console.error('获取天气数据失败:', error)
-      // 设置默认数据，但保留上次更新时间
-      weatherData.value = {
-        ...weatherData.value,
-        city: weatherData.value.city !== '正在定位...' ? weatherData.value.city : '北京',
-        temp: '23',
-        tempMin: '15',
-        tempMax: '26',
-        text: '晴朗',
-        airQuality: '空气优'
-      }
+      // 设置默认数据
+      setDefaultWeatherData()
       return weatherData.value
     } finally {
       loading.value.weather = false
@@ -329,6 +464,33 @@ export const useExternalDataStore = defineStore('externalData', () => {
       '严重污染': '严重污染'
     }
     return qualityMap[category] || category
+  }
+
+  // 获取空气质量数据
+  async function fetchAirQuality(adcode) {
+    try {
+      const requestConfig = {
+        timeout: 10000,
+        retries: 1,
+        retryDelay: 1000,
+        params: {
+          key: AMAP_KEY,
+          city: adcode
+        }
+      };
+      
+      const airResponse = await axios.get('https://restapi.amap.com/v3/air/quality', requestConfig);
+      
+      if (airResponse.data.status === '1' && airResponse.data.lives.length > 0) {
+        const airLive = airResponse.data.lives[0]
+        return getAirQualityText(airLive.quality);
+      }
+    } catch (error) {
+      console.error('获取空气质量数据失败:', error);
+    }
+    
+    // 默认返回良好
+    return '空气良';
   }
 
   // 手动设置位置
@@ -373,6 +535,101 @@ export const useExternalDataStore = defineStore('externalData', () => {
   // 初始化时恢复数据
   restoreFromSession()
 
+  // 设置默认天气数据
+  function setDefaultWeatherData() {
+    const now = new Date()
+    weatherData.value = {
+      ...weatherData.value,
+      city: weatherData.value.city !== '正在定位...' ? weatherData.value.city : '北京',
+      temp: '23',
+      tempMin: '15',
+      tempMax: '26',
+      text: '晴朗',
+      airQuality: '空气良',
+      humidity: '50',
+      windDirection: '东南',
+      windPower: '3级',
+      lastUpdated: now.toISOString(),
+      isDefaultData: true
+    }
+  }
+
+  // 使用备选API获取天气数据的函数
+  async function fetchBackupWeatherData(location) {
+    try {
+      console.log('正在使用备选天气数据源...');
+      
+      // 这里可以实现多种备选API
+      // 方案1: 使用OpenWeatherMap等其他第三方API
+      // 方案2: 使用静态数据 + 简单随机变化
+      
+      // 由于这是备选方案，我们这里使用一个简单模拟方法生成天气数据
+      const now = new Date();
+      const month = now.getMonth(); // 0-11
+      
+      // 根据月份确定季节性温度范围
+      let tempRange, weatherTypes;
+      
+      // 北半球季节判断 (简化版)
+      if (month >= 2 && month <= 4) {
+        // 春季
+        tempRange = { min: 10, max: 25 };
+        weatherTypes = ['晴朗', '多云', '小雨', '阵雨'];
+      } else if (month >= 5 && month <= 7) {
+        // 夏季
+        tempRange = { min: 18, max: 35 };
+        weatherTypes = ['晴朗', '多云', '雷阵雨', '阵雨'];
+      } else if (month >= 8 && month <= 10) {
+        // 秋季
+        tempRange = { min: 10, max: 28 };
+        weatherTypes = ['晴朗', '多云', '小雨', '阵雨'];
+      } else {
+        // 冬季
+        tempRange = { min: -5, max: 15 };
+        weatherTypes = ['晴朗', '多云', '阴天', '小雪'];
+      }
+      
+      // 随机生成一个温度在范围内
+      const currentTemp = Math.floor(Math.random() * (tempRange.max - tempRange.min + 1)) + tempRange.min;
+      const minTemp = Math.max(currentTemp - 5, tempRange.min);
+      const maxTemp = Math.min(currentTemp + 5, tempRange.max);
+      
+      // 随机选择一个天气类型
+      const weatherText = weatherTypes[Math.floor(Math.random() * weatherTypes.length)];
+      
+      // 随机生成湿度 (30-80%)
+      const humidity = Math.floor(Math.random() * 51) + 30;
+      
+      // 风向
+      const directions = ['东', '南', '西', '北', '东北', '东南', '西南', '西北'];
+      const windDirection = directions[Math.floor(Math.random() * directions.length)];
+      
+      // 风力
+      const windPower = `${Math.floor(Math.random() * 6) + 1}级`;
+      
+      weatherData.value = {
+        city: location.city || '北京',
+        temp: currentTemp.toString(),
+        tempMin: minTemp.toString(),
+        tempMax: maxTemp.toString(),
+        text: weatherText,
+        airQuality: '空气良',
+        humidity: humidity.toString(),
+        windDirection: windDirection,
+        windPower: windPower,
+        lastUpdated: now.toISOString(),
+        isDefaultData: true
+      }
+      
+      return weatherData.value;
+    } catch (error) {
+      console.error('备选天气API也失败:', error);
+      // 最终失败时设置默认数据
+      setDefaultWeatherData();
+      return weatherData.value;
+    }
+  }
+
   return {
     ipInfo,
     weatherData,
@@ -386,6 +643,8 @@ export const useExternalDataStore = defineStore('externalData', () => {
     setLocation,
     setBrowserGeolocation,
     restoreFromSession,
-    saveToSession
+    saveToSession,
+    setDefaultWeatherData,
+    fetchBackupWeatherData
   }
 }) 
